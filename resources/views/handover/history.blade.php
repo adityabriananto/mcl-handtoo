@@ -186,7 +186,7 @@
                     <span class="text-xl flex items-center space-x-3">
                         <span class="text-blue-600 dark:text-blue-400">#{{ $handoverId }}</span>
                         <span class="text-gray-500 dark:text-gray-400">|</span>
-                        <span>Carrier: **{{ $batchData['threePlName'] }}** ({{ $batchData['awbs']->count() }} AWBs)</span>
+                        <span>3PL: {{ $batchData['threePlName'] }} ({{ $batchData['awbs']->count() }} AWBs)</span>
 
                         {{-- Manifest Signed Badge --}}
                         <span class="px-3 py-0.5 text-xs rounded-full {{ $signedLabelClass }} font-semibold ml-4">
@@ -237,7 +237,7 @@
                         {{-- Summary Info --}}
                         <div class="lg:col-span-1 space-y-2 p-4 bg-gray-50 dark:bg-gray-850 rounded-lg">
                             <p class="text-sm dark:text-gray-400">**Finalized At:** <br><span class="font-mono text-gray-700 dark:text-gray-300">{{ $batchData['latestTs'] ? $batchData['latestTs']->format('Y-m-d H:i:s') : 'N/A' }}</span></p>
-                            <p class="text-sm dark:text-gray-400">**Signed File:** <br><span class="font-mono text-gray-700 dark:text-gray-300">{{ $signedFileName }}</span></p>
+                            <p class="text-sm dark:text-gray-400">**Signed At:** <br><span class="font-mono text-gray-700 dark:text-gray-300">{{ $batchData['signedTs'] ? $batchData['signedTs'] : 'N/A' }}</span></p>
                         </div>
                     </div>
 

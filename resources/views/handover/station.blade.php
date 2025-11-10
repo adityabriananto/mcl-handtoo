@@ -79,7 +79,7 @@
                     <div class="md:col-span-1">
                         @if (session('batch_status') != 'staged')
                             <button type="submit" class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150">
-                                **Start**
+                                Start
                             </button>
                         @else
                             <button type="button" class="w-full py-3 px-4 rounded-md text-lg font-medium text-gray-700 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 cursor-not-allowed">
