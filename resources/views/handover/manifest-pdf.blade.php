@@ -45,8 +45,7 @@
 
             <div class="metadata-right" style="float: right;">
                 <p>Printed Date: {{ $printDate }}</p>
-                <img src="{{ $logoUrl }}" alt="Logistics Logo" style="height: 50px;">
-                <h3 style="margin-top: 5px;">Carrier: {{ $batch->three_pl }}</h3>
+                <h3 style="margin-top: 5px;">3PL: {{ $batch->three_pl }}</h3>
             </div>
             <div style="clear: both;"></div>
         </div>

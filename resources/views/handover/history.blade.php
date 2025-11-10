@@ -8,20 +8,7 @@
         📊 Handover History Dashboard
     </h1>
 
-    {{-- Notifikasi Flash --}}
-    @if (session('success'))
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg dark:bg-green-900 dark:border-green-400 dark:text-green-200" role="alert">
-            <p class="font-bold">Success!</p>
-            <p>{!! session('success') !!}</p>
-        </div>
-    @endif
-    @if (session('error'))
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg dark:bg-red-900 dark:border-red-400 dark:text-red-200" role="alert">
-            <p class="font-bold">Error!</p>
-            <p>{!! session('error') !!}</p>
-        </div>
-    @endif
-
+    {{-- Notifikasi Flash (Dikomenterkan dari code user) --}}
     {{-- STATISTIK DASHBOARD ANGKA --}}
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
         {{-- Card 1: Total Batches (GRAY/DEFAULT) --}}
@@ -55,6 +42,8 @@
         </div>
     </div>
 
+    ---
+
     {{-- 1. Filter Section --}}
     <div class="bg-white dark:bg-gray-800 shadow-2xl rounded-xl">
         <div class="p-5 bg-gray-50 dark:bg-gray-700 rounded-t-xl border-b border-gray-200 dark:border-gray-600">
@@ -65,19 +54,19 @@
                 <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
 
                     {{-- Handover ID --}}
-                    <div>
+                    <div class="md:col-span-2 lg:col-span-1">
                         <label for="handover_id" class="label-text">Handover ID</label>
                         <input type="text" class="input-field" name="handover_id" placeholder="HO-..." value="{{ request('handover_id') }}">
                     </div>
 
-                    {{-- AWB Number (BARU) --}}
-                    <div>
+                    {{-- AWB Number --}}
+                    <div class="md:col-span-2 lg:col-span-1">
                         <label for="airwaybill" class="label-text">AWB Number</label>
                         <input type="text" class="input-field" name="airwaybill" placeholder="AWB12345..." value="{{ request('airwaybill') }}">
                     </div>
 
                     {{-- Carrier --}}
-                    <div>
+                    <div class="md:col-span-2 lg:col-span-1">
                         <label for="three_pl" class="label-text">Carrier</label>
                         <select class="input-field" name="three_pl">
                             <option value="">All Carriers</option>
@@ -87,28 +76,58 @@
                         </select>
                     </div>
 
+                    {{-- NEW: Status Filter --}}
+                    <div class="md:col-span-2 lg:col-span-1">
+                        <label for="status" class="label-text">Status</label>
+                        <select class="input-field" name="status">
+                            <option value="">All Statuses</option>
+                            {{-- Staging (status='staging') --}}
+                            <option value="staging" {{ request('status') == 'staging' ? 'selected' : '' }}>
+                                Staging
+                            </option>
+                            {{-- Pending Handover (status='completed' & manifest_name_signed IS NULL) --}}
+                            <option value="pending_handover" {{ request('status') == 'pending_handover' ? 'selected' : '' }}>
+                                Pending Handover
+                            </option>
+                            {{-- Completed (status='completed' & manifest_name_signed IS NOT NULL) --}}
+                            <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>
+                                Completed
+                            </option>
+                        </select>
+                    </div>
+
                     {{-- Start Date --}}
-                    <div>
-                        <label for="date_start" class="label-text">Finalized After</label>
+                    <div class="md:col-span-2 lg:col-span-1">
+                        <label for="date_start" class="label-text">Created After</label>
                         <input type="date" class="input-field" name="date_start" value="{{ request('date_start') }}">
                     </div>
 
                     {{-- End Date --}}
-                    <div>
-                        <label for="date_end" class="label-text">Finalized Before</label>
+                    <div class="md:col-span-2 lg:col-span-1">
+                        <label for="date_end" class="label-text">Created Before</label>
                         <input type="date" class="input-field" name="date_end" value="{{ request('date_end') }}">
                     </div>
+                </div>
 
-                    {{-- Button --}}
-                    <div class="pt-1 flex space-x-2">
-                        <button type="submit" class="w-full btn-primary bg-blue-600 hover:bg-blue-700">
+                {{-- Button Group: Apply Filter & Clear Filter (Span 6 columns) --}}
+                <div class="grid grid-cols-1 md:grid-cols-6 gap-4 pt-4">
+                    <div class="md:col-span-6 flex space-x-3">
+                        {{-- APPLY BUTTON --}}
+                        <button type="submit" class="w-full btn-primary bg-blue-600 hover:bg-blue-700 flex-1">
                             Apply Filter
                         </button>
+
+                        {{-- CLEAR FILTER BUTTON --}}
+                        <a href="{{ route('history.index') }}" class="w-full btn-secondary bg-red-500 hover:bg-red-600 flex-1 text-center py-2 px-4 rounded-md shadow-md transition duration-150 font-semibold">
+                            Clear Filter
+                        </a>
                     </div>
                 </div>
             </form>
         </div>
     </div>
+
+    ---
 
     {{-- 2. Summary & Export --}}
     <div class="flex justify-between items-center py-4 border-b border-gray-200 dark:border-gray-700">
@@ -132,12 +151,32 @@
     <div class="space-y-4" id="historyAccordion">
         @foreach ($groupedHistory as $handoverId => $batchData)
             @php
-                // Menggunakan manifest_filename dari objek $batchData['batch']
-                $isSigned = $batchData['batch']->manifest_filename !== null;
-                $signedFileName = $batchData['batch']->manifest_filename ?? 'Pending';
-                $statusClass = $isSigned
-                    ? 'bg-green-500 text-white font-bold'
-                    : 'bg-yellow-500 text-gray-800 font-bold';
+                // Tentukan status berdasarkan kolom 'status' dari HandoverBatch
+                $batchStatus = $batchData['batch']->status;
+                $isSigned = $batchData['batch']->manifest_name_signed !== null;
+                $signedFileName = $batchData['batch']->manifest_name_signed ?? 'Pending';
+
+                // Logika Penentuan Status Tampilan
+                if ($batchStatus === 'completed' && $isSigned) {
+                    $displayStatus = 'COMPLETED';
+                    $statusClass = 'bg-green-500 text-white font-bold';
+                } elseif ($batchStatus === 'completed' && !$isSigned) {
+                    $displayStatus = 'PENDING HANDOVER';
+                    $statusClass = 'bg-yellow-500 text-gray-800 font-bold';
+                } else {
+                    // Default/Status lainnya (misalnya 'staging')
+                    $displayStatus = strtoupper($batchStatus);
+                    $statusClass = 'bg-gray-500 text-white font-bold';
+                }
+
+                // Logika Status Signed/Unsigned untuk Badge Tambahan
+                if ($isSigned) {
+                    $signedLabel = 'SIGNED';
+                    $signedLabelClass = 'bg-blue-600 text-white';
+                } else {
+                    $signedLabel = 'UNSIGNED';
+                    $signedLabelClass = 'bg-red-500 text-white';
+                }
             @endphp
 
             <details class="group bg-white dark:bg-gray-800 shadow-2xl rounded-xl overflow-hidden transition duration-300 ease-in-out hover:shadow-blue-500/30">
@@ -148,9 +187,17 @@
                         <span class="text-blue-600 dark:text-blue-400">#{{ $handoverId }}</span>
                         <span class="text-gray-500 dark:text-gray-400">|</span>
                         <span>Carrier: **{{ $batchData['threePlName'] }}** ({{ $batchData['awbs']->count() }} AWBs)</span>
+
+                        {{-- Manifest Signed Badge --}}
+                        <span class="px-3 py-0.5 text-xs rounded-full {{ $signedLabelClass }} font-semibold ml-4">
+                            {{ $signedLabel }}
+                        </span>
                     </span>
                     <span class="px-4 py-1 text-sm rounded-full {{ $statusClass }} flex-shrink-0 ml-4">
-                        {!! $isSigned ? 'SIGNED' : 'PENDING' !!}
+                        {!! $displayStatus !!}
+                    </span>
+                    <span>
+                        Created : {{$batchData['createdTs'] }}
                     </span>
                     <svg class="h-6 w-6 transform group-open:rotate-180 transition duration-200 text-gray-500 dark:text-gray-400 ml-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </summary>
@@ -165,13 +212,13 @@
                                 📑 Manifest Document
                             </h6>
 
-                            {{-- Download Manifest (PDF) --}}
+                            {{-- Download Manifest (PDF) - Menggunakan manifest_filename yang generated --}}
                             <a href="{{ route('history.download-manifest', $handoverId) }}" class="btn-secondary bg-blue-500 hover:bg-blue-600 w-full md:w-auto">
                                 Download Manifest (.PDF)
                             </a>
 
                             @if (!$isSigned)
-                                {{-- Upload Form --}}
+                                {{-- Upload Form hanya jika belum signed --}}
                                 <form action="{{ route('history.upload-manifest', $handoverId) }}" method="POST" enctype="multipart/form-data" class="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-3 pt-3 border-t border-gray-200 dark:border-gray-700 mt-3">
                                     @csrf
                                     <input type="file" name="signed_file" class="w-full md:w-auto text-sm file-input" required>
@@ -180,7 +227,7 @@
                                     </button>
                                 </form>
                             @else
-                                {{-- Success Upload Status --}}
+                                {{-- Success Upload Status (jika sudah completed/signed) --}}
                                 <div class="bg-green-50 text-green-700 p-3 rounded-md text-sm dark:bg-green-900 dark:text-green-200">
                                     ✅ Proof uploaded: <a href="{{ Storage::url('manifests/' . $signedFileName) }}" target="_blank" class="underline hover:text-green-900 dark:hover:text-green-100 font-medium">{{ $signedFileName }}</a>
                                 </div>
@@ -190,7 +237,7 @@
                         {{-- Summary Info --}}
                         <div class="lg:col-span-1 space-y-2 p-4 bg-gray-50 dark:bg-gray-850 rounded-lg">
                             <p class="text-sm dark:text-gray-400">**Finalized At:** <br><span class="font-mono text-gray-700 dark:text-gray-300">{{ $batchData['latestTs'] ? $batchData['latestTs']->format('Y-m-d H:i:s') : 'N/A' }}</span></p>
-                            <p class="text-sm dark:text-gray-400">**Processed By:** <br><span class="text-gray-700 dark:text-gray-300">User ID {{ $batchData['batch']->user_id ?? 'N/A' }}</span></p>
+                            <p class="text-sm dark:text-gray-400">**Signed File:** <br><span class="font-mono text-gray-700 dark:text-gray-300">{{ $signedFileName }}</span></p>
                         </div>
                     </div>
 
@@ -237,7 +284,7 @@
         @apply py-2 px-4 rounded-md shadow-md transition duration-150 font-semibold text-white;
     }
     .table-th {
-        @apply px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider;
+        @apply px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider bg-gray-700 dark:bg-gray-700;
     }
     .table-td {
         @apply px-6 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300;

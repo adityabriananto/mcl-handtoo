@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 
@@ -65,7 +66,7 @@ class HandoverController extends Controller
         Session::put('batch_status', 'staged');
         Session::put('staged_awbs', []);
 
-        Session::flash('success', 'Batch **' . $request->handover_id . '** dimulai untuk Carrier **' . $request->three_pl . '**! Data awal sudah disimpan di DB.');
+        Session::flash('success', 'Batch **' . $request->handover_id . '** dimulai untuk 3PL **' . $request->three_pl . '**! Data awal sudah disimpan di DB.');
 
         return redirect()->route('handover.index');
     }
@@ -112,7 +113,7 @@ class HandoverController extends Controller
 
         // 3. Pengecekan Prefix dan Status Cancelled
         if (!$this->isAwbValidForCarrier($awb, $carrier)) {
-            Session::flash('error', 'AWB **' . $awb . '** tidak sesuai dengan Carrier **' . $carrier . '** atau merupakan AWB yang dibatalkan.');
+            Session::flash('error', 'AWB **' . $awb . '** tidak sesuai dengan 3PL **' . $carrier . '** atau merupakan AWB yang dibatalkan.');
             return redirect()->route('handover.index');
         }
 
@@ -191,7 +192,7 @@ class HandoverController extends Controller
             $batch->update([
                 'total_awb' => count($awbs),
                 'status' => 'completed',
-                'finalized_at' => Carbon::now(),
+                'finalized_at' => Carbon::now()
             ]);
         }
 
@@ -244,5 +245,27 @@ class HandoverController extends Controller
         }
 
         return true;
+    }
+
+    public function clearBatch()
+{
+        $handoverId = session('current_batch_id');
+
+        if ($handoverId) {
+            // 1. Hapus entri di HandoverAWB (AWBs yang sudah discan di database)
+            DB::table('handover_details')->where('handover_id', $handoverId)->delete();
+
+            // 2. Hapus entri di HandoverBatch (Batch itu sendiri)
+            DB::table('handover_batches')->where('handover_id', $handoverId)->delete();
+
+            // Asumsi model HandoverAWB dan HandoverBatch digunakan, gunakan ->delete() pada model jika ada
+
+            // 3. Hapus semua data sesi yang terkait dengan batch aktif
+            Session::forget(['batch_status', 'current_batch_id', 'current_three_pl', 'staged_awbs']);
+
+            return redirect()->route('handover.index')->with('success', "Batch **$handoverId** berhasil dibatalkan dan dihapus.");
+        }
+
+        return redirect()->route('handover.index')->with('error', 'Tidak ada batch aktif untuk dihapus.');
     }
 }

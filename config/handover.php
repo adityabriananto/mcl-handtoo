@@ -2,7 +2,7 @@
 
 $prefixMap = [
     'JNE' => ['CM', 'JT', 'TG', '151', '881', 'JY'],
-    'ShopeeXpresS' => ['SPX'],
+    'ShopeeXpress' => ['SPX'],
     'SICEPAT' => ['004', '002', '005', 'TKP5'],
     'SAPX' => ['TKP4'],
     'JNT Cargo' => ['570'],

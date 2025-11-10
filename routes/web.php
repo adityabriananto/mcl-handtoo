@@ -22,6 +22,7 @@ Route::middleware('auth')->group(function () {
 // --- Handover Station Routes ---
 Route::get('/', [HandoverController::class, 'index'])->name('handover.index');
 Route::post('/handover/set-batch', [HandoverController::class, 'setBatch'])->name('handover.set-batch');
+Route::post('/handover/clear-batch', [HandoverController::class, 'clearBatch'])->name('handover.clear-batch');
 Route::post('/handover/set-3pl', [HandoverController::class, 'setThreePl'])->name('handover.set-3pl');
 Route::post('/handover/scan', [HandoverController::class, 'scan'])->name('handover.scan');
 Route::post('/handover/remove', [HandoverController::class, 'remove'])->name('handover.remove');

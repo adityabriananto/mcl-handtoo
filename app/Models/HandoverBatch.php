@@ -20,6 +20,8 @@ class HandoverBatch extends Model
         'user_id',
         'status',
         'manifest_filename', // Asumsi kolom ini ada
+        'manifest_name_signed',
+        'signed_at'
     ];
 
     protected $casts = [

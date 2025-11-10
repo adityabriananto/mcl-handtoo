@@ -6,21 +6,33 @@
 <div class="space-y-6">
     <h1 class="text-3xl font-extrabold text-gray-800 dark:text-gray-100 mb-6">📦 Handover Station</h1>
 
-    {{-- Notifikasi (Tambahkan di sini juga jika diperlukan, atau di layout.app) --}}
-    @if (session('success'))
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg" role="alert"><p>{!! session('success') !!}</p></div>
-    @endif
-    @if ($errors->any())
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert"><p>Validation Error: {{ $errors->first() }}</p></div>
+    {{-- Notifikasi Flash --}}
+    {{-- @if (session('success'))
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg dark:bg-green-900 dark:border-green-400 dark:text-green-200 mb-4" role="alert"><p>{!! session('success') !!}</p></div>
     @endif
     @if (session('error'))
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert"><p>{!! session('error') !!}</p></div>
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg dark:bg-red-900 dark:border-red-400 dark:text-red-200 mb-4" role="alert"><p>{!! session('error') !!}</p></div>
     @endif
+    @if ($errors->any())
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg dark:bg-red-900 dark:border-red-400 dark:text-red-200 mb-4" role="alert"><p>Validation Error: {{ $errors->first() }}</p></div>
+    @endif --}}
 
     {{-- 1. Setup Batch & 3PL --}}
     <div class="bg-white dark:bg-gray-900 shadow-xl rounded-xl overflow-hidden">
-        <div class="p-4 bg-blue-600 text-white dark:bg-blue-700">
+        <div class="p-4 bg-blue-600 text-white dark:bg-blue-700 flex justify-between items-center">
             <h4 class="text-xl font-semibold">1. Setup Batch & Carrier Selection</h4>
+
+            {{-- TOMBOL CLEAR BATCH (HANYA MUNCUL JIKA SESSION AKTIF) --}}
+            @if (session('batch_status') == 'staged')
+                <form action="{{ route('handover.clear-batch') }}" method="POST" id="clear-batch-form">
+                    @csrf
+                    <button type="submit"
+                            class="py-1 px-3 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-md transition duration-150"
+                            onclick="event.preventDefault(); showConfirmModal('clear-batch-form', '{{ session('current_batch_id') }}');">
+                        Clear Batch
+                    </button>
+                </form>
+            @endif
         </div>
         <div class="p-6">
             <form id="setup-form" action="{{ route('handover.set-batch') }}" method="POST">
@@ -44,13 +56,13 @@
 
                     {{-- Select Carrier --}}
                     <div class="md:col-span-2">
-                        <label for="three_pl" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Select 3PL Carrier</label>
+                        <label for="three_pl" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Select 3PL</label>
                         <select
                                class="mt-1 block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-lg"
                                id="three_pl" name="three_pl" required
                                {{ session('batch_status') == 'staged' ? 'disabled' : '' }}
                         >
-                            <option value="">-- Choose Carrier --</option>
+                            <option value="">-- Choose 3PL --</option>
                             @foreach($allCarriers as $carrier)
                                 <option value="{{ $carrier }}"
                                         @if (session('batch_status') == 'staged' && session('current_three_pl') == $carrier)
@@ -84,7 +96,7 @@
     @if (session('batch_status') == 'staged')
         <div class="bg-white dark:bg-gray-900 shadow-xl rounded-xl overflow-hidden border-2 border-green-500">
             <div class="p-4 bg-green-600 text-white dark:bg-green-700 flex justify-between items-center">
-                <h4 class="text-xl font-semibold">2. AWB Scanning (Carrier: **{{ session('current_three_pl') }}**)</h4>
+                <h4 class="text-xl font-semibold">2. AWB Scanning (3PL: {{ session('current_three_pl') }})</h4>
                 <span class="text-sm font-light">AWBs Staged: {{ count(session('staged_awbs', [])) }}</span>
             </div>
 
@@ -151,4 +163,49 @@
         </div>
     @endif
 </div>
+
+{{-- Custom Modal for Confirmation (Menggantikan alert/confirm) --}}
+<div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 transition-opacity duration-300">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-11/12 max-w-lg transform transition-transform duration-300 scale-95">
+        <h3 class="text-2xl font-bold text-red-600 dark:text-red-400 mb-4 border-b pb-2">Konfirmasi Penghapusan Batch</h3>
+        <p class="text-gray-700 dark:text-gray-300 mb-6">Anda yakin ingin **menghapus total** batch <strong id="batch-id-display" class="font-mono text-lg"></strong>?</p>
+        <p class="text-sm text-red-700 dark:text-red-300 mb-6">Tindakan ini akan menghapus semua AWB yang tersimpan di database untuk batch ini, dan sesi Anda akan diatur ulang.</p>
+        <div class="flex justify-end space-x-3">
+            <button type="button" onclick="hideConfirmModal()" class="py-2 px-4 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition duration-150">
+                Batal
+            </button>
+            <button type="button" id="confirm-submit-button" class="py-2 px-4 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition duration-150">
+                Ya, Hapus Sekarang
+            </button>
+        </div>
+    </div>
+</div>
+
+{{-- Script untuk Modal Konfirmasi --}}
+<script>
+    let formToSubmit = null;
+
+    function showConfirmModal(formId, batchId) {
+        formToSubmit = document.getElementById(formId);
+        document.getElementById('batch-id-display').textContent = batchId;
+        const modal = document.getElementById('confirm-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function hideConfirmModal() {
+        const modal = document.getElementById('confirm-modal');
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+        formToSubmit = null;
+    }
+
+    // Listener untuk tombol "Ya, Hapus Sekarang"
+    document.getElementById('confirm-submit-button').addEventListener('click', function() {
+        if (formToSubmit) {
+            formToSubmit.submit();
+        }
+        hideConfirmModal();
+    });
+</script>
 @endsection
