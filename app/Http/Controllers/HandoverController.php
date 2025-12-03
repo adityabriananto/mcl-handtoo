@@ -78,19 +78,23 @@ class HandoverController extends Controller
      */
     public function scan(Request $request)
     {
+        // Cek Sesi Belum Dimulai
         if (Session::get('batch_status') !== 'staged') {
+            // Memicu Suara ERROR
             Session::flash('error', 'Sesi Handover belum dimulai. Silakan klik Start terlebih dahulu.');
             return redirect()->route('handover.index');
         }
 
+        // Cek Validasi Form (Jika gagal)
         $validator = Validator::make($request->all(), [
             'awb_number' => 'required|string|max:50',
         ]);
 
         if ($validator->fails()) {
+            // Memicu Suara ERROR (melalui $errors->any() di view)
             return redirect()->route('handover.index')
-                             ->withErrors($validator)
-                             ->withInput();
+                            ->withErrors($validator)
+                            ->withInput();
         }
 
         $awb = trim(strtoupper($request->awb_number));
@@ -101,18 +105,23 @@ class HandoverController extends Controller
         // 1. Cek Duplikasi di Sesi Saat Ini
         $isDuplicate = collect($stagedAwbs)->contains('airwaybill', $awb);
         if ($isDuplicate) {
+            // Memicu Suara ERROR
             Session::flash('error', 'AWB **' . $awb . '** sudah pernah dipindai di Batch ini.');
             return redirect()->route('handover.index');
         }
 
         // 2. CEK AWB SUDAH ADA DI DATABASE DETAILS (GLOBAL CHECK)
         if (HandoverDetail::where('airwaybill', $awb)->exists()) {
-             Session::flash('error', 'AWB **' . $awb . '** sudah pernah di-handover sebelumnya.');
-             return redirect()->route('handover.index');
+            // Memicu Suara ERROR
+            Session::flash('error', 'AWB **' . $awb . '** sudah pernah di-handover sebelumnya.');
+            return redirect()->route('handover.index');
         }
 
         // 3. Pengecekan Prefix dan Status Cancelled
+        // Catatan: Asumsikan isAwbValidForCarrier adalah fungsi helper/method di Controller ini
+        // Pastikan metode isAwbValidForCarrier() juga ada.
         if (!$this->isAwbValidForCarrier($awb, $carrier)) {
+            // Memicu Suara ERROR
             Session::flash('error', 'AWB **' . $awb . '** tidak sesuai dengan 3PL **' . $carrier . '** atau merupakan AWB yang dibatalkan.');
             return redirect()->route('handover.index');
         }
@@ -126,6 +135,7 @@ class HandoverController extends Controller
                 'scanned_at' => $scanTime,
             ]);
         } catch (\Exception $e) {
+            // Memicu Suara ERROR
             Session::flash('error', 'Gagal menyimpan AWB ke DB: ' . $e->getMessage());
             return redirect()->route('handover.index');
         }
@@ -138,6 +148,7 @@ class HandoverController extends Controller
 
         Session::put('staged_awbs', $stagedAwbs);
 
+        // Memicu Suara SUKSES
         Session::flash('success', 'AWB **' . $awb . '** berhasil ditambahkan. Total: ' . count($stagedAwbs) . ' AWBs.');
 
         return redirect()->route('handover.index');

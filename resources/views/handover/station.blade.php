@@ -7,7 +7,7 @@
     <h1 class="text-3xl font-extrabold text-gray-800 dark:text-gray-100 mb-6">📦 Handover Station</h1>
 
     {{-- Notifikasi Flash --}}
-    {{-- @if (session('success'))
+    @if (session('success'))
         <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg dark:bg-green-900 dark:border-green-400 dark:text-green-200 mb-4" role="alert"><p>{!! session('success') !!}</p></div>
     @endif
     @if (session('error'))
@@ -15,7 +15,7 @@
     @endif
     @if ($errors->any())
         <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg dark:bg-red-900 dark:border-red-400 dark:text-red-200 mb-4" role="alert"><p>Validation Error: {{ $errors->first() }}</p></div>
-    @endif --}}
+    @endif
 
     {{-- 1. Setup Batch & 3PL --}}
     <div class="bg-white dark:bg-gray-900 shadow-xl rounded-xl overflow-hidden">
@@ -206,6 +206,58 @@
             formToSubmit.submit();
         }
         hideConfirmModal();
+    });
+</script>
+
+{{-- ========================================================================= --}}
+{{-- 🔊 TAMBAHAN UNTUK SUARA (Success & Error Scan) --}}
+{{-- ========================================================================= --}}
+
+{{-- Pastikan Anda menempatkan file success.mp3 dan error.mp3 di folder public/sounds/ --}}
+<audio id="successSound" src="{{ asset('sounds/success.mp3') }}" preload="auto"></audio>
+<audio id="errorSound" src="{{ asset('sounds/error.mp3') }}" preload="auto"></audio>
+
+<script>
+    // Ambil elemen audio dan input
+    const successAudio = document.getElementById('successSound');
+    const errorAudio = document.getElementById('errorSound');
+    const scanInput = document.querySelector('input[name="awb_number"]');
+
+    function playSuccessSound() {
+        successAudio.currentTime = 0;
+        successAudio.play().catch(e => console.error("Error playing success sound:", e));
+    }
+
+    function playErrorSound() {
+        errorAudio.currentTime = 0;
+        errorAudio.play().catch(e => console.error("Error playing error sound:", e));
+    }
+
+    function refocusScanInput() {
+        if (scanInput) {
+            setTimeout(() => {
+                scanInput.focus();
+                scanInput.value = '';
+            }, 100);
+        }
+    }
+
+    // Cek Session Flash untuk memutar suara setelah form submit
+    document.addEventListener('DOMContentLoaded', (event) => {
+        // 1. Cek notifikasi sukses dari server
+        @if (session('success'))
+            playSuccessSound();
+            refocusScanInput();
+        @endif
+
+        // 2. Cek notifikasi error dari server
+        @if (session('error') || $errors->any())
+            playErrorSound();
+            refocusScanInput();
+        @endif
+
+        // Pastikan input AWB selalu fokus saat halaman dimuat
+        refocusScanInput();
     });
 </script>
 @endsection

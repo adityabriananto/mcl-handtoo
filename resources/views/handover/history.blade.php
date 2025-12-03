@@ -8,7 +8,17 @@
         📊 Handover History Dashboard
     </h1>
 
-    {{-- Notifikasi Flash (Dikomenterkan dari code user) --}}
+    {{-- Notifikasi Flash --}}
+    @if (session('success'))
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg dark:bg-green-900 dark:border-green-400 dark:text-green-200 mb-4" role="alert"><p>{!! session('success') !!}</p></div>
+    @endif
+    @if (session('error'))
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg dark:bg-red-900 dark:border-red-400 dark:text-red-200 mb-4" role="alert"><p>{!! session('error') !!}</p></div>
+    @endif
+    @if ($errors->any())
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg dark:bg-red-900 dark:border-red-400 dark:text-red-200 mb-4" role="alert"><p>Validation Error: {{ $errors->first() }}</p></div>
+    @endif
+
     {{-- STATISTIK DASHBOARD ANGKA --}}
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
         {{-- Card 1: Total Batches (GRAY/DEFAULT) --}}

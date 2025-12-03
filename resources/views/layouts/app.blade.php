@@ -71,7 +71,7 @@
 
     <main class="pt-20 pb-8 min-h-screen">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            @include('handover.messages')
+            {{-- @include('handover.messages') --}}
             @yield('content')
         </div>
     </main>
