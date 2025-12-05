@@ -4,17 +4,18 @@
     <title>Handover Manifest - {{ $batch->handover_id }}</title>
     <style>
         body { font-family: sans-serif; margin: 0; padding: 0; }
-        .container { padding: 30px; }
-        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-        .header h1 { font-size: 24px; color: #333; margin: 0; }
+        .container { padding: 20px; }
+        .header { text-align: center; margin-bottom: 2px; border-bottom: 2px solid #333; padding-bottom: 0px; }
+        .header h1 { font-size: 20px; color: #333; margin: 0; }
         .metadata-left, .metadata-right { width: 48%; }
         .metadata-right { text-align: right; }
-        .metadata-right img { max-height: 50px; margin-bottom: 5px; }
-        .metadata-left h2 { font-size: 18px; margin-bottom: 5px; }
+        .metadata-right img { max-height: 30px; margin-bottom: 3px; }
+        .metadata-left h2 { font-size: 18px; margin-bottom: 2px; }
+        .container h5{margin-top:1px}
 
         /* Gaya Tabel Detail Paket */
-        .package-details { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        .package-details th, .package-details td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+        .package-details { width: 100%; border-collapse: collapse; margin-top: 1px; }
+        .package-details th, .package-details td { border: 1px solid #ddd; padding: 2px; text-align: left; font-size: 11px; }
         .package-details th { background-color: #f2f2f2; }
 
         /* Gaya Signature */
@@ -51,7 +52,7 @@
         </div>
 
         {{-- Detail Paket --}}
-        <h3>Package Details (Total: {{ $details->count() }})</h3>
+        <h5>Package Details (Total: {{ $details->count() }})</h5>
         <table class="package-details">
             <thead>
                 <tr>
