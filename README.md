@@ -1,59 +1,70 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🛠️ Handover Documentation: Handtoo Project Management Tool
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+This document serves as the handover guide for the **Handtoo** tool to the team/individual who will subsequently manage or operate it.
 
-## About Laravel
+## 1. 📋 Tools Overview
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+* **Official Name:** MCL-Handtoo
+* **Tools Version:** 1.0.0
+* **Main Objective:** Handtoo is an internal Project Management application designed to **facilitate centralized task tracking, team management, and project asset documentation**.
+* **Developed By:** TPM - Aditya Briananto
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 2. 💻 Technical Details
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+This tool was developed using the modern Laravel technology stack:
 
-## Learning Laravel
+| Category | Detail |
+| :--- | :--- |
+| **Main Framework** | **Laravel 11** (PHP) |
+| **Front-end Stack** | Blade & Livewire |
+| **Asset Bundler** | **Vite** |
+| **Database** | MySQL (version 8.0+ recommended) |
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### Dependencies and System Prerequisites
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+To run this tool, your environment must have the following prerequisites installed:
 
-## Laravel Sponsors
+1.  **PHP** version 8.2 or higher.
+2.  **Composer** (PHP dependency manager).
+3.  **Node.js** and **npm/yarn** (For Vite and front-end dependencies).
+4.  **MySQL** or another database configured in the `.env` file.
+5.  Web Server (Apache/Nginx/run via `php artisan serve`).
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## 3. ⚙️ Installation & Local Setup Guide
 
-### Premium Partners
+Follow these steps to install and set up Handtoo in your local environment:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+1.  **Clone Repository:**
+    ```bash
+    git clone [REPO LINK]
+    cd Handtoo
+    ```
+2.  **Install PHP Dependencies:**
+    ```bash
+    composer install
+    ```
+3.  **Install Front-end Dependencies (Node.js):**
+    ```bash
+    npm install
+    # OR
+    yarn install
+    ```
+4.  **Environment Configuration:**
+    * Copy the configuration file: `cp .env.example .env`
+    * Generate Application Key: `php artisan key:generate`
+    * **Edit the `.env` file** and adjust the database configuration (`DB_...`) and application URL (`APP_URL`).
 
-## Contributing
+5.  **Database Setup:**
+    * Run migrations to create tables: `php artisan migrate`
+    * (Optional) Seed dummy data if available: `php artisan db:seed`
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 4. ▶️ How to Run the Application
 
-## Code of Conduct
+The Handtoo application requires two processes to run: the PHP Server and Vite.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Step 1: Run Laravel Server
 
-## Security Vulnerabilities
+Execute the following command in the first terminal:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+php artisan serve
