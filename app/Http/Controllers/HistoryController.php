@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Storage;
 use App\Models\HandoverBatch;
 use App\Models\HandoverDetail;
+use App\Models\TplPrefix;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -16,9 +17,22 @@ class HistoryController extends Controller
     /**
      * Menampilkan daftar Handover Batch yang sudah diselesaikan (completed) beserta statistiknya.
      */
+
+    protected function getActiveCarriers()
+    {
+        // Ambil semua tpl_name dari konfigurasi yang aktif
+        $carriers = TplPrefix::where('is_active', true)
+                             ->pluck('tpl_name')
+                             ->toArray();
+
+        // Tambahkan opsi manual 'Other 3PL' jika masih diperlukan dalam logika bisnis
+        $carriers[] = 'Other 3PL';
+
+        return $carriers;
+    }
     public function index(Request $request)
     {
-        $allCarriers = config('handover.all_carriers');
+        $allCarriers = $this->getActiveCarriers();
 
         // Menggunakan eager loading 'details'
         $batchesQuery = HandoverBatch::with('details');

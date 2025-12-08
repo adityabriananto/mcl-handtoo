@@ -22,31 +22,31 @@
     {{-- STATISTIK DASHBOARD ANGKA --}}
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
         {{-- Card 1: Total Batches (GRAY/DEFAULT) --}}
-        <div class="stat-card bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600">
-            <p class="stat-label text-gray-700 dark:text-white">Total Batches Created</p>
-            <p class="stat-value text-gray-800 dark:text-white">{{ $globalStats['total_batches'] }}</p>
+        <div class="stat-card bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700">
+            <p class="stat-label text-gray-700 dark:text-gray-300">Total Batches Created</p>
+            <p class="stat-value text-gray-800 dark:text-gray-100">{{ $globalStats['total_batches'] }}</p>
         </div>
 
         {{-- Card 2: Batches in Staging (YELLOW) --}}
-        <div class="stat-card bg-yellow-100 dark:bg-yellow-900 border-yellow-400 dark:border-yellow-700">
+        <div class="stat-card bg-yellow-100 dark:bg-yellow-900/50 border-yellow-400 dark:border-yellow-700">
             <p class="stat-label text-yellow-800 dark:text-yellow-300">Currently Staging</p>
             <p class="stat-value text-yellow-800 dark:text-yellow-100">{{ $globalStats['staging_batches'] }}</p>
         </div>
 
         {{-- Card 3: Completed Batches (BLUE) --}}
-        <div class="stat-card bg-blue-100 dark:bg-blue-900 border-blue-400 dark:border-blue-700">
+        <div class="stat-card bg-blue-100 dark:bg-blue-900/50 border-blue-400 dark:border-blue-700">
             <p class="stat-label text-blue-800 dark:text-blue-300">Total Completed</p>
             <p class="stat-value text-blue-800 dark:text-blue-100">{{ $globalStats['completed_batches'] }}</p>
         </div>
 
         {{-- Card 4: Manifest Signed (GREEN) --}}
-        <div class="stat-card bg-green-100 dark:bg-green-900 border-green-400 dark:border-green-700">
+        <div class="stat-card bg-green-100 dark:bg-green-900/50 border-green-400 dark:border-green-700">
             <p class="stat-label text-green-800 dark:text-green-300">Manifest Signed</p>
             <p class="stat-value text-green-800 dark:text-green-100">{{ $globalStats['manifest_signed'] }}</p>
         </div>
 
         {{-- Card 5: Manifest Pending (RED) --}}
-        <div class="stat-card bg-red-100 dark:bg-red-900 border-red-400 dark:border-red-700">
+        <div class="stat-card bg-red-100 dark:bg-red-900/50 border-red-400 dark:border-red-700">
             <p class="stat-label text-red-800 dark:text-red-300">Manifest Pending</p>
             <p class="stat-value text-red-800 dark:text-red-100">{{ $globalStats['manifest_pending'] }}</p>
         </div>
@@ -55,8 +55,8 @@
     ---
 
     {{-- 1. Filter Section --}}
-    <div class="bg-white dark:bg-gray-800 shadow-2xl rounded-xl">
-        <div class="p-5 bg-gray-50 dark:bg-gray-700 rounded-t-xl border-b border-gray-200 dark:border-gray-600">
+    <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-xl">
+        <div class="p-5 bg-gray-50 dark:bg-gray-800 rounded-t-xl border-b border-gray-200 dark:border-gray-700">
             <h4 class="text-xl font-bold text-gray-800 dark:text-gray-200">Filter History</h4>
         </div>
         <div class="p-6">
@@ -66,21 +66,24 @@
                     {{-- Handover ID --}}
                     <div class="md:col-span-2 lg:col-span-1">
                         <label for="handover_id" class="label-text">Handover ID</label>
-                        <input type="text" class="input-field" name="handover_id" placeholder="HO-..." value="{{ request('handover_id') }}">
+                        {{-- Menggunakan input-field yang sudah dimodifikasi dark mode-nya --}}
+                        <input type="text" class="input-field dark-input-field" name="handover_id" placeholder="HO-..." value="{{ request('handover_id') }}">
                     </div>
 
                     {{-- AWB Number --}}
                     <div class="md:col-span-2 lg:col-span-1">
                         <label for="airwaybill" class="label-text">AWB Number</label>
-                        <input type="text" class="input-field" name="airwaybill" placeholder="AWB12345..." value="{{ request('airwaybill') }}">
+                        <input type="text" class="input-field dark-input-field" name="airwaybill" placeholder="AWB12345..." value="{{ request('airwaybill') }}">
                     </div>
 
                     {{-- Carrier --}}
                     <div class="md:col-span-2 lg:col-span-1">
                         <label for="three_pl" class="label-text">Carrier</label>
+                        {{-- Field ini ASUMSI menerima daftar Carrier dari TplConfig --}}
                         <select class="input-field" name="three_pl">
                             <option value="">All Carriers</option>
-                            @foreach($allCarriers as $carrier)
+                            {{-- PERBAIKAN: Menggunakan ?? [] untuk mencegah NULL --}}
+                            @foreach($allCarriers ?? [] as $carrier)
                                 <option value="{{ $carrier }}" {{ request('three_pl') == $carrier ? 'selected' : '' }}>{{ $carrier }}</option>
                             @endforeach
                         </select>
@@ -89,7 +92,7 @@
                     {{-- NEW: Status Filter --}}
                     <div class="md:col-span-2 lg:col-span-1">
                         <label for="status" class="label-text">Status</label>
-                        <select class="input-field" name="status">
+                        <select class="input-field dark-input-field" name="status">
                             <option value="">All Statuses</option>
                             {{-- Staging (status='staging') --}}
                             <option value="staging" {{ request('status') == 'staging' ? 'selected' : '' }}>
@@ -109,13 +112,13 @@
                     {{-- Start Date --}}
                     <div class="md:col-span-2 lg:col-span-1">
                         <label for="date_start" class="label-text">Created After</label>
-                        <input type="date" class="input-field" name="date_start" value="{{ request('date_start') }}">
+                        <input type="date" class="input-field dark-input-field" name="date_start" value="{{ request('date_start') }}">
                     </div>
 
                     {{-- End Date --}}
                     <div class="md:col-span-2 lg:col-span-1">
                         <label for="date_end" class="label-text">Created Before</label>
-                        <input type="date" class="input-field" name="date_end" value="{{ request('date_end') }}">
+                        <input type="date" class="input-field dark-input-field" name="date_end" value="{{ request('date_end') }}">
                     </div>
                 </div>
 
@@ -189,10 +192,10 @@
                 }
             @endphp
 
-            <details class="group bg-white dark:bg-gray-800 shadow-2xl rounded-xl overflow-hidden transition duration-300 ease-in-out hover:shadow-blue-500/30">
+            <details class="group bg-white dark:bg-gray-900 shadow-2xl rounded-xl overflow-hidden transition duration-300 ease-in-out hover:shadow-blue-500/30">
 
                 {{-- Summary Header --}}
-                <summary class="flex justify-between items-center p-5 font-semibold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150">
+                <summary class="flex justify-between items-center p-5 font-semibold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition duration-150">
                     <span class="text-xl flex items-center space-x-3">
                         <span class="text-blue-600 dark:text-blue-400">#{{ $handoverId }}</span>
                         <span class="text-gray-500 dark:text-gray-400">|</span>
@@ -213,7 +216,7 @@
                 </summary>
 
                 {{-- Detail Content --}}
-                <div class="p-6 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
+                <div class="p-6 bg-white dark:bg-gray-950 border-t border-gray-100 dark:border-gray-800">
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
 
                         {{-- Manifest Actions --}}
@@ -245,7 +248,7 @@
                         </div>
 
                         {{-- Summary Info --}}
-                        <div class="lg:col-span-1 space-y-2 p-4 bg-gray-50 dark:bg-gray-850 rounded-lg">
+                        <div class="lg:col-span-1 space-y-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                             <p class="text-sm dark:text-gray-400">**Finalized At:** <br><span class="font-mono text-gray-700 dark:text-gray-300">{{ $batchData['latestTs'] ? $batchData['latestTs']->format('Y-m-d H:i:s') : 'N/A' }}</span></p>
                             <p class="text-sm dark:text-gray-400">**Signed At:** <br><span class="font-mono text-gray-700 dark:text-gray-300">{{ $batchData['signedTs'] ? $batchData['signedTs'] : 'N/A' }}</span></p>
                         </div>
@@ -279,13 +282,18 @@
     </div>
 </div>
 
-{{-- Style Helper for better readability --}}
+{{-- Style Helper for better readability and consistent Dark Mode input --}}
 <style>
     .label-text {
         @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
     }
     .input-field {
-        @apply mt-1 block w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md shadow-sm p-2 text-base;
+        /* Base styling */
+        @apply mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-base;
+    }
+    .dark-input-field {
+        /* Dark mode overrides for consistency with TplConfig dashboard */
+        @apply dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 focus:ring-blue-500 focus:border-blue-500;
     }
     .btn-primary {
         @apply text-white py-2 px-4 rounded-md shadow-md transition duration-150 font-semibold;
@@ -294,6 +302,7 @@
         @apply py-2 px-4 rounded-md shadow-md transition duration-150 font-semibold text-white;
     }
     .table-th {
+        /* Adjusted for better dark mode contrast */
         @apply px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider bg-gray-700 dark:bg-gray-700;
     }
     .table-td {

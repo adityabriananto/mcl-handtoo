@@ -52,7 +52,7 @@
                                   @else
                                       text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-500
                                   @endif">
-                            Handover Station
+                            📥 Handover Station
                         </a>
                         <a href="{{ route('history.index') }}"
                            class="px-3 py-2 rounded-md text-sm font-medium transition duration-150
@@ -61,7 +61,16 @@
                                   @else
                                       text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-500
                                   @endif">
-                            📊 History Dashboard
+                            ⏱️ History Dashboard
+                        </a>
+                         <a href="{{ route('tpl.config.index') }}"
+                           class="px-3 py-2 rounded-md text-sm font-medium transition duration-150
+                                  @if(request()->routeIs('tpl.config.index'))
+                                      bg-blue-600 text-white dark:bg-blue-700
+                                  @else
+                                      text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-500
+                                  @endif">
+                            ⚙️ 3PL Configuration
                         </a>
                     </div>
                 </div>

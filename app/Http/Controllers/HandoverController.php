@@ -8,36 +8,61 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 
+// Import Model yang dibutuhkan
 use App\Models\HandoverBatch;
 use App\Models\HandoverDetail;
+use App\Models\TplPrefix;
 
 class HandoverController extends Controller
 {
+    // --- HELPER UNTUK MENGAMBIL DATA KONFIGURASI AKTIF ---
+
+    /**
+     * Mengambil daftar nama 3PL (untuk UI dan validasi) dari TplPrefix yang aktif.
+     * @return array
+     */
+    protected function getActiveCarriers()
+    {
+        // Ambil semua tpl_name dari konfigurasi yang aktif
+        $carriers = TplPrefix::where('is_active', true)
+                             ->pluck('tpl_name')
+                             ->toArray();
+
+        // Tambahkan opsi manual 'Other 3PL' jika masih diperlukan dalam logika bisnis
+        $carriers[] = 'Other 3PL';
+
+        return $carriers;
+    }
+
+    // --- LOGIKA START BATCH ---
+
     /**
      * Menampilkan halaman utama Handover Station.
+     * Mengambil daftar carrier dari DB.
      *
      * @return \Illuminate\View\View
      */
     public function index()
     {
-        $allCarriers = config('handover.all_carriers');
+        // Ambil daftar carrier yang aktif secara dinamis dari DB
+        $allCarriers = $this->getActiveCarriers();
 
         return view('handover.station', [
             'allCarriers' => $allCarriers,
         ]);
     }
 
-    // --- LOGIKA START BATCH ---
-
     /**
      * Memulai sesi Handover Batch baru dan membuat entri di DB.
      */
     public function setBatch(Request $request)
     {
-        $validCarriers = config('handover.all_carriers');
+        // Ambil daftar carrier yang valid secara dinamis dari DB untuk validasi
+        $validCarriers = $this->getActiveCarriers();
 
         $validator = Validator::make($request->all(), [
             'handover_id' => 'required|string|max:50|unique:handover_batches,handover_id',
+            // Gunakan implodasi daftar carrier dari DB untuk aturan 'in'
             'three_pl' => 'required|string|in:' . implode(',', $validCarriers),
         ], [
             'handover_id.unique' => 'Batch ID ini sudah digunakan. Mohon cek Riwayat.',
@@ -80,7 +105,6 @@ class HandoverController extends Controller
     {
         // Cek Sesi Belum Dimulai
         if (Session::get('batch_status') !== 'staged') {
-            // Memicu Suara ERROR
             Session::flash('error', 'Sesi Handover belum dimulai. Silakan klik Start terlebih dahulu.');
             return redirect()->route('handover.index');
         }
@@ -91,7 +115,6 @@ class HandoverController extends Controller
         ]);
 
         if ($validator->fails()) {
-            // Memicu Suara ERROR (melalui $errors->any() di view)
             return redirect()->route('handover.index')
                             ->withErrors($validator)
                             ->withInput();
@@ -105,23 +128,18 @@ class HandoverController extends Controller
         // 1. Cek Duplikasi di Sesi Saat Ini
         $isDuplicate = collect($stagedAwbs)->contains('airwaybill', $awb);
         if ($isDuplicate) {
-            // Memicu Suara ERROR
             Session::flash('error', 'AWB **' . $awb . '** sudah pernah dipindai di Batch ini.');
             return redirect()->route('handover.index');
         }
 
         // 2. CEK AWB SUDAH ADA DI DATABASE DETAILS (GLOBAL CHECK)
         if (HandoverDetail::where('airwaybill', $awb)->exists()) {
-            // Memicu Suara ERROR
             Session::flash('error', 'AWB **' . $awb . '** sudah pernah di-handover sebelumnya.');
             return redirect()->route('handover.index');
         }
 
-        // 3. Pengecekan Prefix dan Status Cancelled
-        // Catatan: Asumsikan isAwbValidForCarrier adalah fungsi helper/method di Controller ini
-        // Pastikan metode isAwbValidForCarrier() juga ada.
+        // 3. Pengecekan Prefix dan Status Cancelled (Memanggil helper yang dimodifikasi)
         if (!$this->isAwbValidForCarrier($awb, $carrier)) {
-            // Memicu Suara ERROR
             Session::flash('error', 'AWB **' . $awb . '** tidak sesuai dengan 3PL **' . $carrier . '** atau merupakan AWB yang dibatalkan.');
             return redirect()->route('handover.index');
         }
@@ -135,7 +153,6 @@ class HandoverController extends Controller
                 'scanned_at' => $scanTime,
             ]);
         } catch (\Exception $e) {
-            // Memicu Suara ERROR
             Session::flash('error', 'Gagal menyimpan AWB ke DB: ' . $e->getMessage());
             return redirect()->route('handover.index');
         }
@@ -148,7 +165,6 @@ class HandoverController extends Controller
 
         Session::put('staged_awbs', $stagedAwbs);
 
-        // Memicu Suara SUKSES
         Session::flash('success', 'AWB **' . $awb . '** berhasil ditambahkan. Total: ' . count($stagedAwbs) . ' AWBs.');
 
         return redirect()->route('handover.index');
@@ -222,7 +238,8 @@ class HandoverController extends Controller
      */
     private function isAwbValidForCarrier($awb, $carrier)
     {
-        // 1. Cek AWB Batal/Cancelled
+        // 1. Cek AWB Batal/Cancelled (Tetap menggunakan config jika data ini statis)
+        // Jika data cancelled AWB juga harus dinamis, Anda harus membuat Model/Tabel baru.
         $cancelledAwbs = config('handover.cancelled_awbs', []);
         if (in_array($awb, $cancelledAwbs)) {
             return false;
@@ -233,43 +250,39 @@ class HandoverController extends Controller
             return true;
         }
 
-        // 3. Pengecekan Prefix
-        $prefixMap = config('handover.prefix_map', []);
-        $awbBelongsToCarrier = null;
+        // 3. AMBIL DATA PREFIX AKTIF DARI DATABASE BERDASARKAN CARRIER YANG DIPILIH
+        $config = TplPrefix::where('tpl_name', $carrier)
+                           ->where('is_active', true)
+                           ->first();
 
-        foreach ($prefixMap as $plName => $prefixes) {
-            foreach ($prefixes as $prefix) {
-                if (str_starts_with($awb, $prefix)) {
-                    $awbBelongsToCarrier = $plName;
-                    break 2;
-                }
-            }
-        }
-
-        // 4. Bandingkan Carrier
-        if ($awbBelongsToCarrier) {
-            if ($awbBelongsToCarrier !== $carrier) {
-                return false;
-            }
-        } else {
+        // Jika konfigurasi carrier tidak ditemukan atau tidak memiliki prefix, anggap tidak valid
+        if (!$config || empty($config->prefixes)) {
             return false;
         }
 
-        return true;
+        // Pastikan AWB (yang sudah di-uppercase) cocok dengan salah satu prefix
+        $prefixes = $config->prefixes; // Ini sudah array karena JSON cast di Model TplPrefix
+
+        foreach ($prefixes as $prefix) {
+            // str_starts_with sudah case-insensitive karena AWB sudah di-uppercas, tapi pastikan prefix juga uppercase
+            if (str_starts_with($awb, strtoupper($prefix))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function clearBatch()
-{
+    {
         $handoverId = session('current_batch_id');
 
         if ($handoverId) {
             // 1. Hapus entri di HandoverAWB (AWBs yang sudah discan di database)
-            DB::table('handover_details')->where('handover_id', $handoverId)->delete();
+            HandoverDetail::where('handover_id', $handoverId)->delete();
 
             // 2. Hapus entri di HandoverBatch (Batch itu sendiri)
-            DB::table('handover_batches')->where('handover_id', $handoverId)->delete();
-
-            // Asumsi model HandoverAWB dan HandoverBatch digunakan, gunakan ->delete() pada model jika ada
+            HandoverBatch::where('handover_id', $handoverId)->delete();
 
             // 3. Hapus semua data sesi yang terkait dengan batch aktif
             Session::forget(['batch_status', 'current_batch_id', 'current_three_pl', 'staged_awbs']);

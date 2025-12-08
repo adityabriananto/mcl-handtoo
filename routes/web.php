@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\HandoverController;
 use App\Http\Controllers\HistoryController;
+use App\Http\Controllers\TplPrefixController;
 use Illuminate\Support\Facades\Route;
 
 // Route::get('/', function () {
@@ -35,4 +36,13 @@ Route::get('/history/export', [HistoryController::class, 'exportCsv'])->name('hi
 Route::get('/history/{handoverId}/download', [HistoryController::class, 'downloadManifest'])->name('history.download-manifest');
 Route::post('/history/{handoverId}/upload', [HistoryController::class, 'uploadManifest'])->name('history.upload-manifest');
 
+// --- Tpl Prefix Routes ---
+Route::resource('tpl/config', TplPrefixController::class)->names([
+    'index' => 'tpl.config.index',
+    'create' => 'tpl.config.create',
+    'store' => 'tpl.config.store',
+    'edit' => 'tpl.config.edit',
+    'update' => 'tpl.config.update',
+    'destroy' => 'tpl.config.destroy',
+]);
 require __DIR__.'/auth.php';
