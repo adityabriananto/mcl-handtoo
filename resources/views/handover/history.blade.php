@@ -21,38 +21,37 @@
 
     {{-- STATISTIK DASHBOARD ANGKA --}}
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+
         {{-- Card 1: Total Batches (GRAY/DEFAULT) --}}
-        <div class="stat-card bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700">
+        <div class="stat-card bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700">
             <p class="stat-label text-gray-700 dark:text-gray-300">Total Batches Created</p>
             <p class="stat-value text-gray-800 dark:text-gray-100">{{ $globalStats['total_batches'] }}</p>
         </div>
 
-        {{-- Card 2: Batches in Staging (YELLOW) --}}
-        <div class="stat-card bg-yellow-100 dark:bg-yellow-900/50 border-yellow-400 dark:border-yellow-700">
-            <p class="stat-label text-yellow-800 dark:text-yellow-300">Currently Staging</p>
-            <p class="stat-value text-yellow-800 dark:text-yellow-100">{{ $globalStats['staging_batches'] }}</p>
+        {{-- Card 2: Batches in Staging (DEFAULT) --}}
+        <div class="stat-card bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700">
+            <p class="stat-label text-gray-700 dark:text-gray-300">Currently Staging</p>
+            <p class="stat-value text-yellow-600 dark:text-yellow-400">{{ $globalStats['staging_batches'] }}</p>
         </div>
 
-        {{-- Card 3: Completed Batches (BLUE) --}}
-        <div class="stat-card bg-blue-100 dark:bg-blue-900/50 border-blue-400 dark:border-blue-700">
-            <p class="stat-label text-blue-800 dark:text-blue-300">Total Completed</p>
-            <p class="stat-value text-blue-800 dark:text-blue-100">{{ $globalStats['completed_batches'] }}</p>
+        {{-- Card 3: Completed Batches (DEFAULT) --}}
+        <div class="stat-card bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700">
+            <p class="stat-label text-gray-700 dark:text-gray-300">Total Completed</p>
+            <p class="stat-value text-blue-600 dark:text-blue-400">{{ $globalStats['completed_batches'] }}</p>
         </div>
 
-        {{-- Card 4: Manifest Signed (GREEN) --}}
-        <div class="stat-card bg-green-100 dark:bg-green-900/50 border-green-400 dark:border-green-700">
-            <p class="stat-label text-green-800 dark:text-green-300">Manifest Signed</p>
-            <p class="stat-value text-green-800 dark:text-green-100">{{ $globalStats['manifest_signed'] }}</p>
+        {{-- Card 4: Manifest Signed (DEFAULT) --}}
+        <div class="stat-card bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700">
+            <p class="stat-label text-gray-700 dark:text-gray-300">Manifest Signed</p>
+            <p class="stat-value text-green-600 dark:text-green-400">{{ $globalStats['manifest_signed'] }}</p>
         </div>
 
-        {{-- Card 5: Manifest Pending (RED) --}}
-        <div class="stat-card bg-red-100 dark:bg-red-900/50 border-red-400 dark:border-red-700">
-            <p class="stat-label text-red-800 dark:text-red-300">Manifest Pending</p>
-            <p class="stat-value text-red-800 dark:text-red-100">{{ $globalStats['manifest_pending'] }}</p>
+        {{-- Card 5: Manifest Pending (DEFAULT) --}}
+        <div class="stat-card bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700">
+            <p class="stat-label text-gray-700 dark:text-gray-300">Manifest Pending</p>
+            <p class="stat-value text-red-600 dark:text-red-400">{{ $globalStats['manifest_pending'] }}</p>
         </div>
     </div>
-
-    ---
 
     {{-- 1. Filter Section --}}
     <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-xl">
@@ -139,8 +138,6 @@
             </form>
         </div>
     </div>
-
-    ---
 
     {{-- 2. Summary & Export --}}
     <div class="flex justify-between items-center py-4 border-b border-gray-200 dark:border-gray-700">
