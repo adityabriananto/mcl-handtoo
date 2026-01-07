@@ -35,7 +35,7 @@ class HandoverCancellationController extends Controller
 
         DB::beginTransaction();
         try {
-            $awb = $request->tracking_number;
+            $awb = $request->cancel_reason;
             $cancelRequest = CancellationRequest::where('tracking_number', $awb)->first();
             $handoverWaybill = HandoverDetail::where('airwaybill', $awb)->first();
 
@@ -49,7 +49,6 @@ class HandoverCancellationController extends Controller
                 if($handover->status === 'completed') {
                     CancellationRequest::create([
                         'tracking_number' => $awb,
-                        'cancel_reason' => $request->cancel_reason,
                         'status' => 'Rejected',
                         'reason' => 'Package already handed over to 3PL'
                     ]);
@@ -62,7 +61,6 @@ class HandoverCancellationController extends Controller
                 } else {
                     CancellationRequest::create([
                         'tracking_number' => $awb,
-                        'cancel_reason' => $request->cancel_reason,
                         'status' => 'Approved'
                     ]);
                     $statusCode = 200;
