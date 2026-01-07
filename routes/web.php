@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\ClientApiController;
+use App\Http\Controllers\DataHandoverUploadController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\HandoverController;
 use App\Http\Controllers\HistoryController;
@@ -45,4 +47,27 @@ Route::resource('tpl/config', TplPrefixController::class)->names([
     'update' => 'tpl.config.update',
     'destroy' => 'tpl.config.destroy',
 ]);
+
+// --- Handover Upload Data Routes ---
+Route::resource('handover/upload', DataHandoverUploadController::class)->names([
+    'index' => 'handover.upload.index',
+    'create' => 'handover.upload.create',
+    'store' => 'handover.upload.store',
+    'edit' => 'handover.upload.edit',
+    'update' => 'handover.upload.update',
+    'destroy' => 'handover.upload.destroy',
+]);
+
+// --- Client API Routes ---
+Route::prefix('admin/client-api')->group(function () {
+    Route::get('/', [ClientApiController::class, 'index'])->name('client_api.index');
+    Route::get('/create', [ClientApiController::class, 'create'])->name('client_api.create');
+    Route::post('/store', [ClientApiController::class, 'store'])->name('client_api.store');
+    Route::get('/{id}/edit', [ClientApiController::class, 'edit'])->name('client_api.edit');
+    Route::put('/{id}', [ClientApiController::class, 'update'])->name('client_api.update');
+    Route::delete('/{id}', [ClientApiController::class, 'destroy'])->name('client_api.destroy');
+    Route::post('/{id}/refresh-token', [ClientApiController::class, 'refreshToken'])->name('client_api.refresh');
+});
+
+
 require __DIR__.'/auth.php';

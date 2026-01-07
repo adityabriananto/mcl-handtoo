@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApiLog;
+use App\Models\ClientApi;
+use App\Models\DataUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use GuzzleHttp\Client;
 
 // Import Model yang dibutuhkan
 use App\Models\HandoverBatch;
@@ -103,13 +107,13 @@ class HandoverController extends Controller
      */
     public function scan(Request $request)
     {
-        // Cek Sesi Belum Dimulai
+        // 1. Cek Sesi Belum Dimulai
         if (Session::get('batch_status') !== 'staged') {
             Session::flash('error', 'Sesi Handover belum dimulai. Silakan klik Start terlebih dahulu.');
             return redirect()->route('handover.index');
         }
 
-        // Cek Validasi Form (Jika gagal)
+        // 2. Validasi Input
         $validator = Validator::make($request->all(), [
             'awb_number' => 'required|string|max:50',
         ]);
@@ -121,51 +125,71 @@ class HandoverController extends Controller
         }
 
         $awb = trim(strtoupper($request->awb_number));
-        $stagedAwbs = Session::get('staged_awbs', []);
         $batchId = Session::get('current_batch_id');
         $carrier = Session::get('current_three_pl');
 
-        // 1. Cek Duplikasi di Sesi Saat Ini
+        /**
+         * SINKRONISASI SESI & DATABASE
+         * Menghapus AWB dari session jika ternyata sudah dihapus oleh Cancellation API
+         */
+        $stagedAwbs = Session::get('staged_awbs', []);
+        if (!empty($stagedAwbs)) {
+            // Ambil daftar AWB yang saat ini benar-benar ada di database untuk batch ini
+            $validAwbsInDb = HandoverDetail::where('handover_id', $batchId)
+                                ->whereIn('airwaybill', collect($stagedAwbs)->pluck('airwaybill'))
+                                ->pluck('airwaybill')
+                                ->toArray();
+
+            // Filter session: Hanya simpan yang masih ada di DB
+            $stagedAwbs = collect($stagedAwbs)->filter(function($item) use ($validAwbsInDb) {
+                return in_array($item['airwaybill'], $validAwbsInDb);
+            })->values()->all();
+
+            // Update session dengan data yang sudah bersih
+            Session::put('staged_awbs', $stagedAwbs);
+        }
+
+        // 3. Cek Duplikasi di Sesi (Setelah dibersihkan)
         $isDuplicate = collect($stagedAwbs)->contains('airwaybill', $awb);
         if ($isDuplicate) {
             Session::flash('error', 'AWB **' . $awb . '** sudah pernah dipindai di Batch ini.');
             return redirect()->route('handover.index');
         }
 
-        // 2. CEK AWB SUDAH ADA DI DATABASE DETAILS (GLOBAL CHECK)
+        // 4. Cek AWB di Database (Global Check untuk Batch lain)
         if (HandoverDetail::where('airwaybill', $awb)->exists()) {
             Session::flash('error', 'AWB **' . $awb . '** sudah pernah di-handover sebelumnya.');
             return redirect()->route('handover.index');
         }
 
-        // 3. Pengecekan Prefix dan Status Cancelled (Memanggil helper yang dimodifikasi)
+        // 5. Pengecekan Validasi Carrier & Status (Prefix Check)
         if (!$this->isAwbValidForCarrier($awb, $carrier)) {
             Session::flash('error', 'AWB **' . $awb . '** tidak sesuai dengan 3PL **' . $carrier . '** atau merupakan AWB yang dibatalkan.');
             return redirect()->route('handover.index');
         }
 
-        // 4. SIMPAN AWB LANGSUNG KE DATABASE DETAILS
+        // 6. Simpan ke Database & Update Session
         $scanTime = Carbon::now();
         try {
+            // Simpan ke DB
             HandoverDetail::create([
                 'handover_id' => $batchId,
-                'airwaybill' => $awb,
-                'scanned_at' => $scanTime,
+                'airwaybill'  => $awb,
+                'scanned_at'  => $scanTime,
             ]);
+
+            // Tambahkan ke Array Sesi
+            $stagedAwbs[] = [
+                'airwaybill' => $awb,
+                'scanned_at' => $scanTime->toDateTimeString(),
+            ];
+
+            Session::put('staged_awbs', $stagedAwbs);
+            Session::flash('success', 'AWB **' . $awb . '** berhasil ditambahkan. Total: ' . count($stagedAwbs) . ' AWBs.');
+
         } catch (\Exception $e) {
             Session::flash('error', 'Gagal menyimpan AWB ke DB: ' . $e->getMessage());
-            return redirect()->route('handover.index');
         }
-
-        // 5. Tambahkan ke Sesi (Hanya untuk Display UI)
-        $stagedAwbs[] = [
-            'airwaybill' => $awb,
-            'scanned_at' => $scanTime->toDateTimeString(),
-        ];
-
-        Session::put('staged_awbs', $stagedAwbs);
-
-        Session::flash('success', 'AWB **' . $awb . '** berhasil ditambahkan. Total: ' . count($stagedAwbs) . ' AWBs.');
 
         return redirect()->route('handover.index');
     }
@@ -206,7 +230,7 @@ class HandoverController extends Controller
     public function finalize()
     {
         $batchId = Session::get('current_batch_id');
-        $awbs = Session::get('staged_awbs', []);
+        $awbs = HandoverDetail::where('handover_id',$batchId)->get();
 
         if (empty($awbs)) {
             Session::flash('error', 'Tidak ada AWB yang dipindai. Finalisasi dibatalkan.');
@@ -216,6 +240,66 @@ class HandoverController extends Controller
         // UPDATE DATA BATCH KE DATABASE
         $batch = HandoverBatch::where('handover_id', $batchId)->first();
         if ($batch) {
+            $awbDetail = HandoverDetail::where('handover_id',$batchId)->get();
+            // dd($awbDetail);
+            foreach($awbDetail as $awb) {
+                $dataDetails = DataUpload::where('airwaybill',$awb->airwaybill)->first();
+                // dd($dataDetails);
+                if($dataDetails) {
+                    $clientApi = ClientApi::where('client_code',$dataDetails->owner_code)->first();
+                    $data = [
+                        'sales_order_number' => $dataDetails->order_number,
+                        'platform_order_id'  => "-",
+                        'owner_id'           => $dataDetails->owner_code,
+                        'platform_name'      => $dataDetails->platform_name,
+                        'biz_time'           => $awb->scanned_at,
+                        'items' => [
+                            [
+                                'quantity'           => $dataDetails->qty,
+                                'fulfillment_sku_id' => '-',
+                                'owner_id'           => $dataDetails->owner_code,
+                                'unit_price'         => '-',
+                                'platform_item_id'   => '-',
+                                'seller_id'          => '-',
+                                'status'             => 'handover_to_3pl'
+                            ]
+                        ],
+                        'seller_id' => "-",
+                    ];
+                    if($clientApi) {
+                        $url = $clientApi->client_url;
+                        $token = $clientApi->client_token;
+                        $client = new Client();
+                        $post  =  new \GuzzleHttp\Psr7\Request(
+                            'POST',
+                            $url,
+                            [
+                                'Content-Type' => 'application/json',
+                                'api-key' => $token
+                            ],
+                            json_encode($data)
+                        );
+                        $response = $client->send($post);
+                        // dd($response->getStatusCode());
+                        ApiLog::create([
+                            'endpoint'    => $url,
+                            'method'      => 'POST',
+                            'payload'     => json_encode($data),
+                            'response'    => $response,
+                            'status_code' => $response->getStatusCode()
+                        ]);
+                        if(
+                            $response->getStatusCode() == 204 ||
+                            $response->getStatusCode() == 200
+                        ) {
+                            $awb->is_sent_api = true;
+                            $awb->save();
+                        }
+                    }
+                }
+                // $jsonResult = json_decode((string)$response->getBody(), true);
+                // dd($jsonResult);
+            }
             $batch->update([
                 'total_awb' => count($awbs),
                 'status' => 'completed',

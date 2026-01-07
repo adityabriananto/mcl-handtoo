@@ -16,6 +16,7 @@ class HandoverDetail extends Model
         'handover_id',
         'airwaybill',
         'scanned_at',
+        'is_sent_api',
     ];
 
     protected $casts = [
