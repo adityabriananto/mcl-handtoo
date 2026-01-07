@@ -9,7 +9,7 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::get('/crunch', [DataCruncherController::class, 'crunch']);
+// Route::get('/crunch', [DataCruncherController::class, 'crunch']);
 
 Route::middleware(['api.key'])->group(function () {
     Route::post('/cancel', [HandoverCancellationController::class, 'cancel']);

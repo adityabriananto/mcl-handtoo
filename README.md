@@ -1,6 +1,6 @@
-# 🛠️ Handover Documentation: Handtoo Project Management Tool
+# 🛠️ Hand Tools Documentation: Handtoo Project Management Tool
 
-This document serves as the handover guide for the **Handtoo** tool to the team/individual who will subsequently manage or operate it.
+This document serves as the MCL Hand Tools guide for the **Handtoo** tool to the team/individual who will subsequently manage or operate it.
 
 ## 1. 📋 Tools Overview
 
