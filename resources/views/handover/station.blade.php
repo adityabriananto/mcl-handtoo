@@ -130,11 +130,27 @@
                 </div>
 
                 {{-- 4. Finalize Button --}}
-                @if (count(session('staged_awbs', [])) > 0)
+                @php
+                    $hasCancelledInTable = $stagedAwbs->contains('is_cancelled', true);
+                @endphp
+
+                @if ($stagedAwbs->count() > 0)
                     <form action="{{ route('handover.finalize') }}" method="POST" class="mt-6" id="finalize-form">
                         @csrf
-                        <button type="submit" class="w-full py-4 bg-yellow-400 text-gray-800 rounded-lg text-xl font-extrabold shadow-lg hover:bg-yellow-500 transition duration-150 focus:outline-none focus:ring-4 focus:ring-yellow-300">
-                            ✅ **FINALIZE HANDOVER** (Commit {{ count($stagedAwbs) }} AWBs)
+
+                        @if($hasCancelledInTable)
+                            <div class="mb-4 p-3 bg-red-600 text-white text-center rounded-lg animate-bounce font-bold">
+                                ⚠️ PERINGATAN: Hapus AWB yang "CANCELLED" sebelum melakukan Finalize!
+                            </div>
+                        @endif
+
+                        <button type="submit"
+                            @if($hasCancelledInTable) disabled @endif
+                            class="w-full py-4 rounded-lg text-xl font-extrabold shadow-lg transition duration-150
+                            {{ $hasCancelledInTable
+                                ? 'bg-gray-400 cursor-not-allowed opacity-50'
+                                : 'bg-yellow-400 text-gray-800 hover:bg-yellow-500 focus:ring-4 focus:ring-yellow-300' }}">
+                            ✅ **FINALIZE HANDOVER** ({{ $stagedAwbs->count() }} AWBs)
                         </button>
                     </form>
                 @endif
@@ -161,7 +177,6 @@
 </div>
 
 {{-- Script untuk Modal Konfirmasi --}}
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     let formToSubmit = null;
 
@@ -187,60 +202,59 @@
         }
         hideConfirmModal();
     });
-
-    let currentHash = "{{ md5($stagedAwbs->toJson()) }}";
-
-    function refreshTable() {
-        // Ambil HTML tabel terbaru
-        fetch("{{ route('handover.table-fragment') }}")
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById('table-container').innerHTML = html;
-            });
-    }
-
-    function checkDataChanges() {
-        @if (session('batch_status') !== 'staged') return; @endif
-
-        fetch("{{ route('handover.check-count') }}")
-            .then(response => response.json())
-            .then(data => {
-                if (data.hash !== currentHash) {
-                    console.log('Update detected. Refreshing table only...');
-                    currentHash = data.hash; // Update hash agar tidak refresh terus-menerus
-                    refreshTable(); // Panggil fungsi refresh table saja
-                }
-            })
-            .catch(error => console.error('Error syncing data:', error));
-    }
-
-    setInterval(checkDataChanges, 2000);
 </script>
 
 <script>
-    // Gunakan event delegation supaya butang dalam AJAX tetap berfungsi
-    document.addEventListener('click', function (e) {
-        if (e.target && e.target.closest('.btn-remove-custom')) {
-            e.preventDefault();
-            const form = e.target.closest('form');
-            const awb = form.querySelector('input[name="awb_to_remove"]').value;
+    // Gunakan json_encode untuk menghindari error "toJson() on array"
+    let currentHash = "{{ md5(json_encode($stagedAwbs)) }}";
 
-            Swal.fire({
-                title: 'Padam AWB?',
-                text: "AWB " + awb + " akan dibuang daripada senarai scan!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Ya, Padam!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    form.submit();
+    function refreshTable() {
+        fetch("{{ route('handover.table-fragment') }}")
+            .then(response => response.json())
+            .then(data => {
+                // 1. Update isi tabel tanpa refresh halaman
+                document.getElementById('table-container').innerHTML = data.html;
+
+                // 2. Jika ada paket yang dibatalkan, putar suara error
+                if (data.has_cancelled) {
+                    playErrorSound();
                 }
-            });
-        }
-    });
+
+                // 3. Update jumlah statistik di UI (Opsional)
+                const stagedCountText = document.querySelector('.text-sm.font-light');
+                if(stagedCountText) {
+                    stagedCountText.innerText = "AWBs Staged: " + data.count;
+                }
+
+                // 4. Cek tombol Finalize (Refresh halaman jika perlu mengunci tombol)
+                // Karena tombol Finalize ada di luar container tabel,
+                // cara termudah adalah reload jika status has_cancelled berubah.
+                if (data.has_cancelled) {
+                    // Opsional: window.location.reload();
+                    // Atau manipulasi DOM tombol secara manual di sini.
+                }
+            })
+            .catch(error => console.error('Error refreshing table:', error));
+    }
+
+    function checkDataChanges() {
+        // Hanya jalan jika sesi scan sedang aktif
+        @if (session('batch_status') === 'staged')
+            fetch("{{ route('handover.check-count') }}")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.hash !== currentHash) {
+                        console.log('Perubahan terdeteksi (Hapus/Cancel). Mengupdate tabel...');
+                        currentHash = data.hash;
+                        refreshTable();
+                    }
+                })
+                .catch(error => console.error('Error checking updates:', error));
+        @endif
+    }
+
+    // Jalankan pengecekan setiap 2 detik
+    setInterval(checkDataChanges, 2000);
 </script>
 
 {{-- ========================================================================= --}}

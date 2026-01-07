@@ -48,24 +48,25 @@ class HandoverController extends Controller
      * @return \Illuminate\View\View
      */
     public function index()
-{
-    $batchId = session('current_batch_id');
-    $stagedAwbs = [];
+    {
+        $batchId = session('current_batch_id');
 
-    if ($batchId) {
-        // Ambil data langsung dari Database sebagai Source of Truth
-        $stagedAwbs = HandoverDetail::where('handover_id', $batchId)
-                        ->orderBy('scanned_at', 'desc')
-                        ->get();
+        // Inisialisasi sebagai Collection kosong agar aman di count()
+        $stagedAwbs = collect();
+
+        if ($batchId) {
+            $stagedAwbs = HandoverDetail::where('handover_id', $batchId)
+                            ->orderBy('scanned_at', 'desc')
+                            ->get();
+        }
+
+        $allCarriers = $this->getActiveCarriers();
+
+        return view('handover.station', [
+            'stagedAwbs'  => $stagedAwbs, // Langsung kirim objek Collection
+            'allCarriers' => $allCarriers
+        ]);
     }
-
-    $allCarriers = $this->getActiveCarriers();
-
-    return view('handover.station', [
-        'stagedAwbs'  => $stagedAwbs,
-        'allCarriers' => $allCarriers
-    ]);
-}
 
     /**
      * Memulai sesi Handover Batch baru dan membuat entri di DB.
@@ -118,95 +119,49 @@ class HandoverController extends Controller
      */
     public function scan(Request $request)
     {
-        // 1. Cek Sesi Belum Dimulai
         if (Session::get('batch_status') !== 'staged') {
-            Session::flash('error', 'Sesi Handover belum dimulai. Silakan klik Start terlebih dahulu.');
-            return redirect()->route('handover.index');
-        }
-
-        // 2. Validasi Input
-        $validator = Validator::make($request->all(), [
-            'awb_number' => 'required|string|max:50',
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->route('handover.index')
-                            ->withErrors($validator)
-                            ->withInput();
+            return redirect()->back()->with('error', 'Sesi Handover belum dimulai.');
         }
 
         $awb = trim(strtoupper($request->awb_number));
         $batchId = Session::get('current_batch_id');
         $carrier = Session::get('current_three_pl');
 
-        /**
-         * SINKRONISASI SESI & DATABASE
-         * Menghapus AWB dari session jika ternyata sudah dihapus oleh Cancellation API
-         */
-        $stagedAwbs = Session::get('staged_awbs', []);
-        if (!empty($stagedAwbs)) {
-            // Ambil daftar AWB yang saat ini benar-benar ada di database untuk batch ini
-            $validAwbsInDb = HandoverDetail::where('handover_id', $batchId)
-                                ->whereIn('airwaybill', collect($stagedAwbs)->pluck('airwaybill'))
-                                ->pluck('airwaybill')
-                                ->toArray();
-            // Filter session: Hanya simpan yang masih ada di DB
-            $stagedAwbs = collect($stagedAwbs)->filter(function($item) use ($validAwbsInDb) {
-                return in_array($item['airwaybill'], $validAwbsInDb);
-            })->values()->all();
+        // 1. Cek Duplikasi di Database (Hanya untuk Batch Aktif ini)
+        $isDuplicate = HandoverDetail::where('handover_id', $batchId)
+                        ->where('airwaybill', $awb)
+                        ->exists();
 
-            // Update session dengan data yang sudah bersih
-            Session::put('staged_awbs', $stagedAwbs);
-        }
-
-        // 3. Cek Duplikasi di Sesi (Setelah dibersihkan)
-        $isDuplicate = collect($stagedAwbs)->contains('airwaybill', $awb);
         if ($isDuplicate) {
-            Session::flash('error', 'AWB **' . $awb . '** sudah pernah dipindai di Batch ini.');
-            return redirect()->route('handover.index');
+            return redirect()->back()->with('error', "AWB **$awb** sudah ada di daftar scan.");
         }
 
-        // 4. Cek AWB di Database Cancellation (Global Check untuk Batch lain)
-        if (CancellationRequest::where('tracking_number',$awb)->exists()) {
-            Session::flash('error', 'AWB **' . $awb . '** sudah di cancel.');
-            return redirect()->route('handover.index');
-        }
-        // 5. Cek AWB di Database (Global Check untuk Batch lain)
+        // 2. Cek Global: Apakah sudah pernah di-handover di batch lain?
         if (HandoverDetail::where('airwaybill', $awb)->exists()) {
-            Session::flash('error', 'AWB **' . $awb . '** sudah pernah di-handover sebelumnya.');
-            return redirect()->route('handover.index');
+            return redirect()->back()->with('error', "AWB **$awb** sudah pernah di-handover sebelumnya.");
         }
 
-        // 6. Pengecekan Validasi Carrier & Status (Prefix Check)
+        // 3. Cek Pembatalan (Cancellation Table)
+        if (CancellationRequest::where('tracking_number', $awb)->exists()) {
+            return redirect()->back()->with('error', "AWB **$awb** sudah di-cancel oleh sistem.");
+        }
+
+        // 4. Validasi Prefix Carrier
         if (!$this->isAwbValidForCarrier($awb, $carrier)) {
-            Session::flash('error', 'AWB **' . $awb . '** tidak sesuai dengan 3PL **' . $carrier . '** atau merupakan AWB yang dibatalkan.');
-            return redirect()->route('handover.index');
+            return redirect()->back()->with('error', "AWB **$awb** tidak sesuai dengan 3PL **$carrier**.");
         }
 
-        // 7. Simpan ke Database & Update Session
-        $scanTime = Carbon::now();
         try {
-            // Simpan ke DB
             HandoverDetail::create([
                 'handover_id' => $batchId,
                 'airwaybill'  => $awb,
-                'scanned_at'  => $scanTime,
+                'scanned_at'  => now(),
             ]);
 
-            // Tambahkan ke Array Sesi
-            $stagedAwbs[] = [
-                'airwaybill' => $awb,
-                'scanned_at' => $scanTime->toDateTimeString(),
-            ];
-
-            Session::put('staged_awbs', $stagedAwbs);
-            Session::flash('success', 'AWB **' . $awb . '** berhasil ditambahkan. Total: ' . count($stagedAwbs) . ' AWBs.');
-
+            return redirect()->back()->with('success', "AWB **$awb** berhasil ditambahkan.");
         } catch (\Exception $e) {
-            Session::flash('error', 'Gagal menyimpan AWB ke DB: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal simpan ke DB: ' . $e->getMessage());
         }
-
-        return redirect()->route('handover.index');
     }
 
     /**
@@ -215,26 +170,17 @@ class HandoverController extends Controller
     public function remove(Request $request)
     {
         $awbToRemove = $request->awb_to_remove;
-        $stagedAwbs = Session::get('staged_awbs', []);
+        $batchId = session('current_batch_id');
 
-        // HAPUS DARI DATABASE DETAILS
         try {
-            HandoverDetail::where('airwaybill', $awbToRemove)->delete();
+            HandoverDetail::where('airwaybill', $awbToRemove)
+                        ->where('handover_id', $batchId)
+                        ->delete();
+
+            return redirect()->back()->with('warning', "AWB **$awbToRemove** berhasil dihapus.");
         } catch (\Exception $e) {
-            Session::flash('error', 'Gagal menghapus AWB dari DB: ' . $e->getMessage());
-            return redirect()->route('handover.index');
+            return redirect()->back()->with('error', 'Gagal menghapus: ' . $e->getMessage());
         }
-
-        // Hapus dari Sesi
-        $updatedAwbs = collect($stagedAwbs)->reject(function ($item) use ($awbToRemove) {
-            return $item['airwaybill'] === $awbToRemove;
-        })->values()->toArray();
-
-        Session::put('staged_awbs', $updatedAwbs);
-
-        Session::flash('warning', 'AWB **' . $awbToRemove . '** berhasil dihapus dari Batch dan DB.');
-
-        return redirect()->route('handover.index');
     }
 
     // --- LOGIKA FINALISASI ---
@@ -242,31 +188,124 @@ class HandoverController extends Controller
     /**
      * Menyelesaikan sesi handover dan mengupdate data di database.
      */
-    public function finalize()
-    {
-        $batchId = Session::get('current_batch_id');
-        $awbs = HandoverDetail::where('handover_id',$batchId)->get();
+    // public function finalize()
+    // {
+    //     $batchId = Session::get('current_batch_id');
+    //     $awbs = HandoverDetail::where('handover_id',$batchId)->get();
 
-        if (empty($awbs)) {
-            Session::flash('error', 'Tidak ada AWB yang dipindai. Finalisasi dibatalkan.');
-            return redirect()->route('handover.index');
+    //     if (empty($awbs)) {
+    //         Session::flash('error', 'Tidak ada AWB yang dipindai. Finalisasi dibatalkan.');
+    //         return redirect()->route('handover.index');
+    //     }
+
+    //     // UPDATE DATA BATCH KE DATABASE
+    //     $batch = HandoverBatch::where('handover_id', $batchId)->first();
+    //     if ($batch) {
+    //         $awbDetail = HandoverDetail::where('handover_id',$batchId)->get();
+    //         // dd($awbDetail);
+    //         $awbCancelCheck = HandoverDetail::where('handover_id',$batchId)
+    //         ->where('is_cancelled',true)
+    //         ->count();
+
+    //         if($awbCancelCheck > 0) {
+    //             Session::flash('error', 'Hapus AWB yang sudah di cancel.');
+    //             return redirect()->route('handover.index');
+    //         }
+
+    //         foreach($awbDetail as $awb) {
+    //             $dataDetails = DataUpload::where('airwaybill',$awb->airwaybill)->first();
+    //             // dd($dataDetails);
+    //             if($dataDetails) {
+    //                 $clientApi = ClientApi::where('client_code',$dataDetails->owner_code)->first();
+    //                 $data = [
+    //                     'sales_order_number' => $dataDetails->order_number,
+    //                     'platform_order_id'  => "-",
+    //                     'owner_id'           => $dataDetails->owner_code,
+    //                     'platform_name'      => $dataDetails->platform_name,
+    //                     'biz_time'           => $awb->scanned_at,
+    //                     'items' => [
+    //                         [
+    //                             'quantity'           => $dataDetails->qty,
+    //                             'fulfillment_sku_id' => '-',
+    //                             'owner_id'           => $dataDetails->owner_code,
+    //                             'unit_price'         => '-',
+    //                             'platform_item_id'   => '-',
+    //                             'seller_id'          => '-',
+    //                             'status'             => 'handover_to_3pl'
+    //                         ]
+    //                     ],
+    //                     'seller_id' => "-",
+    //                 ];
+    //                 if($clientApi) {
+    //                     $url = $clientApi->client_url;
+    //                     $token = $clientApi->client_token;
+    //                     $client = new Client();
+    //                     $post  =  new \GuzzleHttp\Psr7\Request(
+    //                         'POST',
+    //                         $url,
+    //                         [
+    //                             'Content-Type' => 'application/json',
+    //                             'api-key' => $token
+    //                         ],
+    //                         json_encode($data)
+    //                     );
+    //                     $response = $client->send($post);
+    //                     // dd($response->getStatusCode());
+    //                     ApiLog::create([
+    //                         'endpoint'    => $url,
+    //                         'method'      => 'POST',
+    //                         'payload'     => json_encode($data),
+    //                         'response'    => $response,
+    //                         'status_code' => $response->getStatusCode()
+    //                     ]);
+    //                     if(
+    //                         $response->getStatusCode() == 204 ||
+    //                         $response->getStatusCode() == 200
+    //                     ) {
+    //                         $awb->is_sent_api = true;
+    //                         $awb->save();
+    //                     }
+    //                 }
+    //             }
+    //             // $jsonResult = json_decode((string)$response->getBody(), true);
+    //             // dd($jsonResult);
+    //         }
+    //         $batch->update([
+    //             'total_awb' => count($awbs),
+    //             'status' => 'completed',
+    //             'finalized_at' => Carbon::now()
+    //         ]);
+    //     }
+
+    //     // Bersihkan Sesi
+    //     Session::forget(['current_batch_id', 'current_three_pl', 'batch_status', 'staged_awbs']);
+
+    //     Session::flash('success', 'Handover Batch **' . $batchId . '** berhasil diselesaikan dengan **' . count($awbs) . '** AWB. Data telah di-commit ke sistem.');
+
+    //     return redirect()->route('handover.index');
+    // }
+
+    public function finalize(Request $request)
+    {
+        $batchId = session('current_batch_id');
+
+        // 1. Ambil semua detail AWB di batch ini
+        $details = HandoverDetail::where('handover_id', $batchId)->get();
+
+        // 2. Cek apakah ada yang berstatus Cancelled
+        $hasCancelled = $details->contains('is_cancelled', true);
+
+        if ($hasCancelled) {
+            return redirect()->back()->with('error', 'Gagal Finalize! Terdapat AWB yang dibatalkan (Cancelled) di dalam daftar. Harap hapus terlebih dahulu.');
         }
 
-        // UPDATE DATA BATCH KE DATABASE
-        $batch = HandoverBatch::where('handover_id', $batchId)->first();
-        if ($batch) {
-            $awbDetail = HandoverDetail::where('handover_id',$batchId)->get();
-            // dd($awbDetail);
-            $awbCancelCheck = HandoverDetail::where('handover_id',$batchId)
-            ->where('is_cancelled',true)
-            ->count();
+        if ($details->isEmpty()) {
+            return redirect()->back()->with('error', 'Gagal! Tidak ada AWB untuk diselesaikan.');
+        }
 
-            if($awbCancelCheck > 0) {
-                Session::flash('error', 'Hapus AWB yang sudah di cancel.');
-                return redirect()->route('handover.index');
-            }
-
-            foreach($awbDetail as $awb) {
+        DB::beginTransaction();
+        try {
+            foreach($details as $awb) {
                 $dataDetails = DataUpload::where('airwaybill',$awb->airwaybill)->first();
                 // dd($dataDetails);
                 if($dataDetails) {
@@ -321,22 +360,24 @@ class HandoverController extends Controller
                         }
                     }
                 }
-                // $jsonResult = json_decode((string)$response->getBody(), true);
-                // dd($jsonResult);
             }
-            $batch->update([
-                'total_awb' => count($awbs),
+            // 3. Update status batch menjadi completed
+            HandoverBatch::where('handover_id', $batchId)->update([
+                'total_awb' => count($details),
                 'status' => 'completed',
-                'finalized_at' => Carbon::now()
+                'finalized_at' => now()
             ]);
+
+            // 4. Bersihkan Session Scan
+            session()->forget(['current_batch_id', 'batch_status', 'current_three_pl']);
+
+            DB::commit();
+            return redirect()->route('handover.index')->with('success', 'Batch ' . $batchId . ' berhasil diselesaikan!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
-
-        // Bersihkan Sesi
-        Session::forget(['current_batch_id', 'current_three_pl', 'batch_status', 'staged_awbs']);
-
-        Session::flash('success', 'Handover Batch **' . $batchId . '** berhasil diselesaikan dengan **' . count($awbs) . '** AWB. Data telah di-commit ke sistem.');
-
-        return redirect()->route('handover.index');
     }
 
     // --- HELPER UNTUK LOGIKA BISNIS (AKTIF) ---
@@ -404,36 +445,30 @@ class HandoverController extends Controller
     public function checkCount()
     {
         $batchId = session('current_batch_id');
+        if (!$batchId) return response()->json(['hash' => '', 'count' => 0]);
 
-        if (!$batchId) {
-            return response()->json(['hash' => '']);
-        }
-
-        // Ambil semua AWB dan status cancel-nya dalam satu string
         $data = HandoverDetail::where('handover_id', $batchId)
-                    ->select('airwaybill', 'is_cancelled')
-                    ->orderBy('airwaybill')
-                    ->get()
-                    ->toJson();
+                    ->orderBy('scanned_at', 'desc')
+                    ->get();
 
-        // Buat hash unik dari data tersebut
         return response()->json([
-            'hash' => md5($data),
-            'count' => HandoverDetail::where('handover_id', $batchId)->count()
+            'hash' => md5(json_encode($data)),
+            'count' => $data->count()
         ]);
     }
+
     public function getTableFragment()
-    {
-        $batchId = session('current_batch_id');
-        $stagedAwbs = [];
+{
+    $batchId = session('current_batch_id');
+    $stagedAwbs = HandoverDetail::where('handover_id', $batchId)
+                    ->orderBy('scanned_at', 'desc')
+                    ->get();
 
-        if ($batchId) {
-            $stagedAwbs = HandoverDetail::where('handover_id', $batchId)
-                            ->orderBy('scanned_at', 'desc')
-                            ->get();
-        }
-
-        // Mengembalikan hanya view tabel (kita akan buat file baru atau gunakan fragment)
-        return view('handover.partials.table', compact('stagedAwbs'))->render();
-    }
+    return response()->json([
+        'html' => view('handover.partials.table', compact('stagedAwbs'))->render(),
+        'has_cancelled' => $stagedAwbs->contains('is_cancelled', true),
+        'count' => $stagedAwbs->count(),
+        'hash' => md5(json_encode($stagedAwbs))
+    ]);
+}
 }
