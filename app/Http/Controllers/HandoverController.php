@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ApiLog;
+use App\Models\CancellationRequest;
 use App\Models\ClientApi;
 use App\Models\DataUpload;
 use Illuminate\Http\Request;
@@ -47,14 +48,24 @@ class HandoverController extends Controller
      * @return \Illuminate\View\View
      */
     public function index()
-    {
-        // Ambil daftar carrier yang aktif secara dinamis dari DB
-        $allCarriers = $this->getActiveCarriers();
+{
+    $batchId = session('current_batch_id');
+    $stagedAwbs = [];
 
-        return view('handover.station', [
-            'allCarriers' => $allCarriers,
-        ]);
+    if ($batchId) {
+        // Ambil data langsung dari Database sebagai Source of Truth
+        $stagedAwbs = HandoverDetail::where('handover_id', $batchId)
+                        ->orderBy('scanned_at', 'desc')
+                        ->get();
     }
+
+    $allCarriers = $this->getActiveCarriers();
+
+    return view('handover.station', [
+        'stagedAwbs'  => $stagedAwbs,
+        'allCarriers' => $allCarriers
+    ]);
+}
 
     /**
      * Memulai sesi Handover Batch baru dan membuat entri di DB.
@@ -139,7 +150,6 @@ class HandoverController extends Controller
                                 ->whereIn('airwaybill', collect($stagedAwbs)->pluck('airwaybill'))
                                 ->pluck('airwaybill')
                                 ->toArray();
-
             // Filter session: Hanya simpan yang masih ada di DB
             $stagedAwbs = collect($stagedAwbs)->filter(function($item) use ($validAwbsInDb) {
                 return in_array($item['airwaybill'], $validAwbsInDb);
@@ -156,19 +166,24 @@ class HandoverController extends Controller
             return redirect()->route('handover.index');
         }
 
-        // 4. Cek AWB di Database (Global Check untuk Batch lain)
+        // 4. Cek AWB di Database Cancellation (Global Check untuk Batch lain)
+        if (CancellationRequest::where('tracking_number',$awb)->exists()) {
+            Session::flash('error', 'AWB **' . $awb . '** sudah di cancel.');
+            return redirect()->route('handover.index');
+        }
+        // 5. Cek AWB di Database (Global Check untuk Batch lain)
         if (HandoverDetail::where('airwaybill', $awb)->exists()) {
             Session::flash('error', 'AWB **' . $awb . '** sudah pernah di-handover sebelumnya.');
             return redirect()->route('handover.index');
         }
 
-        // 5. Pengecekan Validasi Carrier & Status (Prefix Check)
+        // 6. Pengecekan Validasi Carrier & Status (Prefix Check)
         if (!$this->isAwbValidForCarrier($awb, $carrier)) {
             Session::flash('error', 'AWB **' . $awb . '** tidak sesuai dengan 3PL **' . $carrier . '** atau merupakan AWB yang dibatalkan.');
             return redirect()->route('handover.index');
         }
 
-        // 6. Simpan ke Database & Update Session
+        // 7. Simpan ke Database & Update Session
         $scanTime = Carbon::now();
         try {
             // Simpan ke DB
@@ -242,6 +257,15 @@ class HandoverController extends Controller
         if ($batch) {
             $awbDetail = HandoverDetail::where('handover_id',$batchId)->get();
             // dd($awbDetail);
+            $awbCancelCheck = HandoverDetail::where('handover_id',$batchId)
+            ->where('is_cancelled',true)
+            ->count();
+
+            if($awbCancelCheck > 0) {
+                Session::flash('error', 'Hapus AWB yang sudah di cancel.');
+                return redirect()->route('handover.index');
+            }
+
             foreach($awbDetail as $awb) {
                 $dataDetails = DataUpload::where('airwaybill',$awb->airwaybill)->first();
                 // dd($dataDetails);
@@ -375,5 +399,41 @@ class HandoverController extends Controller
         }
 
         return redirect()->route('handover.index')->with('error', 'Tidak ada batch aktif untuk dihapus.');
+    }
+
+    public function checkCount()
+    {
+        $batchId = session('current_batch_id');
+
+        if (!$batchId) {
+            return response()->json(['hash' => '']);
+        }
+
+        // Ambil semua AWB dan status cancel-nya dalam satu string
+        $data = HandoverDetail::where('handover_id', $batchId)
+                    ->select('airwaybill', 'is_cancelled')
+                    ->orderBy('airwaybill')
+                    ->get()
+                    ->toJson();
+
+        // Buat hash unik dari data tersebut
+        return response()->json([
+            'hash' => md5($data),
+            'count' => HandoverDetail::where('handover_id', $batchId)->count()
+        ]);
+    }
+    public function getTableFragment()
+    {
+        $batchId = session('current_batch_id');
+        $stagedAwbs = [];
+
+        if ($batchId) {
+            $stagedAwbs = HandoverDetail::where('handover_id', $batchId)
+                            ->orderBy('scanned_at', 'desc')
+                            ->get();
+        }
+
+        // Mengembalikan hanya view tabel (kita akan buat file baru atau gunakan fragment)
+        return view('handover.partials.table', compact('stagedAwbs'))->render();
     }
 }

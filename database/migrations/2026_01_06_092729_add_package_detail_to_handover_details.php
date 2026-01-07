@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::table('handover_details', function (Blueprint $table) {
             //
             $table->boolean('is_sent_api')->default(false);
+            $table->boolean('is_cancelled')->default(false);
         });
     }
 
@@ -23,8 +24,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('handover_details', function (Blueprint $table) {
-            //
             $table->dropColumn('is_sent_api');
+            $table->dropColumn('is_cancelled');
         });
     }
 };

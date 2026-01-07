@@ -3,6 +3,16 @@
 @section('title', 'Handover Station')
 
 @section('content')
+<style>
+    @keyframes pulse-red {
+        0%, 100% { background-color: rgba(220, 38, 38, 0.1); }
+        50% { background-color: rgba(220, 38, 38, 0.3); }
+    }
+    .row-cancelled {
+        animation: pulse-red 2s infinite;
+        border-left: 4px solid #dc2626;
+    }
+</style>
 <div class="space-y-6">
     <h1 class="text-3xl font-extrabold text-gray-800 dark:text-gray-100 mb-6">📦 Handover Station</h1>
 
@@ -97,7 +107,7 @@
         <div class="bg-white dark:bg-gray-900 shadow-xl rounded-xl overflow-hidden border-2 border-green-500">
             <div class="p-4 bg-green-600 text-white dark:bg-green-700 flex justify-between items-center">
                 <h4 class="text-xl font-semibold">2. AWB Scanning (3PL: {{ session('current_three_pl') }})</h4>
-                <span class="text-sm font-light">AWBs Staged: {{ count(session('staged_awbs', [])) }}</span>
+                <span class="text-sm font-light">AWBs Staged: {{ count($stagedAwbs) }}</span>
             </div>
 
             <div class="p-6">
@@ -115,39 +125,8 @@
 
                 {{-- 3. Staged AWB List --}}
                 <h5 class="text-xl font-medium text-gray-700 dark:text-gray-300 mb-3">Staged AWBs (Tersimpan di Sesi & DB)</h5>
-                <div class="overflow-y-auto max-h-96 border border-gray-200 dark:border-gray-700 rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead class="bg-gray-700 dark:bg-gray-800 sticky top-0">
-                            <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider w-1/12">No.</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider w-6/12">AWB Number</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider w-3/12">Scan Timestamp</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider w-2/12">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                            @forelse (session('staged_awbs', []) as $awbData)
-                                <tr class="hover:bg-blue-50 dark:hover:bg-gray-800">
-                                    <td class="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{{ $loop->iteration }}</td>
-                                    <td class="px-6 py-3 whitespace-nowrap text-sm font-bold text-gray-800 dark:text-gray-200">{{ $awbData['airwaybill'] }}</td>
-                                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::parse($awbData['scanned_at'])->format('H:i:s') }}</td>
-                                    <td class="px-6 py-3 whitespace-nowrap text-sm font-medium">
-                                        <form action="{{ route('handover.remove') }}" method="POST">
-                                            @csrf
-                                            <input type="hidden" name="awb_to_remove" value="{{ $awbData['airwaybill'] }}">
-                                            <button type="submit" class="text-red-600 hover:text-red-900 font-semibold text-xs py-1 px-2 rounded bg-red-100 hover:bg-red-200 transition duration-150 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800">
-                                                Remove
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="4" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Belum ada AWB yang dipindai dalam sesi ini.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                <div id="table-container" class="overflow-y-auto max-h-96 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    @include('handover.partials.table', ['stagedAwbs' => $stagedAwbs])
                 </div>
 
                 {{-- 4. Finalize Button --}}
@@ -155,7 +134,7 @@
                     <form action="{{ route('handover.finalize') }}" method="POST" class="mt-6" id="finalize-form">
                         @csrf
                         <button type="submit" class="w-full py-4 bg-yellow-400 text-gray-800 rounded-lg text-xl font-extrabold shadow-lg hover:bg-yellow-500 transition duration-150 focus:outline-none focus:ring-4 focus:ring-yellow-300">
-                            ✅ **FINALIZE HANDOVER** (Commit {{ count(session('staged_awbs')) }} AWBs)
+                            ✅ **FINALIZE HANDOVER** (Commit {{ count($stagedAwbs) }} AWBs)
                         </button>
                     </form>
                 @endif
@@ -182,6 +161,7 @@
 </div>
 
 {{-- Script untuk Modal Konfirmasi --}}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     let formToSubmit = null;
 
@@ -206,6 +186,60 @@
             formToSubmit.submit();
         }
         hideConfirmModal();
+    });
+
+    let currentHash = "{{ md5($stagedAwbs->toJson()) }}";
+
+    function refreshTable() {
+        // Ambil HTML tabel terbaru
+        fetch("{{ route('handover.table-fragment') }}")
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('table-container').innerHTML = html;
+            });
+    }
+
+    function checkDataChanges() {
+        @if (session('batch_status') !== 'staged') return; @endif
+
+        fetch("{{ route('handover.check-count') }}")
+            .then(response => response.json())
+            .then(data => {
+                if (data.hash !== currentHash) {
+                    console.log('Update detected. Refreshing table only...');
+                    currentHash = data.hash; // Update hash agar tidak refresh terus-menerus
+                    refreshTable(); // Panggil fungsi refresh table saja
+                }
+            })
+            .catch(error => console.error('Error syncing data:', error));
+    }
+
+    setInterval(checkDataChanges, 2000);
+</script>
+
+<script>
+    // Gunakan event delegation supaya butang dalam AJAX tetap berfungsi
+    document.addEventListener('click', function (e) {
+        if (e.target && e.target.closest('.btn-remove-custom')) {
+            e.preventDefault();
+            const form = e.target.closest('form');
+            const awb = form.querySelector('input[name="awb_to_remove"]').value;
+
+            Swal.fire({
+                title: 'Padam AWB?',
+                text: "AWB " + awb + " akan dibuang daripada senarai scan!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, Padam!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        }
     });
 </script>
 

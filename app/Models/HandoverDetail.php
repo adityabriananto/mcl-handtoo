@@ -21,6 +21,7 @@ class HandoverDetail extends Model
 
     protected $casts = [
         'scanned_at' => 'datetime',
+        'is_cancelled' => 'boolean',
     ];
 
     /**

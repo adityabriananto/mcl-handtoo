@@ -30,6 +30,8 @@ Route::post('/handover/set-3pl', [HandoverController::class, 'setThreePl'])->nam
 Route::post('/handover/scan', [HandoverController::class, 'scan'])->name('handover.scan');
 Route::post('/handover/remove', [HandoverController::class, 'remove'])->name('handover.remove');
 Route::post('/handover/finalize', [HandoverController::class, 'finalize'])->name('handover.finalize');
+Route::get('/handover/check-count', [HandoverController::class, 'checkCount'])->name('handover.check-count');
+Route::get('/handover/table-fragment', [HandoverController::class, 'getTableFragment'])->name('handover.table-fragment');
 
 // --- History Dashboard Routes ---
 Route::get('/history', [HistoryController::class, 'index'])->name('history.index');

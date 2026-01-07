@@ -9,7 +9,7 @@
         {{-- Main Header --}}
         <header class="mb-8 flex justify-between items-center">
             <h1 class="text-3xl font-bold leading-tight text-gray-900 dark:text-gray-100 flex items-center">
-                📤 Import Data Package Detail
+                📤 Import Data Order Management
             </h1>
         </header>
 
