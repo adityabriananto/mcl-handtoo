@@ -274,4 +274,26 @@ class InboundOrderController extends Controller
             fclose($file);
         }, 200, $headers);
     }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $inbound = InboundRequest::with('children')->findOrFail($id);
+
+        // Jika tipe adalah batch, update semua anak (Sub-IO) dan induknya
+        if ($request->type === 'batch') {
+            // Update semua Sub-IO
+            $inbound->children()->update(['status' => 'Completed']);
+            // Update Induk
+            $inbound->update(['status' => 'Completed']);
+
+            $message = "Main IO and all Sub-IOs have been marked as Completed.";
+        } else {
+            // Update individu (bisa Main IO tanpa split atau Sub-IO itu sendiri)
+            $inbound->update(['status' => 'Completed']);
+
+            $message = "Inbound {$inbound->reference_number} marked as Completed.";
+        }
+
+        return redirect()->back()->with('success', $message);
+    }
 }
