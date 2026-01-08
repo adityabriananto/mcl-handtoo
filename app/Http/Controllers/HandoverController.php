@@ -312,18 +312,18 @@ class HandoverController extends Controller
                     $clientApi = ClientApi::where('client_code',$dataDetails->owner_code)->first();
                     $data = [
                         'sales_order_number' => $dataDetails->order_number,
-                        'platform_order_id'  => "-",
+                        'platform_order_id'  => null,
                         'owner_id'           => $dataDetails->owner_code,
                         'platform_name'      => $dataDetails->platform_name,
                         'biz_time'           => $awb->scanned_at,
                         'items' => [
                             [
                                 'quantity'           => $dataDetails->qty,
-                                'fulfillment_sku_id' => '-',
+                                'fulfillment_sku_id' => null,
                                 'owner_id'           => $dataDetails->owner_code,
-                                'unit_price'         => '-',
-                                'platform_item_id'   => '-',
-                                'seller_id'          => '-',
+                                'unit_price'         => null,
+                                'platform_item_id'   => null,
+                                'seller_id'          => null,
                                 'status'             => 'handover_to_3pl'
                             ]
                         ],

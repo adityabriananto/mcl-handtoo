@@ -25,7 +25,7 @@ class HandoverCancellationController extends Controller
         if ($validator->fails()) {
             $statusCode = 400;
             $responseContent = [
-                'success'  => 'FALSE',
+                'success'  => FALSE,
                 'error_code' => 'Validation failed',
                 'error_message'  => $validator->errors()->getMessages()
             ];
@@ -54,7 +54,7 @@ class HandoverCancellationController extends Controller
                     ]);
                     $statusCode = 400;
                     $responseContent = [
-                        'success'  => 'FALSE',
+                        'success'  => FALSE,
                         'error_code' => 'Cancel Failed',
                         'error_message'  => 'Package already handed over to 3PL'
                     ];
@@ -65,7 +65,7 @@ class HandoverCancellationController extends Controller
                     ]);
                     $statusCode = 200;
                     $responseContent = [
-                        'success' => 'TRUE',
+                        'success' => TRUE,
                         'message' => 'Tracking number '.$awb.' Cancelled'
                     ];
                     // HAPUS DARI DATABASE
@@ -78,7 +78,7 @@ class HandoverCancellationController extends Controller
             if($cancelRequest) {
                 $statusCode = 400;
                 $responseContent = [
-                    'success'  => 'FALSE',
+                    'success'  => FALSE,
                     'error_code' => 'Cancel Failed',
                     'error_message'  => 'Duplicate Tracking Number'
                 ];
@@ -95,7 +95,7 @@ class HandoverCancellationController extends Controller
                 ]);
                 $statusCode = 200;
                 $responseContent = [
-                    'success' => 'TRUE',
+                    'success' => TRUE,
                     'message' => 'Tracking number '.$awb.' Cancelled'
                 ];
             }
@@ -107,13 +107,13 @@ class HandoverCancellationController extends Controller
 
             //     $statusCode = 200;
             //     $responseContent = [
-            //         'success' => 'TRUE',
+            //         'success' => TRUE,
             //         'message' => 'Tracking number '.$awb.' Cancelled'
             //     ];
             // } else {
             //     $statusCode = 400;
             //     $responseContent = [
-            //         'success'  => 'FALSE',
+            //         'success'  => FALSE,
             //         'error_code' => 'Cancel Failed',
             //         'error_message'  => 'Package already handed over to 3PL or Batch not found'
             //     ];
@@ -124,7 +124,7 @@ class HandoverCancellationController extends Controller
             DB::rollBack();
             $statusCode = 400;
             $responseContent = [
-                'success'  => 'FALSE',
+                'success'  => FALSE,
                 'error_message' => 'Error: ' . $e->getMessage()
             ];
         }

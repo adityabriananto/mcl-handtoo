@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ClientApiController;
 use App\Http\Controllers\DataHandoverUploadController;
+use App\Http\Controllers\InboundOrderController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\HandoverController;
 use App\Http\Controllers\HistoryController;
@@ -71,5 +72,31 @@ Route::prefix('admin/client-api')->group(function () {
     Route::post('/{id}/refresh-token', [ClientApiController::class, 'refreshToken'])->name('client_api.refresh');
 });
 
+// --- Inbound Routes ---
+Route::prefix('inbound')->group(function () {
+    // 1. Dashboard & List (Halaman Utama)
+    Route::match(['get', 'post'], '/', [InboundOrderController::class, 'index'])->name('inbound.index');
+
+    // 2. Export Excel (PENTING: Letakkan sebelum rute {id} agar kata 'export' tidak terbaca sebagai ID)
+    Route::get('/export', [InboundOrderController::class, 'export'])->name('inbound.export');
+
+    // 3. Create & Store (Manual Entry jika diperlukan)
+    Route::get('/create', [InboundOrderController::class, 'create'])->name('inbound.create');
+    Route::post('/store', [InboundOrderController::class, 'store'])->name('inbound.store');
+
+    // 4. Detail (Melihat List SKU di dalam Inbound)
+    Route::get('/{id}', [InboundOrderController::class, 'show'])->name('inbound.show');
+
+    // 5. Edit, Update & Delete
+    Route::get('/{id}/edit', [InboundOrderController::class, 'edit'])->name('inbound.edit');
+    Route::put('/{id}', [InboundOrderController::class, 'update'])->name('inbound.update');
+    Route::delete('/{id}', [InboundOrderController::class, 'destroy'])->name('inbound.destroy');
+
+    // 6. Split Data
+    Route::post('/inbound/{id}/split', [InboundOrderController::class, 'split'])->name('inbound.split');
+
+    // 7. Export
+    Route::get('/export/{id}', [InboundOrderController::class, 'export'])->name('export');
+});
 
 require __DIR__.'/auth.php';
