@@ -147,6 +147,76 @@ class InboundOrderController extends Controller
         }
     }
 
+    public function uploadIoNumber(Request $request) {
+        $request->validate([
+            'csv_file' => 'required|mimes:csv,txt|max:2048',
+        ]);
+
+        $file = $request->file('csv_file');
+        $handle = fopen($file->getRealPath(), 'r');
+
+        fgetcsv($handle);
+        $rowCount = 0;
+        $parentIds = [];
+        while (($data = fgetcsv($handle, 1000, ',')) !== FALSE) {
+            $refNum = trim($data[0] ?? '');
+            $ioNum  = trim($data[1] ?? '');
+
+            // 1. Validasi: Pastikan kolom tidak kosong
+            if (empty($refNum) || empty($ioNum)) {
+                $errors[] = "Baris " . ($rowCount + 2) . ": Reference atau IO Number kosong.";
+                continue;
+            }
+            $inbound = InboundRequest::where('reference_number', $data[0])->first();
+
+            if ($inbound) {
+                // Update Child/Main Record
+                $inbound->inbound_order_no = $ioNum;
+                $inbound->status = 'Processing';
+                $inbound->save();
+
+                // Koleksi Parent ID jika ada
+                if ($inbound->parent_id) {
+                    $parentIds[] = $inbound->parent_id;
+                }
+
+                $rowCount++;
+            } else {
+                $errors[] = "Baris " . ($rowCount + 2) . ": Reference $refNum tidak ditemukan.";
+            }
+        }
+        fclose($handle);
+
+        if(!empty($parentIds)) {
+            InboundRequest::whereIn('id', array_unique($parentIds))->update(['status' => 'Processing']);
+        }
+
+        return back()->with('success', "Success! $rowCount Inbound numbers have been processed.");
+    }
+
+    public function downloadTemplate()
+    {
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="inbound_template.csv"',
+        ];
+
+        // Kolom hanya dua sesuai permintaan
+        $columns = ['reference_number', 'inbound_order_no'];
+
+        $callback = function() use ($columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+
+            // Contoh data dummy agar user mengerti formatnya
+            fputcsv($file, ['REF2026010901', 'IO-MCL-99821']);
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
     public function undoSplit($id)
     {
         $parent = InboundRequest::with('children.details')->findOrFail($id);

@@ -16,6 +16,7 @@ class InboundRequest extends Model
         'estimate_time',
         'comment',
         'reference_number',
+        'inbound_order_no',
         'status',
         'parent_id'
     ];

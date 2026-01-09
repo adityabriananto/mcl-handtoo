@@ -51,6 +51,8 @@ Route::prefix('inbound')->group(function () {
     // 3. Create & Store (Manual Entry jika diperlukan)
     Route::get('/create', [InboundOrderController::class, 'create'])->name('inbound.create');
     Route::post('/store', [InboundOrderController::class, 'store'])->name('inbound.store');
+    Route::post('/upload', [InboundOrderController::class, 'uploadIoNumber'])->name('inbound.upload');
+    Route::get('/inbound/template', [InboundOrderController::class, 'downloadTemplate'])->name('inbound.template');
 
     // 4. Detail (Melihat List SKU di dalam Inbound)
     Route::get('/{id}', [InboundOrderController::class, 'show'])->name('inbound.show');

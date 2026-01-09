@@ -20,6 +20,7 @@ return new class extends Migration
             $table->timestamp('estimate_time');
             $table->string('comment');
             $table->string('reference_number')->nullable();
+            $table->string('inbound_order_no')->nullable();
             $table->string('status')->nullable();
             $table->timestamps();
         });

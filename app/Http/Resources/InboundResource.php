@@ -16,9 +16,10 @@ class InboundResource extends JsonResource
 
     public function toArray($request)
     {
+        dd($request);
         return [
             'reference_number' => $this->reference_number,
-            'io_type'             => $this->parent_id ? 'Child' : ($this->children->count() > 0 ? 'Parent' : 'Single'),
+            'io_type'          => $this->parent_id ? 'Child' : ($this->children->count() > 0 ? 'Parent' : 'Single'),
             'status'           => $this->status,
             'warehouse'        => $this->warehouse_code,
 

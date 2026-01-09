@@ -74,22 +74,52 @@ class InboundOrderApiController extends Controller
 
 
     public function getInboundOrders(Request $request) {
-        $client = ClientApi::where('access_token',$request->header()['authorization'])->first();
-        $inbound = InboundRequest::with('details')
-                    ->where('client_name', $client->client_name)
-                    ->where('reference_number', $request->reference_number)
+        // 1. Validasi Client berdasarkan Token
+        $authHeader = $request->header('authorization');
+        $client = ClientApi::where('access_token', $authHeader)->first();
+
+        if (!$client) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access'
+            ], 401);
+        }
+
+        // 2. Query Inbound dengan Filter:
+        // - Hanya milik Client terkait
+        // - Hanya Main IO (Asumsi: kolom is_main = 1 atau parent_id null)
+        // - Hanya ambil kolom yang dibutuhkan
+        $inbound = InboundRequest::where('client_name', $client->client_name)
+                    ->where(function($query) {
+                        // Sesuaikan dengan struktur database Anda untuk membedakan Main IO
+                        $query->WhereNull('parent_id');
+                    })
+                    ->select('reference_number', 'status') // Hanya ambil 2 kolom ini
                     ->get();
 
-        if (!$inbound) {
-             $statusCode = 404;
+        // 3. Response handling
+        if ($inbound->isEmpty()) {
+            $statusCode = 200;
             $responseContent = [
-                'success'  => FALSE,
-                'message' => 'Inbound Order tidak ditemukan.'
+                'success' => true,
+                'message' => 'No references found',
+                'data'    => []
             ];
-            $this->logApi($request, $responseContent, $statusCode, 'GetInboundOrders');
-            return response()->json($responseContent, $statusCode);
+        } else {
+            $statusCode = 200;
+            $responseContent = [
+                'success' => true,
+                'message' => 'Success fetch inbound references',
+                'data'    => $inbound
+            ];
         }
+
+        // 4. Log API
+        $this->logApi($request, $responseContent, $statusCode, 'GetInboundOrders');
+
+        return response()->json($responseContent, $statusCode);
     }
+
     public function getInboundOrderDetail(Request $request)
     {
         $client = ClientApi::where('access_token',$request->header()['authorization'])->first();
