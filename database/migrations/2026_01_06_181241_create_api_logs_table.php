@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('api_logs', function (Blueprint $table) {
             $table->id();
+            $table->string('client_name');
+            $table->string('api_type');
             $table->string('endpoint');
             $table->string('method');
             $table->json('payload')->nullable(); // Data yang dikirim client

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\ApiLog;
 use App\Models\CancellationRequest;
+use App\Models\ClientApi;
 use App\Models\HandoverBatch;
 use Illuminate\Http\Request;
 use App\Models\HandoverDetail;
@@ -90,7 +91,6 @@ class HandoverCancellationController extends Controller
             ) {
                 CancellationRequest::create([
                     'tracking_number' => $awb,
-                    'cancel_reason' => $request->cancel_reason,
                     'status' => 'Approved'
                 ]);
                 $statusCode = 200;
@@ -129,13 +129,16 @@ class HandoverCancellationController extends Controller
             ];
         }
 
-        $this->logApi($request, $responseContent, $statusCode);
+        $this->logApi($request, $responseContent, $statusCode,'HandoverCancellation');
         return response()->json($responseContent, $statusCode);
     }
 
     // Helper untuk log agar code lebih bersih
-    private function logApi($request, $response, $status) {
+    private function logApi($request, $response, $status, $type) {
+        $client = ClientApi::where('access_token',$request->header()['authorization'])->first();
         ApiLog::create([
+            'client_name' => $client->client_name,
+            'api_type'    => $type,
             'endpoint'    => $request->fullUrl(),
             'method'      => $request->method(),
             'payload'     => $request->all(),

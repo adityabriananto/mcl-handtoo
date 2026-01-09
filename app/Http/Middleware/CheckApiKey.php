@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\ApiLog;
+use App\Models\ClientApi;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,14 +20,17 @@ class CheckApiKey
         $apiKey = $request->header('Authorization');
 
         // Bandingkan dengan key yang ada di file .env kita
-        if ($apiKey !== config('app.api_key')) {
+        $client = ClientApi::where('access_token',$apiKey)->first();
+        if (!$client) {
             $statusCode = 401;
             $responseContent = [
                 'success'  => 'FALSE',
                 'error_code' => 'Invalid Authorization',
-                'error_message'  => 'Unauthorized: Invalid Authorization.'
+                'error_message'  => 'Unauthorized: Invalid Authorization. or API not registered yet'
             ];
             ApiLog::create([
+                'client_name' => 'unknown',
+                'api_type'    => 'authorization',
                 'endpoint'    => $request->fullUrl(),
                 'method'      => $request->method(),
                 'payload'     => $request->all(),

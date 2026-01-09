@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('client_code');
             $table->string('client_url');
             $table->string('client_token')->nullable();
+            $table->string('access_token')->nullable();
             $table->timestamps();
         });
     }

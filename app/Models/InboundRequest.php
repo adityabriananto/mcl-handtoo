@@ -9,6 +9,7 @@ class InboundRequest extends Model
     protected $table = 'inbound_orders';
 
     protected $fillable = [
+        'client_name',
         'warehouse_code',
         'delivery_type',
         'seller_warehouse_code',
@@ -45,12 +46,34 @@ class InboundRequest extends Model
      */
     public function scopeFilter($query, array $filters)
     {
-        $query->when($filters['search'] ?? null, function ($query, $search) {
-            $query->where('reference_number', 'like', '%' . $search . '%');
-        })->when($filters['warehouse'] ?? null, function ($query, $warehouse) {
-            $query->where('warehouse_code', $warehouse);
-        })->when($filters['status'] ?? null, function ($query, $status) {
-            $query->where('status', $status);
-        });
+        // 1. Filter Pencarian (Search)
+        // Mencari di Parent atau di Child sekaligus
+        if (!empty($filters['search'])) {
+            $query->where(function($q) use ($filters) {
+                $q->where('reference_number', 'like', '%' . $filters['search'] . '%')
+                ->orWhereHas('children', function($childQuery) use ($filters) {
+                    $childQuery->where('reference_number', 'like', '%' . $filters['search'] . '%');
+                });
+            });
+        }
+
+        // 2. Filter Warehouse
+        if (!empty($filters['warehouse'])) {
+            $query->where('warehouse_code', $filters['warehouse']);
+        }
+
+        // 3. Filter Status
+        // Jika memfilter 'Pending', kita tampilkan Parent yang masih Pending
+        // ATAU Parent yang punya Child dengan status Pending
+        if (!empty($filters['status'])) {
+            $query->where(function($q) use ($filters) {
+                $q->where('status', $filters['status'])
+                ->orWhereHas('children', function($childQuery) use ($filters) {
+                    $childQuery->where('status', $filters['status']);
+                });
+            });
+        }
+
+        return $query;
     }
 }

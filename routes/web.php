@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ClientApiController;
 use App\Http\Controllers\DataHandoverUploadController;
 use App\Http\Controllers\InboundOrderController;
@@ -17,10 +18,57 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [LoginController::class, 'login']);
+});
+
+// Route untuk Logout (Harus Login)
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::prefix('admin/client-api')->group(function () {
+    Route::get('/', [ClientApiController::class, 'index'])->name('client_api.index');
+    Route::get('/create', [ClientApiController::class, 'create'])->name('client_api.create');
+    Route::post('/store', [ClientApiController::class, 'store'])->name('client_api.store');
+    Route::get('/{id}/edit', [ClientApiController::class, 'edit'])->name('client_api.edit');
+    Route::put('/{id}', [ClientApiController::class, 'update'])->name('client_api.update');
+    Route::delete('/{id}', [ClientApiController::class, 'destroy'])->name('client_api.destroy');
+    Route::post('/{id}/refresh-token', [ClientApiController::class, 'refreshToken'])->name('client_api.refresh');
+});
+
+// --- Inbound Routes ---
+Route::prefix('inbound')->group(function () {
+    // 1. Dashboard & List (Halaman Utama)
+    Route::match(['get', 'post'], '/', [InboundOrderController::class, 'index'])->name('inbound.index');
+
+    // 2. Export Excel (PENTING: Letakkan sebelum rute {id} agar kata 'export' tidak terbaca sebagai ID)
+    Route::get('/export', [InboundOrderController::class, 'export'])->name('inbound.export');
+
+    // 3. Create & Store (Manual Entry jika diperlukan)
+    Route::get('/create', [InboundOrderController::class, 'create'])->name('inbound.create');
+    Route::post('/store', [InboundOrderController::class, 'store'])->name('inbound.store');
+
+    // 4. Detail (Melihat List SKU di dalam Inbound)
+    Route::get('/{id}', [InboundOrderController::class, 'show'])->name('inbound.show');
+
+    // 5. Edit, Update & Delete
+    Route::get('/{id}/edit', [InboundOrderController::class, 'edit'])->name('inbound.edit');
+    Route::put('/{id}', [InboundOrderController::class, 'update'])->name('inbound.update');
+    Route::delete('/{id}', [InboundOrderController::class, 'destroy'])->name('inbound.destroy');
+
+    // 6. Split Data
+    Route::post('/inbound/{id}/split', [InboundOrderController::class, 'split'])->name('inbound.split');
+
+    // 7. Export
+    Route::get('/export/{id}', [InboundOrderController::class, 'export'])->name('export');
+
+    // 7. Update status
+    Route::post('/inbound/status-complete/{id}', [InboundOrderController::class, 'updateStatus'])->name('inbound.complete');
+});
 });
 
 // --- Handover Station Routes ---
@@ -62,44 +110,5 @@ Route::resource('handover/upload', DataHandoverUploadController::class)->names([
 ]);
 
 // --- Client API Routes ---
-Route::prefix('admin/client-api')->group(function () {
-    Route::get('/', [ClientApiController::class, 'index'])->name('client_api.index');
-    Route::get('/create', [ClientApiController::class, 'create'])->name('client_api.create');
-    Route::post('/store', [ClientApiController::class, 'store'])->name('client_api.store');
-    Route::get('/{id}/edit', [ClientApiController::class, 'edit'])->name('client_api.edit');
-    Route::put('/{id}', [ClientApiController::class, 'update'])->name('client_api.update');
-    Route::delete('/{id}', [ClientApiController::class, 'destroy'])->name('client_api.destroy');
-    Route::post('/{id}/refresh-token', [ClientApiController::class, 'refreshToken'])->name('client_api.refresh');
-});
-
-// --- Inbound Routes ---
-Route::prefix('inbound')->group(function () {
-    // 1. Dashboard & List (Halaman Utama)
-    Route::match(['get', 'post'], '/', [InboundOrderController::class, 'index'])->name('inbound.index');
-
-    // 2. Export Excel (PENTING: Letakkan sebelum rute {id} agar kata 'export' tidak terbaca sebagai ID)
-    Route::get('/export', [InboundOrderController::class, 'export'])->name('inbound.export');
-
-    // 3. Create & Store (Manual Entry jika diperlukan)
-    Route::get('/create', [InboundOrderController::class, 'create'])->name('inbound.create');
-    Route::post('/store', [InboundOrderController::class, 'store'])->name('inbound.store');
-
-    // 4. Detail (Melihat List SKU di dalam Inbound)
-    Route::get('/{id}', [InboundOrderController::class, 'show'])->name('inbound.show');
-
-    // 5. Edit, Update & Delete
-    Route::get('/{id}/edit', [InboundOrderController::class, 'edit'])->name('inbound.edit');
-    Route::put('/{id}', [InboundOrderController::class, 'update'])->name('inbound.update');
-    Route::delete('/{id}', [InboundOrderController::class, 'destroy'])->name('inbound.destroy');
-
-    // 6. Split Data
-    Route::post('/inbound/{id}/split', [InboundOrderController::class, 'split'])->name('inbound.split');
-
-    // 7. Export
-    Route::get('/export/{id}', [InboundOrderController::class, 'export'])->name('export');
-
-    // 7. Update status
-    Route::post('/inbound/status-complete/{id}', [InboundOrderController::class, 'updateStatus'])->name('inbound.complete');
-});
 
 require __DIR__.'/auth.php';

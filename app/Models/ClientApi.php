@@ -25,6 +25,7 @@ class ClientApi extends Model
         'client_code',
         'client_url',
         'client_token',
+        'access_token',
     ];
 
     /**

@@ -345,6 +345,8 @@ class HandoverController extends Controller
                         $response = $client->send($post);
                         // dd($response->getStatusCode());
                         ApiLog::create([
+                            'client_name' => $clientApi->client_name,
+                            'api_type'    => 'HandoverWebhook',
                             'endpoint'    => $url,
                             'method'      => 'POST',
                             'payload'     => json_encode($data),
@@ -458,17 +460,17 @@ class HandoverController extends Controller
     }
 
     public function getTableFragment()
-{
-    $batchId = session('current_batch_id');
-    $stagedAwbs = HandoverDetail::where('handover_id', $batchId)
-                    ->orderBy('scanned_at', 'desc')
-                    ->get();
+    {
+        $batchId = session('current_batch_id');
+        $stagedAwbs = HandoverDetail::where('handover_id', $batchId)
+                        ->orderBy('scanned_at', 'desc')
+                        ->get();
 
-    return response()->json([
-        'html' => view('handover.partials.table', compact('stagedAwbs'))->render(),
-        'has_cancelled' => $stagedAwbs->contains('is_cancelled', true),
-        'count' => $stagedAwbs->count(),
-        'hash' => md5(json_encode($stagedAwbs))
-    ]);
-}
+        return response()->json([
+            'html' => view('handover.partials.table', compact('stagedAwbs'))->render(),
+            'has_cancelled' => $stagedAwbs->contains('is_cancelled', true),
+            'count' => $stagedAwbs->count(),
+            'hash' => md5(json_encode($stagedAwbs))
+        ]);
+    }
 }

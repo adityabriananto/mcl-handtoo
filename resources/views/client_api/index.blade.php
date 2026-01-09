@@ -36,6 +36,8 @@
                                 <th class="table-header">Client Name</th>
                                 <th class="table-header">Code</th>
                                 <th class="table-header">Base URL</th>
+                                {{-- KOLOM BARU --}}
+                                <th class="table-header">Access Token</th>
                                 <th class="table-header text-right">Actions</th>
                             </tr>
                         </thead>
@@ -49,6 +51,25 @@
                                     </span>
                                 </td>
                                 <td class="table-data text-xs text-gray-500">{{ $client->client_url }}</td>
+
+                                {{-- KOLOM ACCESS TOKEN DENGAN FITUR COPY --}}
+                                <td class="table-data">
+                                    <div class="flex items-center justify-center space-x-2">
+                                        <code class="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg text-[10px] font-mono text-gray-600 dark:text-gray-400 max-w-[150px] truncate">
+                                            {{ $client->access_token ?? 'No Token' }}
+                                        </code>
+                                        @if($client->access_token)
+                                        <button onclick="copyToClipboard('{{ $client->access_token }}')"
+                                                class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition"
+                                                title="Copy Token">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                            </svg>
+                                        </button>
+                                        @endif
+                                    </div>
+                                </td>
+
                                 <td class="table-data text-right space-x-3">
                                     <a href="{{ route('client_api.edit', $client->id) }}"
                                     class="text-blue-600 hover:text-blue-900 text-xs font-bold uppercase">
@@ -62,7 +83,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="5" class="table-data text-gray-500 py-10">No clients registered yet.</td>
+                                <td colspan="5" class="table-data text-gray-500 py-10 text-center">No clients registered yet.</td>
                             </tr>
                             @endforelse
                         </tbody>
@@ -74,18 +95,24 @@
 </div>
 
 {{-- Notification Toast for Copy --}}
-<div id="copyToast" class="fixed bottom-5 right-5 bg-gray-800 text-white px-4 py-2 rounded shadow-lg transform translate-y-20 transition-transform duration-300">
-    Token copied to clipboard!
+<div id="copyToast" class="fixed bottom-5 right-5 bg-gray-900 text-white px-6 py-3 rounded-2xl shadow-2xl transform translate-y-32 transition-transform duration-300 flex items-center space-x-3 z-50 border border-gray-700">
+    <span class="bg-green-500 rounded-full p-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+        </svg>
+    </span>
+    <span class="text-sm font-bold uppercase tracking-tight">Token Copied!</span>
 </div>
 
 <script>
     function copyToClipboard(text) {
+        if (!text) return;
         navigator.clipboard.writeText(text).then(() => {
             const toast = document.getElementById('copyToast');
-            toast.classList.remove('translate-y-20');
+            toast.classList.remove('translate-y-32');
             setTimeout(() => {
-                toast.classList.add('translate-y-20');
-            }, 2000);
+                toast.classList.add('translate-y-32');
+            }, 3000);
         });
     }
 </script>

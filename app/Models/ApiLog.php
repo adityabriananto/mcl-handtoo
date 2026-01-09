@@ -7,6 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class ApiLog extends Model
 {
     //
-    protected $fillable = ['endpoint', 'method', 'payload', 'response', 'status_code', 'ip_address'];
+    protected $fillable = ['client_name','api_type','endpoint', 'method', 'payload', 'response', 'status_code', 'ip_address'];
     protected $casts = ['payload' => 'array', 'response' => 'array'];
 }

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\HandoverCancellationController;
 use App\Http\Controllers\DataCruncherController;
+use App\Http\Controllers\InboundOrderApiController;
 use App\Http\Controllers\InboundOrderController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -14,5 +15,7 @@ Route::get('/user', function (Request $request) {
 
 Route::middleware(['api.key'])->group(function () {
     Route::post('/cancel', [HandoverCancellationController::class, 'cancel']);
-    Route::post('/CreateInboundOrder', [InboundOrderController::class, 'api']);
+    Route::post('/CreateInboundOrder', [InboundOrderApiController::class, 'createInboundOrder']);
+    Route::post('/GetInboundOrderDetail', [InboundOrderApiController::class, 'getInboundOrderDetail']);
+    Route::post('/GetInboundOrders', [InboundOrderApiController::class, 'getInboundOrders']);
 });

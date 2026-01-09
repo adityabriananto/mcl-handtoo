@@ -46,6 +46,7 @@ class ClientApiController extends Controller
             'client_code'  => strtoupper($request->client_code), // Paksa huruf besar untuk kode
             'client_url'   => $request->client_url,
             'client_token' => $request->client_token,
+            'access_token' => Str::random(40),
         ]);
 
         return redirect()->route('client_api.index')
@@ -95,7 +96,7 @@ class ClientApiController extends Controller
     {
         $client = ClientApi::findOrFail($id);
         $client->update([
-            'client_token' => Str::random(40)
+            'access_token' => Str::random(40)
         ]);
 
         return back()->with('success', 'API Token untuk ' . $client->client_name . ' telah diperbarui!');
