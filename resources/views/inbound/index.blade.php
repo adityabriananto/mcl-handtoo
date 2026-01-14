@@ -140,9 +140,11 @@
                 <thead class="bg-gray-50 dark:bg-gray-800/50 text-[10px] font-black text-gray-400 uppercase tracking-widest">
                     <tr>
                         <th class="px-4 py-5 w-10 text-center">#</th>
-                        <th class="px-6 py-5 text-left">Reference / Total Qty</th>
+                        <th class="px-6 py-5">Reference / Qty</th>
+                        {{-- KOLOM BARU --}}
+                        <th class="px-6 py-5 text-left italic">IO Number</th>
                         <th class="px-6 py-5 text-center">Client</th>
-                        <th class="px-6 py-5 text-left">Warehouse</th>
+                        <th class="px-6 py-5">Warehouse</th>
                         <th class="px-6 py-5 text-center">Status</th>
                         <th class="px-6 py-5 text-right">Actions</th>
                     </tr>
@@ -160,24 +162,39 @@
 
                         <tr x-show="shouldShow('{{ $item->reference_number . ' ' . $childRefs }}', '{{ $item->status }}', '{{ $formattedDate }}', '{{ $item->warehouse_code }}', '{{ $item->client_name }}')"
                             class="bg-white dark:bg-gray-900 hover:bg-blue-50/20 transition duration-150">
+
                             <td class="px-4 py-4 text-center">
                                 @if($hasChildren)
                                     <button @click="expandedRows.includes({{ $item->id }}) ? expandedRows = expandedRows.filter(id => id !== {{ $item->id }}) : expandedRows.push({{ $item->id }})"
-                                        class="p-1.5 hover:bg-blue-600 hover:text-white rounded-full border border-gray-200 dark:border-gray-700 transition focus:outline-none"
+                                        class="p-1.5 hover:bg-blue-600 hover:text-white rounded-full border border-gray-200 dark:border-gray-700 transition"
                                         :class="{ 'rotate-90 bg-blue-600 text-white border-blue-600': expandedRows.includes({{ $item->id }}) }">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
                                     </button>
                                 @endif
                             </td>
+
+                            {{-- Kolom Reference --}}
                             <td class="px-6 py-4">
                                 <div class="font-black text-gray-900 dark:text-white uppercase tracking-tight">{{ $item->reference_number }}</div>
-                                <div class="text-[10px] text-blue-600 font-bold uppercase tracking-wider">{{ number_format($fullQty) }} Total Units</div>
+                                <div class="text-[10px] text-blue-700 font-extrabold uppercase">{{ number_format($fullQty) }} Total Qty</div>
                             </td>
+
+                            {{-- Kolom IO Number (Parent) --}}
+                            <td class="px-6 py-4">
+                                @if(!$hasChildren)
+                                    <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                                        {{ $item->inbound_order_no ?? 'WAITING...' }}
+                                    </span>
+                                @else
+                                    <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest italic italic">Multiple IO (Split)</span>
+                                @endif
+                            </td>
+
                             <td class="px-6 py-4 text-center">
                                 <span class="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-tighter">{{ $item->client_name ?? 'N/A' }}</span>
                             </td>
                             <td class="px-6 py-4">
-                                <span class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{{ $item->warehouse_code ?? 'N/A' }}</span>
+                                <span class="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">{{ $item->warehouse_code ?? 'N/A' }}</span>
                             </td>
                             <td class="px-6 py-4 text-center">
                                 <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase border {{ $statusColors[$item->status] ?? 'bg-gray-100' }}">
@@ -185,40 +202,18 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-right">
+                                {{-- Actions Button (Sama seperti sebelumnya) --}}
                                 <div class="flex justify-end items-center gap-2">
-                                    {{-- View Details --}}
-                                    <a href="{{ route('inbound.show', $item->id) }}"
-                                    class="px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-xl hover:bg-gray-200 transition text-[10px] font-black uppercase tracking-tighter">
-                                    Details
-                                    </a>
-
-                                    {{-- TOMBOL SPLIT (REINSTATED) --}}
+                                    <a href="{{ route('inbound.show', $item->id) }}" class="px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-xl hover:bg-gray-200 transition text-[10px] font-black uppercase">Details</a>
                                     @if($fullQty > 200 && !$hasChildren)
-                                        <form action="{{ route('inbound.split', $item->id) }}" method="POST" class="inline">
-                                            @csrf
-                                            <button type="submit"
-                                                onclick="return confirm('Data contains more than 200 units. Proceed with auto-split?')"
-                                                class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-orange-500/20 animate-pulse transition-all">
-                                                ⚠️ Split
-                                            </button>
-                                        </form>
+                                        <form action="{{ route('inbound.split', $item->id) }}" method="POST">@csrf<button type="submit" class="bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded-xl text-[10px] font-black uppercase animate-pulse shadow-lg shadow-orange-500/20 transition">⚠️ Split</button></form>
                                     @endif
-
-                                    {{-- Export Button --}}
-                                    <button @click="exportId = {{ $item->id }}; exportType = '{{ $hasChildren ? 'batch' : 'single' }}'; exportModal = true;"
-                                            class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-xl text-[10px] font-black uppercase shadow-md transition transform active:scale-95">
-                                        Export
-                                    </button>
-
-                                    {{-- Complete Button --}}
+                                    <button @click="exportId = {{ $item->id }}; exportType = '{{ $hasChildren ? 'batch' : 'single' }}'; exportModal = true;" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-xl text-[10px] font-black uppercase shadow-md transition">Export</button>
                                     @if($item->status !== 'Completed')
-                                        <form action="{{ route('inbound.complete', $item->id) }}" method="POST" onsubmit="return confirm('Finalize this inbound session?')">
+                                        <form action="{{ route('inbound.complete', $item->id) }}" method="POST" onsubmit="return confirm('Selesaikan dokumen ini?')">
                                             @csrf
                                             <input type="hidden" name="type" value="{{ $hasChildren ? 'batch' : 'single' }}">
-                                            <button type="submit" @if($isDisabled) disabled @endif
-                                                class="px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all {{ $isDisabled ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed border border-gray-200 dark:border-gray-700' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/20' }}">
-                                                {{ $hasChildren ? 'Batch Complete' : 'Complete' }}
-                                            </button>
+                                            <button type="submit" @if($isDisabled) disabled @endif class="px-3 py-2 rounded-xl text-[10px] font-black uppercase transition {{ $isDisabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700' }}">Complete</button>
                                         </form>
                                     @endif
                                 </div>
@@ -228,20 +223,25 @@
                         {{-- Child Rows --}}
                         @if($hasChildren)
                             @foreach($item->children as $child)
-                                <tr x-show="expandedRows.includes({{ $item->id }})" x-transition
-                                    class="bg-slate-50 dark:bg-gray-800/30 border-l-8 border-blue-600">
+                                <tr x-show="expandedRows.includes({{ $item->id }})" x-transition class="bg-slate-50 dark:bg-gray-800/50 border-l-8 border-blue-600">
                                     <td class="px-4 py-3 text-center text-blue-600 font-bold">↳</td>
                                     <td class="px-10 py-3">
-                                        <div class="text-xs font-black text-gray-700 dark:text-gray-300 uppercase italic">{{ $child->reference_number }}</div>
-                                        <div class="text-[9px] font-bold text-gray-500 uppercase italic">{{ number_format($child->details->sum('requested_quantity')) }} Qty</div>
+                                        <div class="text-xs font-black text-gray-700 dark:text-gray-300 italic uppercase">{{ $child->reference_number }}</div>
+                                    </td>
+                                    {{-- IO Number untuk Child --}}
+                                    <td class="px-6 py-3">
+                                        <span class="text-[11px] font-black text-indigo-600 dark:text-indigo-400 italic">
+                                            {{ $child->inbound_order_no ?? 'PENDING' }}
+                                        </span>
                                     </td>
                                     <td class="px-6 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{{ $child->client_name ?? $item->client_name }}</td>
-                                    <td class="px-6 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ $child->warehouse_code }}</td>
+                                    <td class="px-6 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ $child->warehouse_code }}</td>
                                     <td class="px-6 py-3 text-center">
-                                        <span class="px-2 py-0.5 rounded-lg text-[9px] font-black border {{ $statusColors[$child->status] ?? 'bg-gray-50' }} uppercase">{{ $child->status }}</span>
+                                        <span class="px-2 py-0.5 rounded-lg text-[9px] font-black border {{ $statusColors[$child->status] ?? 'bg-gray-50' }}">{{ $child->status }}</span>
                                     </td>
                                     <td class="px-6 py-3 text-right">
                                         <div class="flex justify-end items-center gap-3">
+                                            <a href="{{ route('inbound.show', $child->id) }}" class="text-[10px] font-black text-gray-500 hover:text-blue-600 uppercase tracking-widest flex items-center">Details</a>
                                             <button @click="exportId = {{ $child->id }}; exportType = 'single'; exportModal = true;" class="text-green-600 font-black text-[10px] uppercase hover:underline">Export</button>
                                             @if($child->status !== 'Completed')
                                                 <form action="{{ route('inbound.complete', $child->id) }}" method="POST">
@@ -256,19 +256,14 @@
                             @endforeach
                         @endif
                     @empty
-                        <tr>
-                            <td colspan="6" class="px-6 py-20 text-center">
-                                <div class="text-gray-300 dark:text-gray-700 text-4xl mb-2 font-black">EMPTY</div>
-                                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest italic">No matching records found.</p>
-                            </td>
-                        </tr>
+                        <tr><td colspan="7" class="px-6 py-10 text-center text-gray-400 font-bold uppercase tracking-widest text-xs italic">-- No Data Found --</td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </div>
 
-    {{-- MODAL: UPLOAD CSV --}}
+    {{-- MODAL: UPLOAD CSV/EXCEL --}}
     <div x-show="uploadModal" class="fixed inset-0 z-[60] overflow-y-auto" x-cloak x-transition>
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="fixed inset-0 bg-gray-950/90 backdrop-blur-sm" @click="uploadModal = false; fileName = ''"></div>
@@ -279,25 +274,20 @@
                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                     </div>
                     <h3 class="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Update Inbound Order Number</h3>
-
-                    <div class="mt-4 p-3 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900/50">
-                        <p class="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2 italic">Format: [reference_number, inbound_order_no]</p>
-                        <a href="{{ route('inbound.template') }}" class="text-[11px] font-black text-gray-500 hover:text-indigo-600 underline uppercase tracking-widest flex items-center justify-center gap-1 transition">
-                            Download Template 📥
-                        </a>
-                    </div>
                 </div>
 
                 <form action="{{ route('inbound.upload') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
                     @csrf
                     <div class="relative group">
-                        {{-- Listener @change untuk menangkap detail file --}}
-                        <input type="file" name="csv_file" required accept=".csv"
+                        <input type="file" name="csv_file" required
+                            accept=".csv, .xls, .xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
                             @change="
                                 const file = $event.target.files[0];
                                 if (file) {
                                     fileName = file.name;
-                                    fileSize = (file.size / 1024).toFixed(2) + ' KB';
+                                    fileSize = (file.size / 1024).toFixed(2) > 1024
+                                        ? (file.size / (1024 * 1024)).toFixed(2) + ' MB'
+                                        : (file.size / 1024).toFixed(2) + ' KB';
                                 }
                             "
                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
@@ -307,25 +297,27 @@
 
                             {{-- Tampilan sebelum pilih file --}}
                             <div x-show="!fileName">
-                                <p class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest group-hover:text-indigo-500">Drop CSV file or Click</p>
-                                <p class="text-[9px] text-gray-400 mt-2 italic uppercase">Max: 2MB</p>
+                                <p class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest group-hover:text-indigo-500">
+                                    Drop CSV, XLSX or Click to Browse
+                                </p>
+                                <p class="text-[9px] text-gray-400 mt-2 italic uppercase tracking-tighter">Supported: .csv, .xls, .xlsx (Max 5MB)</p>
                             </div>
 
-                            {{-- Tampilan SESUDAH pilih file --}}
+                            {{-- Tampilan sesudah pilih file --}}
                             <div x-show="fileName" x-cloak class="flex flex-col items-center">
                                 <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-2xl text-green-600 mb-3">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 </div>
-                                <p class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight x-text="fileName" style="word-break: break-all;"></p>
+                                <p class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight" x-text="fileName" style="word-break: break-all;"></p>
                                 <p class="text-[9px] font-bold text-green-600 dark:text-green-400 mt-1 uppercase" x-text="fileSize"></p>
-                                <button type="button" @click.stop="fileName = ''; $el.closest('form').reset()" class="mt-4 text-[9px] font-black text-red-500 hover:underline uppercase tracking-widest">Change File</button>
+                                <button type="button" @click.stop="fileName = ''; $el.closest('form').reset()" class="mt-4 text-[9px] font-black text-red-500 hover:underline uppercase tracking-widest">Remove File</button>
                             </div>
                         </div>
                     </div>
 
                     <div class="flex gap-4">
                         <button type="button" @click="uploadModal = false; fileName = ''" class="flex-1 py-4 text-xs font-black text-gray-400 hover:text-red-500 uppercase transition tracking-[0.2em]">Cancel</button>
-                        <button type="submit" class="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-xs font-black shadow-xl shadow-indigo-900/20 uppercase transition tracking-[0.2em] transform active:scale-95">Import Data</button>
+                        <button type="submit" class="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-xs font-black shadow-xl shadow-indigo-900/20 uppercase transition tracking-[0.2em] transform active:scale-95">Start Processing</button>
                     </div>
                 </form>
             </div>

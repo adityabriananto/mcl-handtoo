@@ -14,8 +14,8 @@ Route::get('/user', function (Request $request) {
 // Route::get('/crunch', [DataCruncherController::class, 'crunch']);
 
 Route::middleware(['api.key'])->group(function () {
-    Route::post('/cancel', [HandoverCancellationController::class, 'cancel']);
-    Route::post('/CreateInboundOrder', [InboundOrderApiController::class, 'createInboundOrder']);
-    Route::post('/GetInboundOrderDetail', [InboundOrderApiController::class, 'getInboundOrderDetail']);
-    Route::post('/GetInboundOrders', [InboundOrderApiController::class, 'getInboundOrders']);
+    Route::post('/fbl/fulfillment_order/cancel', [HandoverCancellationController::class, 'cancel']);
+    Route::post('/fbl/inbound_order/create', [InboundOrderApiController::class, 'createInboundOrder']);
+    Route::get('/fbl/inbound_order_detail/get', [InboundOrderApiController::class, 'getInboundOrderDetail']);
+    Route::get('/fbl/inbound_orders/get', [InboundOrderApiController::class, 'getInboundOrders']);
 });

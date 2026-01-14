@@ -67,6 +67,8 @@ Route::prefix('inbound')->group(function () {
 
     // 7. Export
     Route::get('/export/{id}', [InboundOrderController::class, 'export'])->name('export');
+    Route::get('/inbound/{inbound}/export-children', [InboundOrderController::class, 'exportChildren'])
+    ->name('inbound.export.children');
 
     // 7. Update status
     Route::post('/inbound/status-complete/{id}', [InboundOrderController::class, 'updateStatus'])->name('inbound.complete');

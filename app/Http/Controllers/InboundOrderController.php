@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessInboundUpload;
 use App\Models\ApiLog;
 use App\Models\InboundRequest;
 use App\Models\InboundRequestDetail;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use ZipArchive;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class InboundOrderController extends Controller
 {
@@ -71,7 +74,7 @@ class InboundOrderController extends Controller
     {
         // 1. Ambil data original beserta detail SKU
         $original = InboundRequest::with('details')->findOrFail($id);
-        $limit = 200;
+        $limit = 100;
         $totalQty = $original->details->sum('requested_quantity');
 
         if ($totalQty <= $limit) {
@@ -149,49 +152,19 @@ class InboundOrderController extends Controller
 
     public function uploadIoNumber(Request $request) {
         $request->validate([
-            'csv_file' => 'required|mimes:csv,txt|max:2048',
+            'csv_file' => 'required|mimes:csv,txt,xls,xlsx|max:5120', // Max 5MB
         ]);
 
         $file = $request->file('csv_file');
-        $handle = fopen($file->getRealPath(), 'r');
 
-        fgetcsv($handle);
-        $rowCount = 0;
-        $parentIds = [];
-        while (($data = fgetcsv($handle, 1000, ',')) !== FALSE) {
-            $refNum = trim($data[0] ?? '');
-            $ioNum  = trim($data[1] ?? '');
+        // Simpan file ke folder storage/app/uploads sementara
+        $path = $file->storeAs('uploads', time() . '_' . $file->getClientOriginalName());
+        $fullPath = storage_path('app/' . $path);
 
-            // 1. Validasi: Pastikan kolom tidak kosong
-            if (empty($refNum) || empty($ioNum)) {
-                $errors[] = "Baris " . ($rowCount + 2) . ": Reference atau IO Number kosong.";
-                continue;
-            }
-            $inbound = InboundRequest::where('reference_number', $data[0])->first();
+        // Kirim ke antrean (Queue)
+        ProcessInboundUpload::dispatch($fullPath)->onQueue('io-number-upload');
 
-            if ($inbound) {
-                // Update Child/Main Record
-                $inbound->inbound_order_no = $ioNum;
-                $inbound->status = 'Processing';
-                $inbound->save();
-
-                // Koleksi Parent ID jika ada
-                if ($inbound->parent_id) {
-                    $parentIds[] = $inbound->parent_id;
-                }
-
-                $rowCount++;
-            } else {
-                $errors[] = "Baris " . ($rowCount + 2) . ": Reference $refNum tidak ditemukan.";
-            }
-        }
-        fclose($handle);
-
-        if(!empty($parentIds)) {
-            InboundRequest::whereIn('id', array_unique($parentIds))->update(['status' => 'Processing']);
-        }
-
-        return back()->with('success', "Success! $rowCount Inbound numbers have been processed.");
+        return back()->with('success', "File uploaded successfully! Processing in background.");
     }
 
     public function downloadTemplate()
@@ -322,6 +295,45 @@ class InboundOrderController extends Controller
             }
             fclose($file);
         }, 200, $headers);
+    }
+
+    public function exportChildren(InboundRequest $inbound)
+    {
+        // Pastikan ini adalah parent yang punya children
+        $children = $inbound->children()->with('details')->get();
+
+        if ($children->isEmpty()) {
+            return back()->with('error', 'No child documents found.');
+        }
+
+        $fileName = 'Export_Children_' . $inbound->reference_number . '.csv';
+
+        $response = new StreamedResponse(function () use ($children) {
+            $handle = fopen('php://output', 'w');
+
+            // Header CSV
+            fputcsv($handle, ['Parent Ref', 'Child Ref', 'Warehouse', 'Seller SKU', 'Product Name', 'Quantity']);
+
+            foreach ($children as $child) {
+                foreach ($child->details as $detail) {
+                    fputcsv($handle, [
+                        $child->parent->reference_number,
+                        $child->reference_number,
+                        $child->warehouse_code,
+                        $detail->seller_sku,
+                        $detail->product_name ?? '-',
+                        $detail->requested_quantity,
+                    ]);
+                }
+            }
+
+            fclose($handle);
+        });
+
+        $response->headers->set('Content-Type', 'text/csv');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+
+        return $response;
     }
 
     public function updateStatus(Request $request, $id)

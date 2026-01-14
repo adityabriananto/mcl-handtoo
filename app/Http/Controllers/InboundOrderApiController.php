@@ -90,12 +90,13 @@ class InboundOrderApiController extends Controller
         // - Hanya Main IO (Asumsi: kolom is_main = 1 atau parent_id null)
         // - Hanya ambil kolom yang dibutuhkan
         $inbound = InboundRequest::where('client_name', $client->client_name)
-                    ->where(function($query) {
-                        // Sesuaikan dengan struktur database Anda untuk membedakan Main IO
-                        $query->WhereNull('parent_id');
-                    })
-                    ->select('reference_number', 'status') // Hanya ambil 2 kolom ini
-                    ->get();
+            ->where(function($query) {
+                // Hanya mengambil dokumen utama (Main IO)
+                $query->whereNull('parent_id');
+            })
+            // Menambahkan 'comment' (brand_os) ke dalam seleksi kolom
+            ->select('reference_number', 'status', 'comment as brand_os')
+            ->get();
 
         // 3. Response handling
         if ($inbound->isEmpty()) {
@@ -122,26 +123,32 @@ class InboundOrderApiController extends Controller
 
     public function getInboundOrderDetail(Request $request)
     {
-        $client = ClientApi::where('access_token',$request->header()['authorization'])->first();
-        $inbound = InboundRequest::with('details')
+        $client = ClientApi::where('access_token', $request->header('authorization'))->first();
+
+        // Pastikan memanggil first() di akhir dan muat relasi yang dibutuhkan Resource
+        $query = InboundRequest::with(['details', 'children', 'parent'])
                     ->where('client_name', $client->client_name)
-                    ->where('reference_number', $request->reference_number)
-                    ->first();
+                    ->where('reference_number', $request->reference_number);
+
+        if ($request->brandOs) {
+            $query->where('comment', $request->brandOs);
+        }
+
+        $inbound = $query->first(); // Ambil data pertama atau null
 
         if (!$inbound) {
-             $statusCode = 404;
+            $statusCode = 404;
             $responseContent = [
-                'success'  => FALSE,
-                'message' => 'Inbound Order tidak ditemukan.'
+                'success' => false,
+                'message' => 'Inbound Order not found.'
             ];
             $this->logApi($request, $responseContent, $statusCode, 'GetInboundOrderDetails');
             return response()->json($responseContent, $statusCode);
         }
 
-
         $statusCode = 200;
         $responseContent = [
-            'success' => TRUE,
+            'success' => true,
             'data' => new InboundResourceDetail($inbound)
         ];
 
