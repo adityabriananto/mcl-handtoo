@@ -263,22 +263,44 @@
         </div>
     </div>
 
-    {{-- MODAL: UPLOAD CSV/EXCEL --}}
-    <div x-show="uploadModal" class="fixed inset-0 z-[60] overflow-y-auto" x-cloak x-transition>
+    {{-- MODAL: UPLOAD CSV/EXCEL DENGAN LOADING STATE --}}
+    <div x-show="uploadModal"
+        x-data="{
+            loading: false,
+            fileName: '',
+            fileSize: ''
+        }"
+        class="fixed inset-0 z-[60] overflow-y-auto"
+        x-cloak
+        x-transition>
+
         <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-950/90 backdrop-blur-sm" @click="uploadModal = false; fileName = ''"></div>
+            {{-- Overlay: Disable klik luar jika sedang loading --}}
+            <div class="fixed inset-0 bg-gray-950/90 backdrop-blur-sm"
+                @click="if(!loading) { uploadModal = false; fileName = ''; }"></div>
 
             <div class="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl z-[70] w-full max-w-lg p-10 relative border border-gray-200 dark:border-gray-800">
+
+                {{-- Header --}}
                 <div class="text-center mb-8">
                     <div class="inline-flex p-4 bg-indigo-100 dark:bg-indigo-900/30 rounded-3xl text-indigo-600 mb-4 transform -rotate-2">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        <svg class="w-8 h-8" :class="loading ? 'animate-bounce' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
                     </div>
                     <h3 class="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Update Inbound Order Number</h3>
+                    <p x-show="loading" class="text-[10px] font-bold text-indigo-500 animate-pulse mt-2 uppercase tracking-widest">Uploading & Queueing, please wait...</p>
                 </div>
 
-                <form action="{{ route('inbound.upload') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+                {{-- Form --}}
+                <form action="{{ route('inbound.upload') }}"
+                    method="POST"
+                    enctype="multipart/form-data"
+                    class="space-y-6"
+                    @submit="loading = true">
                     @csrf
-                    <div class="relative group">
+
+                    <div class="relative group" x-show="!loading">
                         <input type="file" name="csv_file" required
                             accept=".csv, .xls, .xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
                             @change="
@@ -295,29 +317,45 @@
                         <div class="border-2 border-dashed rounded-[2rem] p-12 text-center transition-all duration-300"
                             :class="fileName ? 'border-green-500 bg-green-50/10' : 'border-gray-300 dark:border-gray-700 group-hover:border-indigo-500 group-hover:bg-indigo-50/10'">
 
-                            {{-- Tampilan sebelum pilih file --}}
                             <div x-show="!fileName">
-                                <p class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest group-hover:text-indigo-500">
-                                    Drop CSV, XLSX or Click to Browse
-                                </p>
-                                <p class="text-[9px] text-gray-400 mt-2 italic uppercase tracking-tighter">Supported: .csv, .xls, .xlsx (Max 5MB)</p>
+                                <p class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest group-hover:text-indigo-500">Drop File or Click</p>
+                                <p class="text-[9px] text-gray-400 mt-2 italic uppercase">CSV, XLS, XLSX (MAX 5MB)</p>
                             </div>
 
-                            {{-- Tampilan sesudah pilih file --}}
                             <div x-show="fileName" x-cloak class="flex flex-col items-center">
                                 <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-2xl text-green-600 mb-3">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 </div>
-                                <p class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight" x-text="fileName" style="word-break: break-all;"></p>
-                                <p class="text-[9px] font-bold text-green-600 dark:text-green-400 mt-1 uppercase" x-text="fileSize"></p>
-                                <button type="button" @click.stop="fileName = ''; $el.closest('form').reset()" class="mt-4 text-[9px] font-black text-red-500 hover:underline uppercase tracking-widest">Remove File</button>
+                                <p class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight" x-text="fileName"></p>
+                                <p class="text-[9px] font-bold text-green-600 mt-1 uppercase" x-text="fileSize"></p>
                             </div>
                         </div>
                     </div>
 
+                    {{-- Tombol Actions --}}
                     <div class="flex gap-4">
-                        <button type="button" @click="uploadModal = false; fileName = ''" class="flex-1 py-4 text-xs font-black text-gray-400 hover:text-red-500 uppercase transition tracking-[0.2em]">Cancel</button>
-                        <button type="submit" class="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-xs font-black shadow-xl shadow-indigo-900/20 uppercase transition tracking-[0.2em] transform active:scale-95">Start Processing</button>
+                        <button type="button"
+                                x-show="!loading"
+                                @click="uploadModal = false; fileName = ''"
+                                class="flex-1 py-4 text-xs font-black text-gray-400 hover:text-red-500 uppercase transition tracking-[0.2em]">
+                            Cancel
+                        </button>
+
+                        <button type="submit"
+                                :disabled="loading || !fileName"
+                                class="flex-1 py-4 rounded-2xl text-xs font-black shadow-xl uppercase transition tracking-[0.2em] flex items-center justify-center gap-2"
+                                :class="loading ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/20 transform active:scale-95'">
+
+                            {{-- Spinner --}}
+                            <template x-if="loading">
+                                <svg class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </template>
+
+                            <span x-text="loading ? 'Processing...' : 'Start Processing'"></span>
+                        </button>
                     </div>
                 </form>
             </div>

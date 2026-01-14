@@ -17,13 +17,14 @@ class InboundResourceDetail extends JsonResource
         // Hapus dd($this) agar data bisa mengalir ke frontend/export
 
         return [
-            'id'               => $this->id,
             'reference_number' => $this->reference_number,
             'brand_os'         => $this->comment,
             'io_number'        => $this->inbound_order_no,
             'io_type'          => $this->parent_id ? 'Child' : ($this->children->count() > 0 ? 'Parent' : 'Single'),
             'status'           => $this->status,
-            'warehouse'        => $this->warehouse_code,
+            'io_status'        => $this->io_status,
+            'warehouse_code'   => $this->warehouse_code,
+            'warehouse_name'   => $this->inbound_warehouse,
 
             // Relasi Dokumen (Hanya muncul jika relevan menggunakan whenLoaded)
             'relation' => [
@@ -35,7 +36,9 @@ class InboundResourceDetail extends JsonResource
                     return [
                         'id'               => $child->id,
                         'reference_number' => $child->reference_number,
+                        'io_number'        => $child->inbound_order_no,
                         'status'           => $child->status,
+                        'io_status'        => $child->io_status,
                         'total_qty'        => $child->details->sum('requested_quantity'),
                     ];
                 }),
@@ -52,9 +55,10 @@ class InboundResourceDetail extends JsonResource
 
             'items' => $this->details->map(function($detail) {
                 return [
-                    'sku'          => $detail->seller_sku,
-                    'product_name' => $detail->product_name ?? '-',
-                    'qty'          => (int) $detail->requested_quantity,
+                    'sku'              => $detail->seller_sku,
+                    'product_name'     => $detail->product_name ?? '-',
+                    'qty'              => (int) $detail->requested_quantity,
+                    'received_good'    => (int) $detail->received_good
                 ];
             }),
 

@@ -140,7 +140,7 @@ class InboundOrderApiController extends Controller
             $statusCode = 404;
             $responseContent = [
                 'success' => false,
-                'message' => 'Inbound Order not found.'
+                'message' => 'Reference number not found.'
             ];
             $this->logApi($request, $responseContent, $statusCode, 'GetInboundOrderDetails');
             return response()->json($responseContent, $statusCode);

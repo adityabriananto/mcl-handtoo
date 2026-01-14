@@ -9,6 +9,7 @@ class InboundRequest extends Model
     protected $table = 'inbound_orders';
 
     protected $fillable = [
+        // Kolom Lama
         'client_name',
         'warehouse_code',
         'delivery_type',
@@ -18,7 +19,46 @@ class InboundRequest extends Model
         'reference_number',
         'inbound_order_no',
         'status',
-        'parent_id'
+        'parent_id',
+
+        // List Baru (Mapping dari Ekspor)
+        'fulfillment_order_no',
+        'shop_name',
+        'created_time',
+        'estimated_inbound_time',
+        'inbounded_time',
+        'fulfillment_sku',
+        'seller_sku',
+        'product_name',
+        'inbound_warehouse',
+        'reservation_order',
+        'sku_status',
+        'io_status',
+        'cainiao_consolidation_service',
+        'items_requested',
+        'items_inbounded_good',
+        'lgf_quantity',
+        'lgf_status',
+        'lgf_date',
+        'rep_planning_order_id',
+        'rep_order_quantity',
+        'rep_planning_order_date',
+        'alert',
+        'alert_detail',
+        'items_inbounded_damaged',
+        'items_inbounded_expired',
+        'cogs',
+        'cogs_currency',
+        'seller_comment',
+        'seller_address_details',
+        'vas_needed',
+        'vas_instruction',
+        'vas_order',
+        'ontime',
+        'lmo_seller',
+        'exception',
+        'temperature',
+        'product_type'
     ];
 
     /**

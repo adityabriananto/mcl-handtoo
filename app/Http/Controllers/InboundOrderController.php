@@ -152,19 +152,22 @@ class InboundOrderController extends Controller
 
     public function uploadIoNumber(Request $request) {
         $request->validate([
-            'csv_file' => 'required|mimes:csv,txt,xls,xlsx|max:5120', // Max 5MB
+            'csv_file' => 'required|mimes:csv,txt,xls,xlsx|max:5120',
         ]);
 
         $file = $request->file('csv_file');
+        $fileName = time() . '_' . $file->getClientOriginalName();
 
-        // Simpan file ke folder storage/app/uploads sementara
-        $path = $file->storeAs('uploads', time() . '_' . $file->getClientOriginalName());
-        $fullPath = storage_path('app/' . $path);
+        // Simpan secara eksplisit ke disk 'local' (storage/app)
+        $path = $file->storeAs('uploads', $fileName, 'local');
 
-        // Kirim ke antrean (Queue)
+        // Ambil path absolut menggunakan facade Storage
+        $fullPath = Storage::disk('local')->path($path);
+
+        // Dispatch Job
         ProcessInboundUpload::dispatch($fullPath)->onQueue('io-number-upload');
 
-        return back()->with('success', "File uploaded successfully! Processing in background.");
+        return back()->with('success', "File uploaded! Processing...");
     }
 
     public function downloadTemplate()
