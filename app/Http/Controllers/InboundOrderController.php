@@ -29,7 +29,6 @@ class InboundOrderController extends Controller
 
     if ($request->isMethod('post')) {
         // Ambil data dari request dan simpan ke session
-        dd($request);
         session(['inbound_filters' => $request->only([
             'search',
             'inbound_order_no', // Pastikan ini ada di sini
