@@ -21,23 +21,46 @@ class InboundOrderController extends Controller
     //
     public function index(Request $request)
     {
+        // Handle Reset Filter
         if ($request->has('reset')) {
-            session()->forget('inbound_filters');
-            return redirect()->route('inbound.index');
-        }
+        session()->forget('inbound_filters');
+        return redirect()->route('inbound.index');
+    }
 
-        if ($request->isMethod('post')) {
-            session(['inbound_filters' => $request->only(['search', 'warehouse', 'status'])]);
-        }
+    if ($request->isMethod('post')) {
+        // Ambil data dari request dan simpan ke session
+        dd($request);
+        session(['inbound_filters' => $request->only([
+            'search',
+            'inbound_order_no', // Pastikan ini ada di sini
+            'client',
+            'warehouse',
+            'status',
+            'date'
+        ])]);
+    }
 
-        $filters = session('inbound_filters', []);
+    $filters = session('inbound_filters', []);
 
-        // 1. Ambil SEMUA data tanpa pagination dulu untuk menghitung Statistik Operasional
-        // Kita filter dulu agar statistik sinkron dengan filter yang dipilih
-        $allData = InboundRequest::with('children')->filter($filters)->get();
+    // Jalankan Query dengan Filter
+    $requests = InboundRequest::with(['details', 'children.details'])
+                ->filter($filters)
+                ->whereNull('parent_id')
+                ->orderByRaw("CASE WHEN status = 'Pending' THEN 0 ELSE 1 END")
+                ->orderBy('created_at', 'desc')
+                ->paginate(50);
 
-        // 2. Hitung Statistik berdasarkan logika Split:
-        // Hitung Child (jika ada) + Parent (yang tidak punya child)
+        /**
+         * 1. Optimasi Statistik Operasional
+         * Kita gunakan with('details') agar virtual attribute (total_items dll) tidak memicu N+1 query.
+         * Kita juga membatasi kolom (select) untuk menghemat RAM.
+         */
+        $allData = InboundRequest::select('id', 'parent_id', 'status')
+            ->with('children:id,parent_id,status')
+            ->filter($filters)
+            ->get();
+
+        // Hitung Statistik berdasarkan logika Split (Child + Parent tanpa child)
         $operationalUnits = $allData->filter(function($item) {
             return $item->parent_id !== null || ($item->parent_id === null && $item->children->count() === 0);
         });
@@ -48,17 +71,61 @@ class InboundOrderController extends Controller
             'completed' => $operationalUnits->where('status', 'Completed')->count(),
         ];
 
-        // 3. Ambil data untuk Tabel (Hanya Parent untuk tampilan utama)
-        $requests = InboundRequest::with(['details', 'children.details'])
-                ->filter($filters)
-                ->whereNull('parent_id')
-                ->orderByRaw("CASE WHEN status = 'Pending' THEN 0 ELSE 1 END")
-                ->orderBy('created_at', 'asc')
-                ->paginate(50); // Gunakan angka lebih besar agar filter Alpine.js di View bekerja maksimal
+        /**
+         * 2. Ambil data untuk Tabel Utama
+         * Menggunakan Eager Loading bertingkat:
+         * - details: Untuk data item milik parent
+         * - children.details: Untuk data item milik pecahannya (split)
+         */
+        $requests = InboundRequest::with([
+                'details',
+                'children.details'
+            ])
+            ->filter($filters)
+            ->whereNull('parent_id')
+            // Optimasi Sort: Pending di atas (menggunakan index status jika ada)
+            ->orderByRaw("CASE WHEN status = 'Pending' THEN 0 ELSE 1 END")
+            ->orderBy('created_at', 'asc')
+            ->paginate(50);
 
+        $clients = InboundRequest::distinct()->whereNotNull('client_name')->pluck('client_name');
         $warehouses = InboundRequest::distinct()->whereNotNull('warehouse_code')->pluck('warehouse_code');
 
-        return view('inbound.index', compact('requests', 'warehouses', 'filters', 'stats'));
+        return view('inbound.index', compact('requests', 'warehouses', 'clients', 'filters', 'stats'));
+    }
+
+    public function scopeFilter($query, array $filters)
+    {
+        // 1. Search Global (Pencarian Luas)
+        $query->when($filters['search'] ?? null, function ($query, $search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('reference_number', 'LIKE', "%{$search}%")
+                ->orWhere('inbound_order_no', 'LIKE', "%{$search}%")
+                ->orWhere('client_name', 'LIKE', "%{$search}%");
+            });
+        });
+
+        // 2. Filter Spesifik IO Number (Inilah yang membuat filter IO jalan)
+        $query->when($filters['inbound_order_no'] ?? null, function ($query, $io) {
+            $query->where('inbound_order_no', 'LIKE', "%{$io}%");
+        });
+
+        // 3. Filter Client
+        $query->when($filters['client'] ?? null, function ($query, $client) {
+            $query->where('client_name', $client);
+        });
+
+        // 4. Filter Warehouse
+        $query->when($filters['warehouse'] ?? null, function ($query, $wh) {
+            $query->where('warehouse_code', $wh);
+        });
+
+        // 5. Filter Status
+        $query->when($filters['status'] ?? null, function ($query, $status) {
+            $query->where('status', $status);
+        });
+
+        return $query;
     }
 
     public function show($id)

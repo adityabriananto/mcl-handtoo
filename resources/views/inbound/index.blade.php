@@ -29,6 +29,7 @@
     filterDate: '',
     filterWh: '',
     filterClient: '',
+    filterIo: '',
     fileName: '',
     fileSize: '',
     expandedRows: [],
@@ -43,13 +44,14 @@
     repacking: 'N',
     labeling: 'N',
 
-    shouldShow(ref, status, date, wh, client) {
+    shouldShow(ref, status, date, wh, client, inbound_order_no) {
         const matchSearch = ref.toLowerCase().includes(this.search.toLowerCase());
         const matchStatus = this.filterStatus === '' || status === this.filterStatus;
         const matchDate = this.filterDate === '' || date === this.filterDate;
         const matchWh = this.filterWh === '' || wh === this.filterWh;
         const matchClient = this.filterClient === '' || (client || '').includes(this.filterClient);
-        return matchSearch && matchStatus && matchDate && matchWh && matchClient;
+        const matchIo = this.filterIo === '' || (inbound_order_no || '').toLowerCase().includes(this.filterIo.toLowerCase());
+        return matchSearch && matchStatus && matchDate && matchWh && matchClient && matchIo;
     }
 }">
     {{-- 1. Header & Quick Actions --}}
@@ -94,6 +96,13 @@
             <input x-model="search" type="text" placeholder="Search Ref..." class="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 dark:text-white">
         </div>
 
+        <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </span>
+            <input x-model="filterIo" type="text" placeholder="Search IO..." class="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 dark:text-white">
+        </div>
+
         <select x-model="filterClient" class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-xs px-4 py-2 dark:text-white">
             <option value="">All Clients</option>
             @foreach($clients as $client) <option value="{{ $client }}">{{ $client }}</option> @endforeach
@@ -107,12 +116,13 @@
         <select x-model="filterStatus" class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-xs px-4 py-2 dark:text-white">
             <option value="">All Status</option>
             <option value="Pending">Pending</option>
+            <option value="Processing">Processing</option>
             <option value="Completed">Completed</option>
         </select>
 
         <input x-model="filterDate" type="date" class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-xs px-4 py-2 dark:text-white">
 
-        <button @click="search = ''; filterStatus = ''; filterDate = ''; filterWh = ''; filterClient = ''" class="text-[10px] font-black text-red-600 hover:text-red-800 uppercase tracking-widest bg-red-50 dark:bg-red-950 border border-red-100 dark:border-red-900/30 rounded-xl px-4 py-2 transition">
+        <button @click="search = ''; filterStatus = ''; filterDate = ''; filterWh = ''; filterClient = ''; filterIo = ''" class="text-[10px] font-black text-red-600 hover:text-red-800 uppercase tracking-widest bg-red-50 dark:bg-red-950 border border-red-100 dark:border-red-900/30 rounded-xl px-4 py-2 transition">
             Reset
         </button>
     </div>
@@ -160,8 +170,8 @@
                             $isDisabled = ($fullQty > 200 && !$hasChildren);
                         @endphp
 
-                        <tr x-show="shouldShow('{{ $item->reference_number . ' ' . $childRefs }}', '{{ $item->status }}', '{{ $formattedDate }}', '{{ $item->warehouse_code }}', '{{ $item->client_name }}')"
-                            class="bg-white dark:bg-gray-900 hover:bg-blue-50/20 transition duration-150">
+                        <tr x-show="shouldShow('{{ $item->reference_number . ' ' . $childRefs }}', '{{ $item->status }}', '{{ $formattedDate }}', '{{ $item->warehouse_code }}', '{{ $item->client_name }}', '{{ $item->inbound_order_no }}')"
+                        class="bg-white dark:bg-gray-900 hover:bg-blue-50/20 transition duration-150">
 
                             <td class="px-4 py-4 text-center">
                                 @if($hasChildren)
@@ -223,7 +233,9 @@
                         {{-- Child Rows --}}
                         @if($hasChildren)
                             @foreach($item->children as $child)
-                                <tr x-show="expandedRows.includes({{ $item->id }})" x-transition class="bg-slate-50 dark:bg-gray-800/50 border-l-8 border-blue-600">
+                                <tr x-show="expandedRows.includes({{ $item->id }}) && shouldShow('{{ $child->reference_number }}', '{{ $child->status }}', '{{ $child->created_at->format('Y-m-d') }}', '{{ $child->warehouse_code }}', '{{ $child->client_name }}', '{{ $child->inbound_order_no }}')"
+                                x-transition
+                                class="bg-slate-50 dark:bg-gray-800/50 border-l-8 border-blue-600">
                                     <td class="px-4 py-3 text-center text-blue-600 font-bold">↳</td>
                                     <td class="px-10 py-3">
                                         <div class="text-xs font-black text-gray-700 dark:text-gray-300 italic uppercase">{{ $child->reference_number }}</div>
