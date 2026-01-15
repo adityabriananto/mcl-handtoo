@@ -65,9 +65,10 @@ class InboundOrderController extends Controller
         });
 
         $stats = (object)[
-            'total'     => $operationalUnits->count(),
-            'pending'   => $operationalUnits->where('status', 'Pending')->count(),
-            'completed' => $operationalUnits->where('status', 'Completed')->count(),
+            'total'        => $operationalUnits->count(),
+            'pending'      => $operationalUnits->where('status', 'Pending')->count(),
+            'processing'   => $operationalUnits->where('status', 'Processing')->count(),
+            'completed'    => $operationalUnits->where('status', 'Completed')->count(),
         ];
 
         /**
@@ -140,75 +141,51 @@ class InboundOrderController extends Controller
     {
         // 1. Ambil data original beserta detail SKU
         $original = InboundRequest::with('details')->findOrFail($id);
-        $limit = 100;
-        $totalQty = $original->details->sum('requested_quantity');
 
-        if ($totalQty <= $limit) {
-            return back()->with('error', 'Total kuantitas sudah di bawah limit.');
+        // UBAH: Hitung jumlah baris Unique SKU, bukan sum total quantity
+        $uniqueSkuCount = $original->details->count();
+        $limit = 100;
+
+        // Pengecekan apakah perlu split
+        if ($uniqueSkuCount <= $limit) {
+            return back()->with('error', "Jumlah Unique SKU ({$uniqueSkuCount}) masih di bawah atau sama dengan limit {$limit}.");
         }
 
         try {
             DB::beginTransaction();
 
-            // 1. Tentukan Parent ID. Jika original sudah punya parent, gunakan itu.
-            // Jika belum, maka original inilah yang jadi parent-nya.
             $parentId = $original->parent_id ?: $original->id;
 
-            // 2. Kumpulkan semua baris SKU ke dalam pool (TANPA MENGHAPUS detail original)
-            $skuPool = [];
-            foreach ($original->details as $detail) {
-                $skuPool[] = [
-                    'seller_sku' => $detail->seller_sku,
-                    'fulfillment_sku' => $detail->fulfillment_sku,
-                    'requested_quantity' => (int) $detail->requested_quantity,
-                ];
-            }
+            // 2. Gunakan Collection Laravel untuk mempermudah pemecahan (chunk)
+            // Kita pecah detail SKU menjadi kelompok-kelompok berisi maksimal 100 baris
+            $skuChunks = $original->details->chunk($limit);
+            $numberOfIOsNeeded = $skuChunks->count();
 
-            // 3. Hitung jumlah Child IO yang dibutuhkan
-            $numberOfIOsNeeded = ceil($totalQty / $limit);
-
-            for ($i = 1; $i <= $numberOfIOsNeeded; $i++) {
-                // SEMUA iterasi membuat IO BARU sebagai Child.
-                // IO Original tetap utuh dan tidak digunakan untuk menampung split.
+            foreach ($skuChunks as $index => $chunk) {
+                // Replicate data header dari original
                 $childIO = $original->replicate();
                 $childIO->parent_id = $parentId;
 
-                // Cek urutan split berdasarkan jumlah child yang sudah ada
-                $childCount = InboundRequest::where('parent_id', $parentId)->count() + 1;
-                $childIO->reference_number = $original->reference_number . "-S" . str_pad($childCount, 2, '0', STR_PAD_LEFT);
+                // Hitung urutan suffix S01, S02, dst berdasarkan data di database
+                $existingChildCount = InboundRequest::where('parent_id', $parentId)->count();
+                $childIO->reference_number = $original->reference_number . "-S" . str_pad($existingChildCount + 1, 2, '0', STR_PAD_LEFT);
 
-                // Set status child menjadi Pending agar bisa diproses terpisah
                 $childIO->status = 'Pending';
                 $childIO->save();
 
-                $currentIOCapacity = $limit;
-
-                // 4. Isi Child IO dengan SKU dari pool
-                foreach ($skuPool as &$sku) {
-                    if ($currentIOCapacity <= 0) break;
-                    if ($sku['requested_quantity'] <= 0) continue;
-
-                    $take = min($sku['requested_quantity'], $currentIOCapacity);
-
-                    // Buat baris detail untuk Child IO
+                // 3. Masukkan baris SKU yang sudah di-chunk ke child IO ini
+                foreach ($chunk as $detail) {
                     $childIO->details()->create([
-                        'seller_sku' => $sku['seller_sku'],
-                        'fulfillment_sku' => $sku['fulfillment_sku'],
-                        'requested_quantity' => $take,
+                        'seller_sku' => $detail->seller_sku,
+                        'fulfillment_sku' => $detail->fulfillment_sku,
+                        'product_name' => $detail->product_name, // Pastikan field ini ada
+                        'requested_quantity' => $detail->requested_quantity,
                     ]);
-
-                    // Kurangi sisa di pool dan kapasitas child saat ini
-                    $sku['requested_quantity'] -= $take;
-                    $currentIOCapacity -= $take;
                 }
             }
 
-            // PENTING: Update status Original IO (opsional)
-            // Anda mungkin ingin menandai bahwa IO ini sudah diproses split-nya
-            // $original->update(['status' => 'Splitted']);
-
             DB::commit();
-            return back()->with('success', "Berhasil memecah menjadi " . $numberOfIOsNeeded . " dokumen baru. IO Original tetap utuh.");
+            return back()->with('success', "Berhasil memecah {$uniqueSkuCount} SKU menjadi {$numberOfIOsNeeded} dokumen baru (Maks {$limit} SKU per dokumen).");
 
         } catch (\Exception $e) {
             DB::rollBack();

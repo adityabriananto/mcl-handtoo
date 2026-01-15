@@ -11,6 +11,9 @@
         min-width: 85px;
         text-align: center;
     }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
 </style>
 
 @php
@@ -25,23 +28,19 @@
     $clients = $requests->pluck('client_name')->unique()->filter()->sort();
 @endphp
 
-{{-- PEMBUNGKUS UTAMA: Semua modal HARUS di dalam div ini --}}
 <div class="space-y-4" x-data="{
-    {{-- UI States --}}
     uploadModal: false,
     exportModal: false,
     loading: false,
+    splitLoading: false,
+    statusLoading: false,
     expandedRows: [],
-
-    {{-- Form Data --}}
     fileName: '',
     fileSize: '',
     exportId: null,
     exportType: 'single',
     bundling: '',
     vasNeeded: '',
-
-    {{-- Filter States --}}
     search: '',
     filterStatus: '',
     filterDate: '',
@@ -66,12 +65,20 @@
         <div class="flex items-center gap-6">
             <div>
                 <h1 class="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Inbound <span class="text-blue-600">Portal</span></h1>
-                <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">Compact View v2.1</p>
+                <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">Compact View v2.8</p>
             </div>
             <div class="flex gap-6 border-l pl-6 border-gray-100 dark:border-gray-800">
                 <div>
                     <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Active</p>
                     <p class="text-xl font-black leading-none text-blue-600 text-center">{{ number_format($summary->total) }}</p>
+                </div>
+                <div>
+                    <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Completed</p>
+                    <p class="text-xl font-black leading-none text-blue-600 text-center">{{ number_format($summary->completed) }}</p>
+                </div>
+                <div>
+                    <p class="text-[9px] font-bold text-amber-500 uppercase tracking-widest text-center">Processing</p>
+                    <p class="text-xl font-black leading-none text-gray-800 dark:text-white text-center">{{ number_format($summary->processing) }}</p>
                 </div>
                 <div>
                     <p class="text-[9px] font-bold text-amber-500 uppercase tracking-widest text-center">Pending</p>
@@ -80,7 +87,6 @@
             </div>
         </div>
 
-        {{-- TOMBOL TRIGGER MODAL UPLOAD --}}
         <button @click="uploadModal = true"
                 class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition shadow-lg shadow-indigo-500/20 active:scale-95">
             Update IO Number
@@ -123,12 +129,12 @@
                     @forelse($requests->whereNull('parent_id') as $item)
                         @php
                             $hasChildren = $item->children->count() > 0;
+                            $skuCount = $item->details->count();
                             $fullQty = $hasChildren ? $item->children->flatMap->details->sum('requested_quantity') : $item->details->sum('requested_quantity');
                             $formattedDate = $item->created_at->format('Y-m-d');
                             $childRefs = $item->children->pluck('reference_number')->join(' ');
                         @endphp
 
-                        {{-- Parent Row --}}
                         <tr x-show="shouldShow('{{ $item->reference_number . ' ' . $childRefs }}', '{{ $item->status }}', '{{ $formattedDate }}', '{{ $item->warehouse_code }}', '{{ $item->client_name }}', '{{ $item->inbound_order_no }}')"
                             class="hover:bg-blue-50/20 transition-colors">
 
@@ -147,38 +153,82 @@
                                     <span class="font-black text-gray-900 dark:text-white uppercase leading-none tracking-tight text-sm">{{ $item->reference_number }}</span>
                                     <div class="flex items-center gap-2 mt-1">
                                         <span class="text-[9px] text-blue-600 font-extrabold uppercase bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">{{ $item->client_name }}</span>
-                                        <span class="text-[9px] text-gray-400 font-bold">• {{ number_format($fullQty) }} Units</span>
+                                        <span class="text-[9px] text-gray-400 font-bold">• {{ number_format($fullQty) }} Units ({{ $skuCount }} SKU)</span>
                                     </div>
                                     <span class="mt-1.5 text-[11px] text-indigo-600 dark:text-indigo-400 font-black uppercase italic">IO: {{ $item->inbound_order_no ?? 'WAITING...' }}</span>
                                 </div>
                             </td>
 
-                            <td class="px-4 py-3">
-                                <div class="flex flex-col text-[10px] leading-tight text-gray-500">
-                                    <span>Created: {{ $item->created_at->format('d/m H:i') }}</span>
-                                    @if($item->estimate_time)
-                                    <span class="text-amber-600 font-bold mt-1 italic uppercase">Est: {{ \Carbon\Carbon::parse($item->estimate_time)->format('d/m H:i') }}</span>
-                                    @endif
-                                </div>
+                            <td class="px-4 py-3 text-[10px] leading-tight text-gray-500">
+                                <div>Created: {{ $item->created_at->format('d/m H:i') }}</div>
+                                @if($item->estimate_time)
+                                <div class="text-amber-600 font-bold mt-1 italic uppercase">Est: {{ \Carbon\Carbon::parse($item->estimate_time)->format('d/m H:i') }}</div>
+                                @endif
                             </td>
 
                             <td class="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">{{ $item->warehouse_code }}</td>
 
-                            <td class="px-4 py-3 text-center">
-                                <span class="status-badge px-3 py-1 rounded-full text-[10px] font-black uppercase border {{ $statusColors[$item->status] ?? 'bg-gray-100' }}">
-                                    {{ $item->status }}
-                                </span>
+                           <td class="px-4 py-3 text-center">
+                                <div class="flex flex-col items-center">
+                                    <span class="status-badge px-3 py-1 rounded-full text-[10px] font-black uppercase border {{ $statusColors[$item->status] ?? 'bg-gray-100' }}">
+                                        {{ $item->status }}
+                                    </span>
+
+                                    {{-- Peringatan jika SKU > 100 --}}
+                                    @if($skuCount > 100 && !$hasChildren)
+                                        <span class="text-[8px] font-black text-red-500 uppercase mt-1 animate-pulse tracking-tighter">
+                                            ⚠️ Split Required
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
 
                             <td class="px-4 py-3 text-right">
                                 <div class="flex justify-end gap-2">
-                                    <a href="{{ route('inbound.show', $item->id) }}" class="p-2 bg-gray-100 dark:bg-gray-800 text-gray-600 rounded-xl border border-gray-200 active:scale-90" title="View"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></a>
-                                    <button @click="exportId = {{ $item->id }}; exportType = '{{ $hasChildren ? 'batch' : 'single' }}'; exportModal = true;" class="p-2 bg-green-600 text-white rounded-xl active:scale-90 shadow-md shadow-green-900/20" title="Export"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg></button>
+
+                                    {{-- 1. TOMBOL SPLIT --}}
+                                    @if($skuCount > 100 && !$hasChildren)
+                                        <form action="{{ route('inbound.split', $item->id) }}" method="POST" @submit="splitLoading = true">
+                                            @csrf
+                                            <button type="submit" :disabled="splitLoading" class="px-3 py-2 bg-orange-100 text-orange-700 rounded-xl border border-orange-200 hover:bg-orange-600 hover:text-white transition flex items-center gap-2 group shadow-sm shadow-orange-900/10">
+                                                <span x-show="!splitLoading" class="text-[9px] font-black uppercase tracking-widest">Split</span>
+                                                <svg x-show="splitLoading" class="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                            </button>
+                                        </form>
+                                    @endif
+
+                                    {{-- 2. TOMBOL COMPLETE (DIKUNCI JIKA > 100 SKU) --}}
+                                    @if($item->status !== 'Completed' && !$hasChildren)
+                                        @if($skuCount <= 100)
+                                            <form action="{{ route('inbound.complete', $item->id) }}" method="POST" @submit="statusLoading = true">
+                                                @csrf
+                                                <button type="submit" :disabled="statusLoading" class="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition active:scale-90 shadow-md shadow-blue-900/20" title="Mark as Completed">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                                </button>
+                                            </form>
+                                        @else
+                                            <div class="p-2 bg-gray-50 text-gray-300 rounded-xl border border-gray-100 cursor-not-allowed" title="Split required for 100+ SKU">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                            </div>
+                                        @endif
+                                    @endif
+
+                                    {{-- 3. TOMBOL VIEW --}}
+                                    <a href="{{ route('inbound.show', $item->id) }}" class="p-2 bg-gray-100 dark:bg-gray-800 text-gray-600 rounded-xl border border-gray-200 active:scale-90 transition shadow-sm" title="View Details">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    </a>
+
+                                    {{-- 4. TOMBOL EXPORT (DIKUNCI JIKA > 100 SKU) --}}
+                                    @if($skuCount <= 100 || $hasChildren)
+                                        <button @click="exportId = {{ $item->id }}; exportType = '{{ $hasChildren ? 'batch' : 'single' }}'; exportModal = true;" class="p-2 bg-green-600 text-white rounded-xl shadow-md shadow-green-900/20 active:scale-90 transition" title="Export">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                        </button>
+                                    @endif
+
                                 </div>
                             </td>
                         </tr>
 
-                        {{-- Child Row --}}
                         @if($hasChildren)
                             @foreach($item->children as $child)
                                 <tr x-show="expandedRows.includes({{ $item->id }})" x-transition class="bg-slate-100 dark:bg-gray-800/80 border-l-4 border-blue-600 shadow-inner">
@@ -189,11 +239,8 @@
                                             <span class="mt-1 text-[10px] text-indigo-600 dark:text-indigo-400 font-black italic uppercase">IO: {{ $child->inbound_order_no ?? 'PENDING' }}</span>
                                         </div>
                                     </td>
-                                    <td class="px-4 py-3">
-                                        <div class="flex flex-col text-[10px] leading-tight text-slate-600 dark:text-gray-400">
-                                            <span class="font-bold">In: {{ $child->created_at->format('d/m H:i') }}</span>
-                                            @if($child->estimate_time) <span class="text-amber-600 font-black mt-1 italic uppercase">Est: {{ \Carbon\Carbon::parse($child->estimate_time)->format('d/m H:i') }}</span> @endif
-                                        </div>
+                                    <td class="px-4 py-3 text-[10px] leading-tight text-slate-600 dark:text-gray-400">
+                                        <span class="font-bold">In: {{ $child->created_at->format('d/m H:i') }}</span>
                                     </td>
                                     <td class="px-4 py-3 text-center text-[10px] font-black text-slate-500 uppercase">{{ $child->warehouse_code }}</td>
                                     <td class="px-4 py-3 text-center">
@@ -203,8 +250,15 @@
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         <div class="flex justify-end gap-2">
+                                            {{-- TOMBOL COMPLETE UNTUK CHILD --}}
+                                            @if($child->status !== 'Completed')
+                                                <form action="{{ route('inbound.complete', $child->id) }}" method="POST" @submit="statusLoading = true">
+                                                    @csrf
+                                                    <button type="submit" :disabled="statusLoading" class="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition shadow-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></button>
+                                                </form>
+                                            @endif
                                             <a href="{{ route('inbound.show', $child->id) }}" class="p-2 bg-white dark:bg-gray-700 text-blue-600 rounded-xl border active:scale-95 shadow-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></a>
-                                            <button @click="exportId = {{ $child->id }}; exportType = 'single'; exportModal = true;" class="p-2 bg-green-600 text-white rounded-xl active:scale-95 shadow-md shadow-green-900/20"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg></button>
+                                            <button @click="exportId = {{ $child->id }}; exportType = 'single'; exportModal = true;" class="p-2 bg-green-600 text-white rounded-xl active:scale-95 shadow-md"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -218,7 +272,7 @@
         </div>
     </div>
 
-    {{-- MODAL UPLOAD (DI DALAM X-DATA UTAMA) --}}
+    {{-- MODAL UPLOAD --}}
     <div x-show="uploadModal" class="fixed inset-0 z-[100] overflow-y-auto" x-cloak x-transition>
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="fixed inset-0 bg-gray-950/90 backdrop-blur-sm" @click="if(!loading) uploadModal = false"></div>
@@ -245,98 +299,50 @@
         </div>
     </div>
 
-    {{-- MODAL: EXPORT CONFIG --}}
-    <div x-show="exportModal"
-        class="fixed inset-0 z-[150] overflow-y-auto"
-        x-cloak
-        x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 scale-95"
-        x-transition:enter-end="opacity-100 scale-100">
-
+    {{-- MODAL EXPORT --}}
+    <div x-show="exportModal" class="fixed inset-0 z-[150] overflow-y-auto" x-cloak x-transition>
         <div class="flex items-center justify-center min-h-screen px-4 py-8">
-            {{-- Overlay --}}
             <div class="fixed inset-0 bg-gray-950/80 backdrop-blur-sm" @click="exportModal = false"></div>
-
-            {{-- Modal Content --}}
             <div class="bg-gray-900 rounded-[2.5rem] p-8 z-[160] w-full max-w-md relative border border-gray-800 shadow-2xl overflow-hidden">
                 <div class="mb-6 text-center">
                     <h3 class="text-xl font-black text-white uppercase tracking-tighter italic">Export Configuration</h3>
-                    <p class="text-[10px] text-gray-500 font-bold uppercase mt-1 tracking-widest">
-                        ID: <span x-text="exportId" class="text-blue-500"></span> |
-                        Type: <span x-text="exportType" class="text-blue-500"></span>
-                    </p>
+                    <p class="text-[10px] text-gray-500 font-bold uppercase mt-1 tracking-widest">ID: <span x-text="exportId" class="text-blue-500"></span></p>
                 </div>
-
                 <form :action="'{{ url('/inbound/export') }}/' + exportId" method="GET">
                     <input type="hidden" name="type" :value="exportType">
-                    <input type="hidden" name="export_mode" value="unique_sku">
-
                     <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-
-                        {{-- SECTION: BUNDLING --}}
-                        <div class="p-4 bg-gray-800/60 rounded-2xl border border-gray-700 transition-all duration-300">
+                        <div class="p-4 bg-gray-800/60 rounded-2xl border border-gray-700">
                             <div class="flex justify-between items-center" :class="bundling === 'Y' ? 'mb-4' : ''">
                                 <label class="text-[10px] font-black uppercase text-pink-500 tracking-widest">Bundling Service</label>
-                                <select name="bundling" x-model="bundling" class="bg-gray-900 border-gray-700 text-white rounded-lg text-[10px] font-bold outline-none focus:border-pink-500">
-                                    <option value="">No</option>
-                                    <option value="Y">Active</option>
-                                </select>
+                                <select name="bundling" x-model="bundling" class="bg-gray-900 border-gray-700 text-white rounded-lg text-[10px] font-bold outline-none focus:border-pink-500"><option value="">No</option><option value="Y">Active</option></select>
                             </div>
-
-                            {{-- Muncul hanya jika bundling == 'Y' --}}
-                            <div x-show="bundling === 'Y'" x-transition.duration.300ms>
-                                <label class="block text-[9px] font-black uppercase text-gray-500 mb-1.5 tracking-widest text-right">Qty per Bundle</label>
-                                <input type="number" name="bundling_qty" placeholder="Enter quantity..."
-                                    class="w-full bg-gray-900 border-gray-700 text-white rounded-xl text-xs font-bold outline-none focus:border-pink-500 transition px-3 py-2">
-                            </div>
+                            <div x-show="bundling === 'Y'" x-transition><input type="number" name="bundling_qty" placeholder="Qty per bundle..." class="w-full bg-gray-900 border-gray-700 text-white rounded-xl text-xs font-bold outline-none focus:border-pink-500 px-3 py-2"></div>
                         </div>
-
-                        {{-- SECTION: VAS --}}
-                        <div class="p-4 bg-gray-800/60 rounded-2xl border border-gray-700 transition-all duration-300">
+                        <div class="p-4 bg-gray-800/60 rounded-2xl border border-gray-700">
                             <div class="flex justify-between items-center" :class="vasNeeded === 'Y' ? 'mb-4' : ''">
                                 <label class="text-[10px] font-black uppercase text-purple-500 tracking-widest">VAS Service</label>
-                                <select name="vas_needed" x-model="vasNeeded" class="bg-gray-900 border-gray-700 text-white rounded-lg text-[10px] font-bold outline-none focus:border-purple-500">
-                                    <option value="">None</option>
-                                    <option value="Y">Needed</option>
-                                </select>
+                                <select name="vas_needed" x-model="vasNeeded" class="bg-gray-900 border-gray-700 text-white rounded-lg text-[10px] font-bold outline-none focus:border-purple-500"><option value="">None</option><option value="Y">Needed</option></select>
                             </div>
-
-                            {{-- Muncul hanya jika vasNeeded == 'Y' --}}
-                            <div x-show="vasNeeded === 'Y'" x-transition.duration.300ms>
-                                <label class="block text-[9px] font-black uppercase text-gray-500 mb-1.5 tracking-widest text-right">Special Instructions</label>
-                                <input type="text" name="vas_instruction" placeholder="Write VAS instruction..."
-                                    class="w-full bg-gray-900 border-gray-700 text-white rounded-xl text-xs font-bold outline-none focus:border-purple-500 transition px-3 py-2">
-                            </div>
+                            <div x-show="vasNeeded === 'Y'" x-transition><input type="text" name="vas_instruction" placeholder="Special Instructions..." class="w-full bg-gray-900 border-gray-700 text-white rounded-xl text-xs font-bold outline-none focus:border-purple-500 px-3 py-2"></div>
                         </div>
-
-                        {{-- SECTION: REPACKING & LABELING --}}
                         <div class="grid grid-cols-2 gap-4">
                             <div class="p-4 bg-gray-800/60 rounded-2xl border border-gray-700">
                                 <label class="block text-[10px] font-black text-gray-500 mb-2 uppercase tracking-widest">Repacking</label>
-                                <select name="repacking" class="w-full bg-gray-900 border-gray-700 text-white rounded-xl text-xs font-bold outline-none focus:border-blue-500 transition cursor-pointer">
-                                    <option value="">No</option>
-                                    <option value="Y">Yes</option>
-                                </select>
+                                <select name="repacking" class="w-full bg-gray-900 border-gray-700 text-white rounded-xl text-xs font-bold outline-none focus:border-blue-500 transition cursor-pointer"><option value="">No</option><option value="Y">Yes</option></select>
                             </div>
-
                             <div class="p-4 bg-gray-800/60 rounded-2xl border border-gray-700">
                                 <label class="block text-[10px] font-black text-gray-500 mb-2 uppercase tracking-widest">Labeling</label>
-                                <select name="labeling" class="w-full bg-gray-900 border-gray-700 text-white rounded-xl text-xs font-bold outline-none focus:border-blue-500 transition cursor-pointer">
-                                    <option value="">No</option>
-                                    <option value="Y">Yes</option>
-                                </select>
+                                <select name="labeling" class="w-full bg-gray-900 border-gray-700 text-white rounded-xl text-xs font-bold outline-none focus:border-blue-500 transition cursor-pointer"><option value="">No</option><option value="Y">Yes</option></select>
                             </div>
                         </div>
                     </div>
-
                     <div class="mt-8 flex gap-3">
-                        <button type="button" @click="exportModal = false" class="flex-1 py-4 text-xs font-black text-gray-500 hover:text-white uppercase transition tracking-widest">Cancel</button>
-                        <button type="submit" class="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-xs font-black shadow-xl shadow-blue-900/20 uppercase transition transform active:scale-95">Generate CSV</button>
+                        <button type="button" @click="exportModal = false" class="flex-1 py-4 text-xs font-black text-gray-500 uppercase">Cancel</button>
+                        <button type="submit" class="flex-1 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black shadow-xl uppercase active:scale-95 transition">Generate CSV</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-</div> {{-- AKHIR DARI PEMBUNGKUS X-DATA UTAMA --}}
-
+</div>
 @endsection
