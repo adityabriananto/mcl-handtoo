@@ -50,21 +50,14 @@
     </div>
 
     {{-- 2. Summary Cards --}}
-    <div class="grid grid-cols-1 {{ $inbound->children->count() > 0 ? 'md:grid-cols-3' : 'md:grid-cols-4' }} gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {{-- Card Warehouse --}}
         <div class="bg-white dark:bg-gray-900 p-7 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-800">
             <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Warehouse</p>
             <p class="text-xl font-bold text-gray-800 dark:text-white uppercase leading-none">{{ $inbound->warehouse_code }}</p>
         </div>
 
-        @if($inbound->children->count() == 0)
-            <div class="bg-white dark:bg-gray-900 p-7 rounded-[2rem] shadow-sm border-2 border-indigo-500/20">
-                <p class="text-[11px] font-black text-indigo-500 uppercase tracking-widest mb-2 italic">Inbound Order No</p>
-                <p class="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight italic leading-none">
-                    {{ $inbound->inbound_order_no ?? 'WAITING...' }}
-                </p>
-            </div>
-        @endif
-
+        {{-- Card Unique SKU --}}
         <div class="bg-white dark:bg-gray-900 p-7 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-800">
             <p class="text-[11px] font-black text-blue-500 uppercase tracking-widest mb-2">Unique SKU</p>
             <p class="text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tighter leading-none">
@@ -72,6 +65,7 @@
             </p>
         </div>
 
+        {{-- Card Total Units --}}
         <div class="bg-white dark:bg-gray-900 p-7 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-800">
             <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Total Units</p>
             <p class="text-3xl font-black text-gray-800 dark:text-white tracking-tighter leading-none">
