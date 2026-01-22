@@ -35,7 +35,7 @@ class HandoverCancellationController extends Controller
 
         $client = ClientApi::where('app_key',$request['app_key'])->first();
         if (empty($client)) {
-            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, 'CancelFulfillmentOrder');
+            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 200, $request, 'CancelFulfillmentOrder');
         }
 
         DB::beginTransaction();
@@ -57,7 +57,7 @@ class HandoverCancellationController extends Controller
                         'status' => 'Rejected',
                         'reason' => 'Package already handed over to 3PL'
                     ]);
-                    return $this->buildApiResponse(false,'Cancel Failed', 'Package already handed over to 3PL', 400, $request, 'CancelFulfillmentOrder');
+                    return $this->buildApiResponse(false,'Cancel Failed', 'Package already handed over to 3PL', 200, $request, 'CancelFulfillmentOrder');
                 } else {
                     CancellationRequest::create([
                         'tracking_number' => $awb,
@@ -78,7 +78,7 @@ class HandoverCancellationController extends Controller
                 //     'error_code' => 'Cancel Failed',
                 //     'error_message'  => 'Duplicate Tracking Number'
                 // ];
-                return $this->buildApiResponse(false,'Cancel Failed', 'Duplicate Tracking Number', 400, $request, 'CancelFulfillmentOrder');
+                return $this->buildApiResponse(false,'Cancel Failed', 'Duplicate Tracking Number', 200, $request, 'CancelFulfillmentOrder');
             }
 
             if (
@@ -124,7 +124,7 @@ class HandoverCancellationController extends Controller
             //     'success'  => FALSE,
             //     'error_message' => 'Error: ' . $e->getMessage()
             // ];
-            return $this->buildApiResponse(false,'Error', 'Error: ' . $e->getMessage(), 400, $request, 'CancelFulfillmentOrder');
+            return $this->buildApiResponse(false,'Error', 'Error: ' . $e->getMessage(), 200, $request, 'CancelFulfillmentOrder');
         }
 
         // $this->logApi($request, $responseContent, $statusCode,'HandoverCancellation');

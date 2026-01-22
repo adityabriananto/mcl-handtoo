@@ -121,7 +121,7 @@ class InboundOrderApiController extends Controller
         $client = ClientApi::where('app_key', $request['app_key'])->first();
 
         if (empty($client)) {
-            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, 'GetInboundOrders');
+            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 200, $request, 'GetInboundOrders');
         }
 
         // Pastikan memanggil first() di akhir dan muat relasi yang dibutuhkan Resource
@@ -143,7 +143,7 @@ class InboundOrderApiController extends Controller
             // ];
             // $this->logApi($request, $responseContent, $statusCode, 'GetInboundOrderDetails');
             // return response()->json($responseContent, $statusCode);
-            return $this->buildApiResponse(false, 'Data Not Found', 'Reference number not found.', 404, $request, 'GetInboundOrderDetails');
+            return $this->buildApiResponse(false, 'Data Not Found', 'Reference number not found.', 200, $request, 'GetInboundOrderDetails');
 
         }
 
