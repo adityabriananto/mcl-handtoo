@@ -58,12 +58,16 @@
                                    class="block px-4 py-2 text-sm {{ request()->routeIs('history.index') ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
                                     Handover Dashboard
                                 </a>
+                                 <a href="{{ route('handover.upload.index') }}"
+                                   class="block px-4 py-2 text-sm {{ request()->routeIs('handover.upload.index') ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                                    Document Upload Data
+                                </a>
                             </div>
                         </div>
                         <div class="relative" x-data="{ open: false }" @click.away="open = false">
                             <button @click="open = !open"
                                     class="flex items-center px-3 py-2 rounded-md text-sm font-medium transition duration-150 focus:outline-none
-                                        @if(request()->routeIs('tpl.config.*') || request()->routeIs('handover.upload.*') || request()->routeIs('client_api.index'))
+                                        @if(request()->routeIs('tpl.config.*') || request()->routeIs('client_api.index'))
                                             bg-blue-600 text-white
                                         @else
                                             text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-500
@@ -79,10 +83,6 @@
                                 <a href="{{ route('tpl.config.index') }}"
                                    class="block px-4 py-2 text-sm {{ request()->routeIs('tpl.config.index') ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
                                     3PL Configuration
-                                </a>
-                                <a href="{{ route('handover.upload.index') }}"
-                                   class="block px-4 py-2 text-sm {{ request()->routeIs('handover.upload.index') ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
-                                    Document Upload Data
                                 </a>
                             </div>
                         </div>
@@ -116,6 +116,10 @@
                                 <a href="{{ route('history.index') }}"
                                    class="block px-4 py-2 text-sm {{ request()->routeIs('history.index') ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
                                     Handover Dashboard
+                                </a>
+                                <a href="{{ route('handover.upload.index') }}"
+                                   class="block px-4 py-2 text-sm {{ request()->routeIs('handover.upload.index') ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                                    Document Upload Data
                                 </a>
                             </div>
                         </div>
@@ -187,7 +191,7 @@
                         <div class="relative" x-data="{ open: false }" @click.away="open = false">
                             <button @click="open = !open"
                                     class="flex items-center px-3 py-2 rounded-md text-sm font-medium transition duration-150 focus:outline-none
-                                        @if(request()->routeIs('tpl.config.*') || request()->routeIs('handover.upload.*') || request()->routeIs('client_api.index'))
+                                        @if(request()->routeIs('tpl.config.*') || request()->routeIs('client_api.index'))
                                             bg-blue-600 text-white
                                         @else
                                             text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-500
@@ -203,10 +207,6 @@
                                 <a href="{{ route('tpl.config.index') }}"
                                    class="block px-4 py-2 text-sm {{ request()->routeIs('tpl.config.index') ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
                                     3PL Configuration
-                                </a>
-                                <a href="{{ route('handover.upload.index') }}"
-                                   class="block px-4 py-2 text-sm {{ request()->routeIs('handover.upload.index') ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
-                                    Document Upload Data
                                 </a>
                                 <a href="{{ route('client_api.index') }}"
                                    class="block px-4 py-2 text-sm {{ request()->routeIs('client_api.index') ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
