@@ -120,7 +120,7 @@
                             </div>
                         </div>
 
-                        {{-- Menu Inbound (BARU ditambahkan) --}}
+                        {{-- Menu Inbound --}}
                         <div class="relative" x-data="{ open: false }" @click.away="open = false">
                             <button @click="open = !open"
                                     class="flex items-center px-3 py-2 rounded-md text-sm font-medium transition duration-150 focus:outline-none
@@ -146,6 +146,40 @@
                                     @endif">
                                 <span>Inbound Order Data</span>
                             </a>
+                            </div>
+                        </div>
+
+                        {{-- Menu MB Master --}}
+                        <div class="relative" x-data="{ open: false }" @click.away="open = false">
+                            <button @click="open = !open"
+                                    class="flex items-center px-3 py-2 rounded-md text-sm font-medium transition duration-150 focus:outline-none
+                                        @if(request()->routeIs('mb-master.*'))
+                                            bg-blue-600 text-white shadow-md
+                                        @else
+                                            text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-500
+                                        @endif">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                    </svg>
+                                    MB Master
+                                </span>
+                                <svg class="ml-1 h-4 w-4 transition-transform duration-200" :class="open ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+
+                            <div x-show="open" x-cloak x-transition.opacity.scale.95
+                                class="absolute right-0 mt-2 w-52 rounded-xl shadow-xl py-2 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-20 border border-gray-100 dark:border-gray-700">
+                                <a href="{{ route('mb-master.index') }}"
+                                class="group flex items-center px-4 py-2.5 text-sm transition-all
+                                    {{ request()->routeIs('mb-master.index')
+                                        ? 'bg-blue-50 text-blue-600 font-bold dark:bg-blue-900/20'
+                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                    }}">
+                                    <span class="w-1.5 h-1.5 rounded-full mr-2 {{ request()->routeIs('mb-master.index') ? 'bg-blue-600' : 'bg-gray-300' }}"></span>
+                                    MB Master Data
+                                </a>
                             </div>
                         </div>
 

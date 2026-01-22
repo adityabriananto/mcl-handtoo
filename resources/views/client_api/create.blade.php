@@ -60,6 +60,16 @@
                                value="{{ old('client_code') }}" required>
                     </div>
 
+                    {{-- App Key --}}
+                    <div class="md:col-span-1">
+                        <label for="app_key" class="block text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Client API Key</label>
+                        <input type="text"
+                               id="app_key" name="app_key"
+                               class="mt-2 block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 text-lg font-mono uppercase"
+                               placeholder="owner code on dabao"
+                               value="{{ old('app_key') }}" required>
+                    </div>
+
                     {{-- Client URL --}}
                     <div class="md:col-span-2">
                         <label for="client_url" class="block text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Base URL / Callback URL</label>

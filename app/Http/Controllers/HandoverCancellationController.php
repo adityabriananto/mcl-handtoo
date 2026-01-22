@@ -24,19 +24,18 @@ class HandoverCancellationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            $statusCode = 400;
-            $responseContent = [
-                'success'  => FALSE,
-                'error_code' => 'Validation failed',
-                'error_message'  => $validator->errors()->getMessages()
-            ];
-            $this->logApi($request, $responseContent, $statusCode);
-            return response()->json($responseContent, $statusCode);
+            // $statusCode = 400;
+            // $responseContent = [
+            //     'success'  => FALSE,
+            //     'error_code' => 'Validation failed',
+            //     'error_message'  => $validator->errors()->getMessages()
+            // ];
+            return $this->buildApiResponse(false,'Validation failed', $validator->errors()->getMessages(), 400, $request, 'CancelFulfillmentOrder');
         }
 
         DB::beginTransaction();
         try {
-            $awb = $request->cancel_reason;
+            $awb = $request['cancel_reason'];
             $cancelRequest = CancellationRequest::where('tracking_number', $awb)->first();
             $handoverWaybill = HandoverDetail::where('airwaybill', $awb)->first();
 
@@ -53,36 +52,28 @@ class HandoverCancellationController extends Controller
                         'status' => 'Rejected',
                         'reason' => 'Package already handed over to 3PL'
                     ]);
-                    $statusCode = 400;
-                    $responseContent = [
-                        'success'  => FALSE,
-                        'error_code' => 'Cancel Failed',
-                        'error_message'  => 'Package already handed over to 3PL'
-                    ];
+                    return $this->buildApiResponse(false,'Cancel Failed', 'Package already handed over to 3PL', 400, $request, 'CancelFulfillmentOrder');
                 } else {
                     CancellationRequest::create([
                         'tracking_number' => $awb,
                         'status' => 'Approved'
                     ]);
-                    $statusCode = 200;
-                    $responseContent = [
-                        'success' => TRUE,
-                        'message' => 'Tracking number '.$awb.' Cancelled'
-                    ];
                     // HAPUS DARI DATABASE
                     // Ini akan membuat pengecekan di method scan() mendeteksi bahwa data sudah tidak ada
                     $handoverWaybill->is_cancelled = true;
                     $handoverWaybill->save();
+                    return $this->buildApiResponse(true, null, 'Tracking number '.$awb.' Cancelled', 200, $request, 'CancelFulfillmentOrder');
                 }
             }
 
             if($cancelRequest) {
-                $statusCode = 400;
-                $responseContent = [
-                    'success'  => FALSE,
-                    'error_code' => 'Cancel Failed',
-                    'error_message'  => 'Duplicate Tracking Number'
-                ];
+                // $statusCode = 400;
+                // $responseContent = [
+                //     'success'  => FALSE,
+                //     'error_code' => 'Cancel Failed',
+                //     'error_message'  => 'Duplicate Tracking Number'
+                // ];
+                return $this->buildApiResponse(false,'Cancel Failed', 'Duplicate Tracking Number', 400, $request, 'CancelFulfillmentOrder');
             }
 
             if (
@@ -93,11 +84,12 @@ class HandoverCancellationController extends Controller
                     'tracking_number' => $awb,
                     'status' => 'Approved'
                 ]);
-                $statusCode = 200;
-                $responseContent = [
-                    'success' => TRUE,
-                    'message' => 'Tracking number '.$awb.' Cancelled'
-                ];
+                // $statusCode = 200;
+                // $responseContent = [
+                //     'success' => TRUE,
+                //     'message' => 'Tracking number '.$awb.' Cancelled'
+                // ];
+                return $this->buildApiResponse(true, null, 'Tracking number '.$awb.' Cancelled', 200, $request, 'CancelFulfillmentOrder');
             }
 
             // if($handover && $handover->status != 'completed') {
@@ -122,15 +114,35 @@ class HandoverCancellationController extends Controller
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            $statusCode = 400;
-            $responseContent = [
-                'success'  => FALSE,
-                'error_message' => 'Error: ' . $e->getMessage()
-            ];
+            // $statusCode = 400;
+            // $responseContent = [
+            //     'success'  => FALSE,
+            //     'error_message' => 'Error: ' . $e->getMessage()
+            // ];
+            return $this->buildApiResponse(false,'Error', 'Error: ' . $e->getMessage(), 400, $request, 'CancelFulfillmentOrder');
         }
 
-        $this->logApi($request, $responseContent, $statusCode,'HandoverCancellation');
-        return response()->json($responseContent, $statusCode);
+        // $this->logApi($request, $responseContent, $statusCode,'HandoverCancellation');
+        // return response()->json($responseContent, $statusCode);
+        // return $this->buildApiResponse($success, $errorCode, $dataOrMessage, $status, $request, $type);
+    }
+
+    private function buildApiResponse($success, $errorCode, $dataOrMessage, $status, $request, $type) {
+        $responseContent = [
+            'success' => $success,
+            'code'    => $status,
+            'data'    => $success ? $dataOrMessage : null,
+            'error'   => !$success ? [
+                'type'    => $errorCode,
+                'message' => $dataOrMessage
+            ] : null
+        ];
+
+        // Simpan Log
+        $this->logApi($request, $responseContent, $status, $type);
+
+        return response()->json($responseContent, $status)
+                        ->header('Content-Type', 'application/json');
     }
 
     // Helper untuk log agar code lebih bersih

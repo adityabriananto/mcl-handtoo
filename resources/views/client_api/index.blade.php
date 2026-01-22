@@ -35,6 +35,7 @@
                             <tr>
                                 <th class="table-header">Client Name</th>
                                 <th class="table-header">Code</th>
+                                <th class="table-header">App Key</th>
                                 <th class="table-header">Base URL</th>
                                 {{-- KOLOM BARU --}}
                                 <th class="table-header">Access Token</th>
@@ -48,6 +49,11 @@
                                 <td class="table-data">
                                     <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs">
                                         {{ $client->client_code }}
+                                    </span>
+                                </td>
+                                <td class="table-data">
+                                    <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs">
+                                        {{ $client->app_key }}
                                     </span>
                                 </td>
                                 <td class="table-data text-xs text-gray-500">{{ $client->client_url }}</td>

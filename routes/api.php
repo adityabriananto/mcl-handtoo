@@ -13,7 +13,7 @@ Route::get('/user', function (Request $request) {
 
 // Route::get('/crunch', [DataCruncherController::class, 'crunch']);
 
-Route::middleware(['api.key'])->group(function () {
+Route::middleware([])->group(function () {
     Route::post('/fbl/fulfillment_order/cancel', [HandoverCancellationController::class, 'cancel']);
     Route::post('/fbl/inbound_order/create', [InboundOrderApiController::class, 'createInboundOrder']);
     Route::get('/fbl/inbound_order_detail/get', [InboundOrderApiController::class, 'getInboundOrderDetail']);

@@ -16,31 +16,41 @@ class InboundOrderApiController extends Controller
 {
     //
     public function createInboundOrder(Request $request) {
-        // dd($request->skus);
+        // 1. Dekode 'skus' jika dikirim dalam bentuk string JSON
+        if (is_string($request->skus)) {
+            $decodedSkus = json_decode($request->skus, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $request->merge(['skus' => $decodedSkus]);
+            }
+        }
+
         $validator = Validator::make($request->all(), [
             'comment'        => 'required|string',
-            'estimate_time'  => 'required|date_format:Y-m-d\TH:i:s\Z',
+            'estimate_time'  => 'required', // Format fleksibel mengikuti Carbon
             'warehouse_code' => 'required|string',
-            'skus'           => 'required'
+            'skus'           => 'required|array',
+            'skus.*.seller_sku' => 'required|string',
+            'skus.*.requested_quantity' => 'required|numeric'
         ]);
 
         if ($validator->fails()) {
-            $statusCode = 400;
-            $responseContent = [
-                'success'  => FALSE,
-                'error_code' => 'Validation failed',
-                'error_message'  => $validator->errors()->getMessages()
-            ];
-            $this->logApi($request, $responseContent, $statusCode, 'CreateInboundOrder');
-            return response()->json($responseContent, $statusCode);
+            return $this->buildApiResponse(false, 'VALIDATION_FAILED', $validator->errors()->first(), 400, $request, 'CreateInboundOrder');
         }
 
-        $client = ClientApi::where('access_token',$request->header()['authorization'])->first();
+        // 2. Ambil token dari Header atau dari Body (berdasarkan log Anda ada di body juga)
+        $client = ClientApi::where('app_key', $request['app_key'])->first();
 
+        if (!$client) {
+            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, 'CreateInboundOrder');
+
+        }
+
+        // 3. Simpan atau Update Inbound Request
         $inboundOrder = InboundRequest::firstOrNew([
             'client_name'      => $client->client_name,
             'reference_number' => $request->reference_number
         ]);
+
         $inboundOrder->warehouse_code        = $request->warehouse_code;
         $inboundOrder->delivery_type         = $request->delivery_type;
         $inboundOrder->seller_warehouse_code = $request->seller_warehouse_code;
@@ -49,40 +59,29 @@ class InboundOrderApiController extends Controller
         $inboundOrder->status                = 'Pending';
         $inboundOrder->save();
 
+        // 4. Proses SKU
         foreach ($request->skus as $sku) {
             $inboundOrderDetail = InboundRequestDetail::firstOrNew([
                 'inbound_order_id' => $inboundOrder->id,
-                'seller_sku' => $sku['seller_sku'],
-                'fulfillment_sku' => $sku['fulfillment_sku'] ?? null,
+                'seller_sku'       => $sku['seller_sku'],
+                'fulfillment_sku'  => $sku['fulfillment_sku'] ?? null,
             ]);
-            if ($inboundOrderDetail->requested_quantity == 0) {
-                $inboundOrderDetail->requested_quantity = $sku['requested_quantity'];
-            } else {
-                $inboundOrderDetail->requested_quantity += $sku['requested_quantity'];
-            }
+
+            // Akumulasi quantity jika item yang sama dikirim dua kali
+            $inboundOrderDetail->requested_quantity += (int) $sku['requested_quantity'];
             $inboundOrderDetail->save();
         }
-        $statusCode = 200;
-        $responseContent = [
-            'success' => TRUE,
-            'data' => $inboundOrder->reference_number
-        ];
 
-        $this->logApi($request, $responseContent, $statusCode, 'CreateInboundOrder');
-        return response()->json($responseContent, $statusCode);
+        return $this->buildApiResponse(true, null, $inboundOrder->reference_number, 200, $request, 'CreateInboundOrder');
     }
 
 
     public function getInboundOrders(Request $request) {
         // 1. Validasi Client berdasarkan Token
-        $authHeader = $request->header('authorization');
-        $client = ClientApi::where('access_token', $authHeader)->first();
+        $client = ClientApi::where('app_key', $request['app_key'])->first();
 
         if (!$client) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized access'
-            ], 401);
+            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, 'GetInboundOrders');
         }
 
         // 2. Query Inbound dengan Filter:
@@ -106,6 +105,7 @@ class InboundOrderApiController extends Controller
                 'message' => 'No references found',
                 'data'    => []
             ];
+            return $this->buildApiResponse(true, null, [], 200, $request, 'GetInboundOrders');
         } else {
             $statusCode = 200;
             $responseContent = [
@@ -113,60 +113,78 @@ class InboundOrderApiController extends Controller
                 'message' => 'Success fetch inbound references',
                 'data'    => $inbound
             ];
+            return $this->buildApiResponse(true, null, $inbound, 200, $request, 'GetInboundOrders');
         }
-
-        // 4. Log API
-        $this->logApi($request, $responseContent, $statusCode, 'GetInboundOrders');
-
-        return response()->json($responseContent, $statusCode);
     }
 
     public function getInboundOrderDetail(Request $request)
     {
-        $client = ClientApi::where('access_token', $request->header('authorization'))->first();
+        $client = ClientApi::where('app_key', $request['app_key'])->first();
 
         // Pastikan memanggil first() di akhir dan muat relasi yang dibutuhkan Resource
         $query = InboundRequest::with(['details', 'children', 'parent'])
                     ->where('client_name', $client->client_name)
-                    ->where('reference_number', $request->reference_number);
+                    ->where('reference_number', $request['reference_number']);
 
-        if ($request->brandOs) {
-            $query->where('comment', $request->brandOs);
+        if ($request['brand_os']) {
+            $query->where('comment', $request['brand_os']);
         }
 
         $inbound = $query->first(); // Ambil data pertama atau null
 
         if (!$inbound) {
-            $statusCode = 404;
-            $responseContent = [
-                'success' => false,
-                'message' => 'Reference number not found.'
-            ];
-            $this->logApi($request, $responseContent, $statusCode, 'GetInboundOrderDetails');
-            return response()->json($responseContent, $statusCode);
+            // $statusCode = 404;
+            // $responseContent = [
+            //     'success' => false,
+            //     'message' => 'Reference number not found.'
+            // ];
+            // $this->logApi($request, $responseContent, $statusCode, 'GetInboundOrderDetails');
+            // return response()->json($responseContent, $statusCode);
+            return $this->buildApiResponse(false, 'Data Not Found', 'Reference number not found.', 404, $request, 'GetInboundOrderDetails');
+
         }
 
-        $statusCode = 200;
+        // $statusCode = 200;
+        // $responseContent = [
+        //     'success' => true,
+        //     'data' => new InboundResourceDetail($inbound)
+        // ];
+
+        // $this->logApi($request, $responseContent, $statusCode, 'GetInboundOrder');
+        // return response()->json($responseContent, $statusCode);
+        return $this->buildApiResponse(true, null, new InboundResourceDetail($inbound), 200, $request, 'GetInboundOrderDetails');
+    }
+
+    private function buildApiResponse($success, $errorCode, $dataOrMessage, $status, $request, $type) {
         $responseContent = [
-            'success' => true,
-            'data' => new InboundResourceDetail($inbound)
+            'success' => $success,
+            'code'    => $status,
+            'data'    => $success ? $dataOrMessage : null,
+            'error'   => !$success ? [
+                'type'    => $errorCode,
+                'message' => $dataOrMessage
+            ] : null
         ];
 
-        $this->logApi($request, $responseContent, $statusCode, 'GetInboundOrder');
-        return response()->json($responseContent, $statusCode);
+        // Simpan Log
+        $this->logApi($request, $responseContent, $status, $type);
+
+        return response()->json($responseContent, $status)
+                        ->header('Content-Type', 'application/json');
     }
 
     private function logApi($request, $response, $status, $type) {
-        $client = ClientApi::where('access_token',$request->header()['authorization'])->first();
-        ApiLog::create([
-            'client_name' => $client->client_name,
-            'api_type'    => $type,
-            'endpoint'    => $request->fullUrl(),
-            'method'      => $request->method(),
-            'payload'     => $request->all(),
-            'response'    => $response,
-            'status_code' => $status,
-            'ip_address'  => $request->ip(),
-        ]);
+        $client = ClientApi::where('app_key',$request['app_key'])->first();
+        \Log::info($request->fullUrl());
+        // ApiLog::create([
+        //     'client_name' => $client->client_name,
+        //     'api_type'    => $type,
+        //     'endpoint'    => $request->fullUrl(),
+        //     'method'      => $request->method(),
+        //     'payload'     => $request->all(),
+        //     'response'    => $response,
+        //     'status_code' => $status,
+        //     'ip_address'  => $request->ip(),
+        // ]);
     }
 }

@@ -34,6 +34,7 @@ class ClientApiController extends Controller
         // 1. Validasi Input
         $request->validate([
             'client_name' => 'required|string|max:255',
+            'app_key'     => 'required|string|max:255',
             'client_code' => 'required|string|unique:client_apis,client_code|max:50',
             'client_url'  => 'required|url',
             'client_token'=> 'nullable|string|unique:client_apis,client_token'
@@ -43,6 +44,7 @@ class ClientApiController extends Controller
         // Note: Logic pembuatan token otomatis sudah kita buat di Model (Boot method)
         ClientApi::create([
             'client_name'  => $request->client_name,
+            'app_key'      => $request->app_key,
             'client_code'  => strtoupper($request->client_code), // Paksa huruf besar untuk kode
             'client_url'   => $request->client_url,
             'client_token' => $request->client_token,
@@ -66,6 +68,7 @@ class ClientApiController extends Controller
 
         $validated = $request->validate([
             'client_name' => 'required|string|max:255',
+            'app_key'     => 'required|string|max:255',
             'client_code' => 'required|string|max:50|unique:client_apis,client_code,' . $id,
             'client_url'  => 'required|url',
             'client_token'=> 'nullable|string|unique:client_apis,client_token,' . $id

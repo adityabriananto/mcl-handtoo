@@ -31,6 +31,12 @@
                                class="mt-2 block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:ring-4 focus:ring-yellow-500/20 focus:border-yellow-500 text-lg font-mono uppercase" required>
                     </div>
 
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 uppercase">App Key</label>
+                        <input type="text" name="app_key" value="{{ old('app_key', $client->app_key) }}"
+                               class="mt-2 block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:ring-4 focus:ring-yellow-500/20 focus:border-yellow-500 text-lg font-mono uppercase" required>
+                    </div>
+
                     <div class="md:col-span-2">
                         <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 uppercase">Base URL</label>
                         <input type="url" name="client_url" value="{{ old('client_url', $client->client_url) }}"
