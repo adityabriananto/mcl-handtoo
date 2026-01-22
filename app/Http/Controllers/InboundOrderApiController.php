@@ -120,6 +120,10 @@ class InboundOrderApiController extends Controller
     {
         $client = ClientApi::where('app_key', $request['app_key'])->first();
 
+        if (empty($client)) {
+            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, 'GetInboundOrders');
+        }
+
         // Pastikan memanggil first() di akhir dan muat relasi yang dibutuhkan Resource
         $query = InboundRequest::with(['details', 'children', 'parent'])
                     ->where('client_name', $client->client_name)
