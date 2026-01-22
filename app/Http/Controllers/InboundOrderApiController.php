@@ -175,16 +175,17 @@ class InboundOrderApiController extends Controller
 
     private function logApi($request, $response, $status, $type) {
         $client = ClientApi::where('app_key',$request['app_key'])->first();
-        \Log::info($request->fullUrl());
-        // ApiLog::create([
-        //     'client_name' => $client->client_name,
-        //     'api_type'    => $type,
-        //     'endpoint'    => $request->fullUrl(),
-        //     'method'      => $request->method(),
-        //     'payload'     => $request->all(),
-        //     'response'    => $response,
-        //     'status_code' => $status,
-        //     'ip_address'  => $request->ip(),
-        // ]);
+        // \Log::info($request->fullUrl());
+        $fullUrl = explode("?",$request->fullUrl());
+        ApiLog::create([
+            'client_name' => $client->client_name,
+            'api_type'    => $type,
+            'endpoint'    => $fullUrl[0],
+            'method'      => $request->method(),
+            'payload'     => $request->all(),
+            'response'    => $response,
+            'status_code' => $status,
+            'ip_address'  => $request->ip(),
+        ]);
     }
 }

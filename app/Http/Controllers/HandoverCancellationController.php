@@ -148,10 +148,11 @@ class HandoverCancellationController extends Controller
     // Helper untuk log agar code lebih bersih
     private function logApi($request, $response, $status, $type) {
         $client = ClientApi::where('access_token',$request->header()['authorization'])->first();
+        $fullUrl = explode("?",$request->fullUrl());
         ApiLog::create([
             'client_name' => $client->client_name,
             'api_type'    => $type,
-            'endpoint'    => $request->fullUrl(),
+            'endpoint'    => $fullUrl[0],
             'method'      => $request->method(),
             'payload'     => $request->all(),
             'response'    => $response,
