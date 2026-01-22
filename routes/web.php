@@ -18,6 +18,32 @@ use Illuminate\Support\Facades\Route;
 */
 Route::get('/', [HandoverController::class, 'index'])->name('handover.index');
 
+// --- History Dashboard ---
+Route::prefix('history')->name('history.')->group(function () {
+    Route::get('/', [HistoryController::class, 'index'])->name('index');
+    Route::get('/export', [HistoryController::class, 'exportCsv'])->name('export-csv');
+    Route::get('/{handoverId}/download', [HistoryController::class, 'downloadManifest'])->name('download-manifest');
+    Route::post('/{handoverId}/upload', [HistoryController::class, 'uploadManifest'])->name('upload-manifest');
+});
+
+// --- Handover Station Operations ---
+Route::prefix('handover')->name('handover.')->group(function () {
+    Route::post('/set-batch', [HandoverController::class, 'setBatch'])->name('set-batch');
+    Route::post('/clear-batch', [HandoverController::class, 'clearBatch'])->name('clear-batch');
+    Route::post('/set-3pl', [HandoverController::class, 'setThreePl'])->name('set-3pl');
+    Route::post('/scan', [HandoverController::class, 'scan'])->name('scan');
+    Route::post('/remove', [HandoverController::class, 'remove'])->name('remove');
+    Route::post('/finalize', [HandoverController::class, 'finalize'])->name('finalize');
+    Route::get('/check-count', [HandoverController::class, 'checkCount'])->name('check-count');
+    Route::get('/table-fragment', [HandoverController::class, 'getTableFragment'])->name('table-fragment');
+});
+
+// TPL Config
+Route::resource('tpl-config', TplPrefixController::class)->names('tpl.config');
+
+// Handover Data Upload
+Route::resource('handover-upload', DataHandoverUploadController::class)->names('handover.upload');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
@@ -82,31 +108,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('client-api/{id}/refresh-token', [ClientApiController::class, 'refreshToken'])->name('client_api.refresh');
 
         // TPL Config
-        Route::resource('tpl-config', TplPrefixController::class)->names('tpl.config');
+        // Route::resource('tpl-config', TplPrefixController::class)->names('tpl.config');
 
         // Handover Data Upload
-        Route::resource('handover-upload', DataHandoverUploadController::class)->names('handover.upload');
+        // Route::resource('handover-upload', DataHandoverUploadController::class)->names('handover.upload');
     });
 
     // --- History Dashboard ---
-    Route::prefix('history')->name('history.')->group(function () {
-        Route::get('/', [HistoryController::class, 'index'])->name('index');
-        Route::get('/export', [HistoryController::class, 'exportCsv'])->name('export-csv');
-        Route::get('/{handoverId}/download', [HistoryController::class, 'downloadManifest'])->name('download-manifest');
-        Route::post('/{handoverId}/upload', [HistoryController::class, 'uploadManifest'])->name('upload-manifest');
-    });
+    // Route::prefix('history')->name('history.')->group(function () {
+    //     Route::get('/', [HistoryController::class, 'index'])->name('index');
+    //     Route::get('/export', [HistoryController::class, 'exportCsv'])->name('export-csv');
+    //     Route::get('/{handoverId}/download', [HistoryController::class, 'downloadManifest'])->name('download-manifest');
+    //     Route::post('/{handoverId}/upload', [HistoryController::class, 'uploadManifest'])->name('upload-manifest');
+    // });
 
     // --- Handover Station Operations ---
-    Route::prefix('handover')->name('handover.')->group(function () {
-        Route::post('/set-batch', [HandoverController::class, 'setBatch'])->name('set-batch');
-        Route::post('/clear-batch', [HandoverController::class, 'clearBatch'])->name('clear-batch');
-        Route::post('/set-3pl', [HandoverController::class, 'setThreePl'])->name('set-3pl');
-        Route::post('/scan', [HandoverController::class, 'scan'])->name('scan');
-        Route::post('/remove', [HandoverController::class, 'remove'])->name('remove');
-        Route::post('/finalize', [HandoverController::class, 'finalize'])->name('finalize');
-        Route::get('/check-count', [HandoverController::class, 'checkCount'])->name('check-count');
-        Route::get('/table-fragment', [HandoverController::class, 'getTableFragment'])->name('table-fragment');
-    });
+    // Route::prefix('handover')->name('handover.')->group(function () {
+    //     Route::post('/set-batch', [HandoverController::class, 'setBatch'])->name('set-batch');
+    //     Route::post('/clear-batch', [HandoverController::class, 'clearBatch'])->name('clear-batch');
+    //     Route::post('/set-3pl', [HandoverController::class, 'setThreePl'])->name('set-3pl');
+    //     Route::post('/scan', [HandoverController::class, 'scan'])->name('scan');
+    //     Route::post('/remove', [HandoverController::class, 'remove'])->name('remove');
+    //     Route::post('/finalize', [HandoverController::class, 'finalize'])->name('finalize');
+    //     Route::get('/check-count', [HandoverController::class, 'checkCount'])->name('check-count');
+    //     Route::get('/table-fragment', [HandoverController::class, 'getTableFragment'])->name('table-fragment');
+    // });
 });
 
 require __DIR__.'/auth.php';
