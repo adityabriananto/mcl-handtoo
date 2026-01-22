@@ -23,7 +23,7 @@ class ClientApi extends Model
     protected $fillable = [
         'client_name',
         'client_code',
-        'api_key',
+        'app_key',
         'client_url',
         'client_token',
         'access_token',
