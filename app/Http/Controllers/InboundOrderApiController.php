@@ -40,9 +40,8 @@ class InboundOrderApiController extends Controller
         // 2. Ambil token dari Header atau dari Body (berdasarkan log Anda ada di body juga)
         $client = ClientApi::where('app_key', $request['app_key'])->first();
 
-        if (!$client) {
+        if (empty($client)) {
             return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, 'CreateInboundOrder');
-
         }
 
         // 3. Simpan atau Update Inbound Request
@@ -80,7 +79,7 @@ class InboundOrderApiController extends Controller
         // 1. Validasi Client berdasarkan Token
         $client = ClientApi::where('app_key', $request['app_key'])->first();
 
-        if (!$client) {
+        if (empty($client)) {
             return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, 'GetInboundOrders');
         }
 
@@ -177,15 +176,28 @@ class InboundOrderApiController extends Controller
         $client = ClientApi::where('app_key',$request['app_key'])->first();
         // \Log::info($request->fullUrl());
         $fullUrl = explode("?",$request->fullUrl());
-        ApiLog::create([
-            'client_name' => $client->client_name,
-            'api_type'    => $type,
-            'endpoint'    => $fullUrl[0],
-            'method'      => $request->method(),
-            'payload'     => $request->all(),
-            'response'    => $response,
-            'status_code' => $status,
-            'ip_address'  => $request->ip(),
-        ]);
+        if (empty($client)) {
+            ApiLog::create([
+                'client_name' => "-",
+                'api_type'    => $type,
+                'endpoint'    => $fullUrl[0],
+                'method'      => $request->method(),
+                'payload'     => $request->all(),
+                'response'    => $response,
+                'status_code' => $status,
+                'ip_address'  => $request->ip(),
+            ]);
+        } else {
+            ApiLog::create([
+                'client_name' => $client->client_name,
+                'api_type'    => $type,
+                'endpoint'    => $fullUrl[0],
+                'method'      => $request->method(),
+                'payload'     => $request->all(),
+                'response'    => $response,
+                'status_code' => $status,
+                'ip_address'  => $request->ip(),
+            ]);
+        }
     }
 }

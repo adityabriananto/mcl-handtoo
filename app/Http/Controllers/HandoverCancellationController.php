@@ -33,6 +33,11 @@ class HandoverCancellationController extends Controller
             return $this->buildApiResponse(false,'Validation failed', $validator->errors()->getMessages(), 400, $request, 'CancelFulfillmentOrder');
         }
 
+        $client = ClientApi::where('app_key',$request['app_key'])->first();
+        if (empty($client)) {
+            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, 'CancelFulfillmentOrder');
+        }
+
         DB::beginTransaction();
         try {
             $awb = $request['cancel_reason'];
@@ -147,17 +152,31 @@ class HandoverCancellationController extends Controller
 
     // Helper untuk log agar code lebih bersih
     private function logApi($request, $response, $status, $type) {
-        $client = ClientApi::where('access_token',$request->header()['authorization'])->first();
+        $client = ClientApi::where('app_key',$request['app_key'])->first();
+        // \Log::info($request->fullUrl());
         $fullUrl = explode("?",$request->fullUrl());
-        ApiLog::create([
-            'client_name' => $client->client_name,
-            'api_type'    => $type,
-            'endpoint'    => $fullUrl[0],
-            'method'      => $request->method(),
-            'payload'     => $request->all(),
-            'response'    => $response,
-            'status_code' => $status,
-            'ip_address'  => $request->ip(),
-        ]);
+        if (empty($client)) {
+            ApiLog::create([
+                'client_name' => "-",
+                'api_type'    => $type,
+                'endpoint'    => $fullUrl[0],
+                'method'      => $request->method(),
+                'payload'     => $request->all(),
+                'response'    => $response,
+                'status_code' => $status,
+                'ip_address'  => $request->ip(),
+            ]);
+        } else {
+            ApiLog::create([
+                'client_name' => $client->client_name,
+                'api_type'    => $type,
+                'endpoint'    => $fullUrl[0],
+                'method'      => $request->method(),
+                'payload'     => $request->all(),
+                'response'    => $response,
+                'status_code' => $status,
+                'ip_address'  => $request->ip(),
+            ]);
+        }
     }
 }
