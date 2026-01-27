@@ -91,7 +91,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // --- Inbound Routes ---
     Route::prefix('inbound')->name('inbound.')->group(function () {
         Route::match(['get', 'post'], '/', [InboundOrderController::class, 'index'])->name('index');
-        Route::get('/export', [InboundOrderController::class, 'export'])->name('export');
+        Route::get('/export/{id}', [InboundOrderController::class, 'export'])->name('export');
         Route::get('/template', [InboundOrderController::class, 'downloadTemplate'])->name('template');
         Route::post('/upload', [InboundOrderController::class, 'uploadIoNumber'])->name('upload');
         Route::post('/status-complete/{id}', [InboundOrderController::class, 'updateStatus'])->name('complete');
