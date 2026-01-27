@@ -115,7 +115,7 @@ class MbMasterController extends Controller
         ]);
 
         // Kirim ke Queue
-        ImportMbMasterJob::dispatch($fullPath, $fileName)->onQueue('mb-master-import');;
+        ImportMbMasterJob::dispatch($fullPath, $fileName)->onQueue('mb-master-import');
 
         return back()->with('success', 'Import started!')->with('importing', true);
     }

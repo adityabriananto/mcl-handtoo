@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ClientApiController;
 use App\Http\Controllers\DataHandoverUploadController;
 use App\Http\Controllers\InboundOrderController;
+use App\Http\Controllers\MbOrderUploadController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\HandoverController;
 use App\Http\Controllers\HistoryController;
@@ -49,6 +50,13 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'login']);
 });
 
+Route::middleware([])->prefix('mb-master/orders')->name('mb-orders.')->group(function () {
+    Route::get('/', [MbOrderUploadController::class, 'index'])->name('index');
+    Route::post('/import', [MbOrderUploadController::class, 'store'])->name('import');
+    Route::post('/clean', [MbOrderUploadController::class, 'clean'])->name('clean');
+    Route::get('/mb-orders/logs', [MbOrderUploadController::class, 'logs'])->name('logs');
+});
+
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
 
 /*
@@ -76,7 +84,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Actions
         Route::post('/store', [MbMasterController::class, 'store'])->name('store'); // Simpan data baru
         Route::post('/import', [MbMasterController::class, 'importCsv'])->name('import');
-        Route::put('/update/{id}', [MbMasterController::class, 'update'])->name('update');
+        Route::match(['PUT', 'PATCH'], '/mb-master/update/{mb_master}', [MbMasterController::class, 'update'])->name('update');
         Route::delete('/destroy/{id}', [MbMasterController::class, 'destroy'])->name('destroy');
     });
 
