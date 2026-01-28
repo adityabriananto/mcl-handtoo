@@ -11,7 +11,7 @@
         border-radius: 1rem;
         padding: 1rem;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-        position: relative; /* Penting untuk z-index dropdown */
+        position: relative;
     }
 
     /* Input Grouping */
@@ -22,7 +22,6 @@
         border: 2px solid #4f46e5;
         border-radius: 0.75rem;
         background: #ffffff;
-        /* Hapus overflow: hidden di sini agar dropdown aman */
     }
 
     .select-box {
@@ -37,7 +36,6 @@
         min-width: 150px;
         border-radius: 0.65rem 0 0 0.65rem;
         cursor: pointer;
-        /* Menghilangkan tanda panah default browser agar rapi */
         appearance: none;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
         background-repeat: no-repeat;
@@ -84,7 +82,12 @@
     /* Table Styling */
     .dark-table { background-color: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; overflow: hidden; }
     .balanced-td { padding: 1.25rem 1.5rem !important; }
-    .row-multi-brand { background-color: rgba(153, 27, 27, 0.4) !important; border-left: 8px solid #ef4444 !important; }
+
+    /* Highlight hanya untuk konflik Brand */
+    .row-multi-brand {
+        background-color: rgba(153, 27, 27, 0.4) !important;
+        border-left: 8px solid #ef4444 !important;
+    }
 
     /* Scrollbar */
     .dark-table::-webkit-scrollbar { height: 8px; }
@@ -94,7 +97,6 @@
 <div class="max-w-[1800px] mx-auto space-y-6" x-data="{ loading: false, exporting: false }">
 
     {{-- HEADER & SEARCH AREA --}}
-    {{-- z-index ditingkatkan agar dropdown tidak tertutup tabel --}}
     <div class="sticky top-0 z-[100] pt-4 px-2">
         <div class="header-card">
             <div class="flex flex-col lg:flex-row items-center gap-4">
@@ -113,7 +115,6 @@
                 <div class="flex-grow flex flex-col md:flex-row gap-3 w-full">
                     <form action="{{ route('mb-checker.verify') }}" method="GET" @submit="loading = true" class="flex-grow flex">
                         <div class="custom-group">
-                            {{-- Dropdown tetap di dalam group tapi aman karena parent tidak overflow --}}
                             <select name="search_type" required class="select-box">
                                 <option value="" disabled {{ !isset($searchType) ? 'selected' : '' }}>SELECT TYPE</option>
                                 <option value="package_no" {{ ($searchType ?? '') == 'package_no' ? 'selected' : '' }}>PACKAGE NO</option>
@@ -149,7 +150,6 @@
                         </button>
                     </form>
                 </div>
-
             </div>
         </div>
     </div>
@@ -169,13 +169,22 @@
                     </tr>
                 </thead>
                 <tbody class="text-sm font-bold text-slate-200">
-                    @forelse($results as $barcode => $brands)
-                        @foreach($brands as $item)
-                        <tr class="border-b border-slate-700 transition-colors {{ $brands->count() > 1 ? 'row-multi-brand' : 'hover:bg-white/5' }}">
+                    @forelse($results as $barcode => $orders)
+                        @php
+                            // LOGIKA UTAMA: Hitung jumlah BRAND unik, bukan jumlah baris order
+                            $uniqueBrandCount = $orders->unique('brand_name')->count();
+                        @endphp
+
+                        @foreach($orders as $item)
+                        <tr class="border-b border-slate-700 transition-colors {{ $uniqueBrandCount > 1 ? 'row-multi-brand' : 'hover:bg-white/5' }}">
                             <td class="balanced-td">
                                 <span class="text-indigo-400 font-mono text-lg block leading-none">{{ $barcode }}</span>
-                                @if($brands->count() > 1)
-                                    <span class="text-[9px] bg-red-600 text-white px-2 py-0.5 rounded mt-2 inline-block animate-pulse">MULTI BRAND</span>
+
+                                {{-- Flagging hanya jika benar-benar ada lebih dari 1 brand --}}
+                                @if($uniqueBrandCount > 1)
+                                    <span class="text-[9px] bg-red-600 text-white px-2 py-0.5 rounded mt-2 inline-block animate-pulse">
+                                        MULTI BRAND ({{ $uniqueBrandCount }})
+                                    </span>
                                 @endif
                             </td>
                             <td class="balanced-td font-mono text-[10px] space-y-1">
