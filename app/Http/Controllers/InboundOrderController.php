@@ -144,7 +144,7 @@ class InboundOrderController extends Controller
 
         // UBAH: Hitung jumlah baris Unique SKU, bukan sum total quantity
         $uniqueSkuCount = $original->details->count();
-        $limit = 100;
+        $limit = 200;
 
         // Pengecekan apakah perlu split
         if ($uniqueSkuCount <= $limit) {

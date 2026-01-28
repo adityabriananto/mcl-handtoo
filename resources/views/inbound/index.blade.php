@@ -175,7 +175,7 @@
                                     </span>
 
                                     {{-- Peringatan jika SKU > 100 --}}
-                                    @if($skuCount > 100 && !$hasChildren)
+                                    @if($skuCount > 200 && !$hasChildren)
                                         <span class="text-[8px] font-black text-red-500 uppercase mt-1 animate-pulse tracking-tighter">
                                             ⚠️ Split Required
                                         </span>
