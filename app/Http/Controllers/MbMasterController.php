@@ -75,11 +75,11 @@ class MbMasterController extends Controller
         $data = $request->all();
 
         // Logic khusus untuk toggle dari tabel (jika is_disabled dikirim via hidden input)
-        if ($request->has('is_disabled')) {
-            $data['is_disabled'] = $request->is_disabled;
+       if ($request->has('is_disabled')) {
+            $data['is_disabled'] = (int)$request->is_disabled;
         }
 
-        $mbMaster->update($data);
+        $mbMaster->update($request->all());
         return back()->with('success', 'Master Data updated.');
     }
 

@@ -196,7 +196,7 @@
                     </td>
                     <td class="px-6 py-4 text-right">
                         <div class="flex justify-end gap-2">
-                            <button @click="currentItem = {{ json_encode($m) }}; is_disabled = {{ $m->is_disabled ? 'true' : 'false' }}; openEdit = true"
+                            <button @click="currentItem = {{ $m->toJson() }}; is_disabled = {{ $m->is_disabled ? 'true' : 'false' }}; openEdit = true"
                                 class="p-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-xl hover:bg-amber-600 hover:text-white transition shadow-sm">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                             </button>
@@ -249,8 +249,9 @@
             <div class="fixed inset-0 bg-gray-950/80 backdrop-blur-md" @click="openEdit = false"></div>
             <div class="relative bg-gray-900 rounded-[2.5rem] w-full max-w-md p-8 border border-gray-800 shadow-2xl text-left">
                 <h3 class="text-xl font-black uppercase italic text-white tracking-tighter mb-6">Edit <span class="text-amber-500">Master</span></h3>
-                <form :action="`{{ url('mb-master') }}/${currentItem.id}`" method="POST" class="space-y-4">
-                    @csrf @method('PATCH')
+                <form :action="'{{ route('mb-master.index') }}/' + currentItem.id" method="POST" class="space-y-4">
+                    @csrf
+                    @method('PATCH')
                     <div class="grid grid-cols-2 gap-3">
                         <input type="text" name="brand_code" x-model="currentItem.brand_code" class="w-full px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700 text-white text-[11px] font-bold outline-none focus:ring-2 focus:ring-amber-500">
                         <input type="text" name="brand_name" x-model="currentItem.brand_name" class="w-full px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700 text-white text-[11px] font-bold outline-none focus:ring-2 focus:ring-amber-500">

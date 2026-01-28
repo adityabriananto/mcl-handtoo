@@ -89,10 +89,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/import-status', [MbMasterController::class, 'checkImportStatus'])->name('import-status');
 
         // Actions
-        Route::post('/store', [MbMasterController::class, 'store'])->name('store'); // Simpan data baru
+        Route::post('/', [MbMasterController::class, 'store'])->name('store');
         Route::post('/import', [MbMasterController::class, 'importCsv'])->name('import');
-        Route::match(['PUT', 'PATCH'], '/mb-master/update/{mb_master}', [MbMasterController::class, 'update'])->name('update');
-        Route::delete('/destroy/{id}', [MbMasterController::class, 'destroy'])->name('destroy');
+
+        // PERBAIKAN DI SINI: Hilangkan prefix berlebih dan sesuaikan parameter
+        Route::patch('/{mbMaster}', [MbMasterController::class, 'update'])->name('update');
+
+        Route::delete('/{id}', [MbMasterController::class, 'destroy'])->name('destroy');
     });
 
     // --- Inbound Routes ---

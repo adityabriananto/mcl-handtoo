@@ -121,7 +121,7 @@ class InboundOrderApiController extends Controller
         $client = ClientApi::where('app_key', $request['app_key'])->first();
 
         if (empty($client)) {
-            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 200, $request, 'GetInboundOrderDetails');
+            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, 'GetInboundOrderDetails');
         }
 
         // Pastikan memanggil first() di akhir dan muat relasi yang dibutuhkan Resource
@@ -161,7 +161,7 @@ class InboundOrderApiController extends Controller
     private function buildApiResponse($success, $errorCode, $dataOrMessage, $status, $request, $type) {
         $responseContent = [
             'success' => $success,
-            // 'code'    => $status,
+            'code'    => $status,
             'data'    => $success ? $dataOrMessage : null,
             'error'   => !$success ? [
                 'type'    => $errorCode,
