@@ -99,6 +99,17 @@
                                     MB Order Data
                                 </a>
 
+                                {{-- MB Checker Link --}}
+                                <a href="{{ route('mb-checker.index') }}"
+                                    class="group flex items-center px-4 py-2.5 text-sm transition-all
+                                    {{ request()->routeIs('mb-checker.*')
+                                        ? 'bg-blue-50 text-blue-600 font-bold dark:bg-blue-900/20'
+                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                    }}">
+                                    <span class="w-1.5 h-1.5 rounded-full mr-2 {{ request()->routeIs('mb-checker.*') ? 'bg-blue-600' : 'bg-gray-300' }}"></span>
+                                    Brand Checker
+                                </a>
+
                                 {{-- VIEW UPLOAD LOGS LINK --}}
                                 <a href="{{ route('mb-orders.logs') }}"
                                     class="group flex items-center px-4 py-2.5 text-sm transition-all
@@ -111,6 +122,7 @@
                                 </a>
                             </div>
                         </div>
+
                         <div class="relative" x-data="{ open: false }" @click.away="open = false">
                             <button @click="open = !open"
                                     class="flex items-center px-3 py-2 rounded-md text-sm font-medium transition duration-150 focus:outline-none
@@ -241,7 +253,16 @@
                                     <span class="w-1.5 h-1.5 rounded-full mr-2 {{ request()->routeIs('mb-orders.index') ? 'bg-blue-600' : 'bg-gray-300' }}"></span>
                                     MB Order Data
                                 </a>
-
+                                {{-- MB Checker Link --}}
+                                <a href="{{ route('mb-checker.index') }}"
+                                    class="group flex items-center px-4 py-2.5 text-sm transition-all
+                                    {{ request()->routeIs('mb-checker.*')
+                                        ? 'bg-blue-50 text-blue-600 font-bold dark:bg-blue-900/20'
+                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                    }}">
+                                    <span class="w-1.5 h-1.5 rounded-full mr-2 {{ request()->routeIs('mb-checker.*') ? 'bg-blue-600' : 'bg-gray-300' }}"></span>
+                                    Brand Checker
+                                </a>
                                 {{-- VIEW UPLOAD LOGS LINK --}}
                                 <a href="{{ route('mb-orders.logs') }}"
                                     class="group flex items-center px-4 py-2.5 text-sm transition-all
