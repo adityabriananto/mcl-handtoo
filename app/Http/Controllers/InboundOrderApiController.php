@@ -143,7 +143,7 @@ class InboundOrderApiController extends Controller
             // ];
             // $this->logApi($request, $responseContent, $statusCode, 'GetInboundOrderDetails');
             // return response()->json($responseContent, $statusCode);
-            return $this->buildApiResponse(false, 'Data Not Found', 'Inbound Order Number not found.', 200, $request, 'GetInboundOrderDetails');
+            return $this->buildApiResponse(false, 'Data Not Found', 'Inbound Order Number not found.', 400, $request, 'GetInboundOrderDetails');
 
         }
 
@@ -164,8 +164,8 @@ class InboundOrderApiController extends Controller
             'code'    => $status,
             'data'    => $success ? $dataOrMessage : null,
             'error'   => !$success ? [
-                'type'    => $errorCode,
-                'message' => $dataOrMessage
+                'error'    => $errorCode,
+                'error_message' => $dataOrMessage
             ] : null
         ];
 
