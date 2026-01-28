@@ -14,45 +14,36 @@ class ImportMbMasterJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $filePath, $filename;
+    protected $rows;
 
-    public function __construct($filePath, $filename)
+    public function __construct(array $rows)
     {
-        $this->filePath = $filePath;
-        $this->filename = $filename;
+        $this->rows = $rows;
     }
 
     public function handle()
     {
-        $statusRecord = DB::table('import_statuses')->where('filename', $this->filename)->first();
-        if (!$statusRecord) return;
+        // Bungkus dalam transaksi agar lebih cepat dan aman
+        DB::transaction(function () {
+            foreach ($this->rows as $data) {
+                // Pastikan index 3 (fulfillment_sku) tidak kosong
+                if (empty($data[3])) continue;
 
-        $handle = fopen($this->filePath, 'r');
-        fgetcsv($handle); // Skip header
-
-        try {
-            $processed = 0;
-            while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                /**
+                 * Menggunakan updateOrCreate:
+                 * Jika fulfillment_sku sudah ada, maka brand_code dll akan di-update (edit).
+                 * Jika belum ada, maka akan dibuat data baru (create).
+                 */
                 MbMaster::updateOrCreate(
-                    ['fulfillment_sku' => $data[3]],
+                    ['fulfillment_sku' => $data[3]], // Key unik
                     [
-                        'brand_code' => $data[0],
-                        'brand_name' => $data[1],
+                        'brand_code'          => $data[0],
+                        'brand_name'          => $data[1],
                         'manufacture_barcode' => $data[2],
-                        'seller_sku' => $data[4] ?? null,
+                        'seller_sku'          => $data[4] ?? null,
                     ]
                 );
-                $processed++;
-                if ($processed % 10 == 0) {
-                    DB::table('import_statuses')->where('id', $statusRecord->id)
-                        ->update(['processed_rows' => $processed, 'updated_at' => now()]);
-                }
             }
-            DB::table('import_statuses')->where('id', $statusRecord->id)
-                ->update(['processed_rows' => $processed, 'status' => 'completed', 'updated_at' => now()]);
-            if (file_exists($this->filePath)) unlink($this->filePath);
-        } catch (\Exception $e) {
-            DB::table('import_statuses')->where('id', $statusRecord->id)->update(['status' => 'error']);
-        }
+        });
     }
 }

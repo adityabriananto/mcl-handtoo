@@ -20,6 +20,7 @@ class MbOrderStaging extends Model
         'package_no',
         'waybill_no',
         'external_order_no',
+        'order_status',
         'transaction_number',
         'order_code',
         'courier_name',

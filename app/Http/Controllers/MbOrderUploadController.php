@@ -47,33 +47,57 @@ class MbOrderUploadController extends Controller
             'format' => 'required'
         ]);
 
+        // 1. Simpan file sementara
         $path = $request->file('order_file')->store('temp_imports');
         $fullPath = Storage::disk('local')->path($path);
 
-        // Hitung total baris (dikurangi 1 untuk header)
+        // 2. Hitung total baris untuk Batch record
         $totalRows = 0;
         if (($handle = fopen($fullPath, "r")) !== FALSE) {
-            // Cara cepat hitung baris tanpa load semua ke RAM
-            while (!feof($handle)) {
-                if (fgets($handle) !== false) {
-                    $totalRows++;
-                }
-            }
+            while (fgetcsv($handle) !== false) { $totalRows++; }
             fclose($handle);
             $totalRows = max(0, $totalRows - 1); // Kurangi header
         }
 
+        // 3. Buat record Batch
         $batch = ImportBatch::create([
             'file_name' => $request->file('order_file')->getClientOriginalName(),
-            'status' => 'queued',
-            'total_rows' => $totalRows, // Sekarang sudah terisi
+            'status' => 'processing',
+            'total_rows' => $totalRows,
             'processed_rows' => 0,
-            'format_type' => $request->format // Simpan format agar di log terlihat
+            'format_type' => $request->format
         ]);
 
-        ProcessMbOrderImport::dispatch($fullPath, $request->format, $batch->id)->onQueue('mb-order-upload');
+        // 4. CHUNKING LOGIC: Pecah menjadi 1000 baris per Job
+        $header = null;
+        $chunkSize = 1000;
+        $currentChunk = [];
 
-        return back()->with('success', "File #{$batch->id} queued. Total {$totalRows} rows detected.");
+        if (($handle = fopen($fullPath, "r")) !== FALSE) {
+            $header = fgetcsv($handle, 5000, ","); // Ambil Header
+
+            while (($row = fgetcsv($handle, 5000, ",")) !== FALSE) {
+                $currentChunk[] = $row;
+
+                if (count($currentChunk) == $chunkSize) {
+                    ProcessMbOrderImport::dispatch($currentChunk, $header, $request->format, $batch->id)
+                        ->onQueue('mb-order-upload');
+                    $currentChunk = []; // Reset chunk
+                }
+            }
+
+            // Kirim sisa baris jika ada
+            if (!empty($currentChunk)) {
+                ProcessMbOrderImport::dispatch($currentChunk, $header, $request->format, $batch->id)
+                    ->onQueue('mb-order-upload');
+            }
+            fclose($handle);
+        }
+
+        // 5. Hapus file fisik setelah di-chunk ke Queue (Optional, karena data sudah dikirim sebagai Array)
+        if (file_exists($fullPath)) { unlink($fullPath); }
+
+        return back()->with('success', "Proses dimulai. {$totalRows} baris dibagi menjadi beberapa bagian untuk efisiensi.");
     }
 
     public function clean()

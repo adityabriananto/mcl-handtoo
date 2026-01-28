@@ -121,13 +121,13 @@ class InboundOrderApiController extends Controller
         $client = ClientApi::where('app_key', $request['app_key'])->first();
 
         if (empty($client)) {
-            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 200, $request, 'GetInboundOrders');
+            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 200, $request, 'GetInboundOrderDetails');
         }
 
         // Pastikan memanggil first() di akhir dan muat relasi yang dibutuhkan Resource
         $query = InboundRequest::with(['details', 'children', 'parent'])
                     ->where('client_name', $client->client_name)
-                    ->where('reference_number', $request['reference_number']);
+                    ->where('reference_number', $request['inbound_order_no']);
 
         if ($request['brand_os']) {
             $query->where('comment', $request['brand_os']);
@@ -143,7 +143,7 @@ class InboundOrderApiController extends Controller
             // ];
             // $this->logApi($request, $responseContent, $statusCode, 'GetInboundOrderDetails');
             // return response()->json($responseContent, $statusCode);
-            return $this->buildApiResponse(false, 'Data Not Found', 'Reference number not found.', 200, $request, 'GetInboundOrderDetails');
+            return $this->buildApiResponse(false, 'Data Not Found', 'Inbound Order Number not found.', 200, $request, 'GetInboundOrderDetails');
 
         }
 
@@ -161,7 +161,7 @@ class InboundOrderApiController extends Controller
     private function buildApiResponse($success, $errorCode, $dataOrMessage, $status, $request, $type) {
         $responseContent = [
             'success' => $success,
-            'code'    => $status,
+            // 'code'    => $status,
             'data'    => $success ? $dataOrMessage : null,
             'error'   => !$success ? [
                 'type'    => $errorCode,

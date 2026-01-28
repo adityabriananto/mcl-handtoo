@@ -10,6 +10,7 @@ use App\Http\Controllers\HandoverController;
 use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\TplPrefixController;
 use App\Http\Controllers\MbMasterController;
+use App\Http\Controllers\MbCheckerController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -25,6 +26,12 @@ Route::prefix('history')->name('history.')->group(function () {
     Route::get('/export', [HistoryController::class, 'exportCsv'])->name('export-csv');
     Route::get('/{handoverId}/download', [HistoryController::class, 'downloadManifest'])->name('download-manifest');
     Route::post('/{handoverId}/upload', [HistoryController::class, 'uploadManifest'])->name('upload-manifest');
+});
+
+Route::prefix('mb-checker')->name('mb-checker.')->group(function () {
+    Route::get('/', [MbCheckerController::class, 'index'])->name('index');
+    Route::get('/verify', [MbCheckerController::class, 'verify'])->name('verify');
+    Route::get('/export', [MbCheckerController::class, 'exportBrandCheck'])->name('export');
 });
 
 // --- Handover Station Operations ---

@@ -55,12 +55,13 @@ class MbMasterController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'brand_code'          => 'required|unique:mb_masters',
-            'brand_name'          => 'required',
-            'manufacture_barcode' => 'required',
-            'fulfillment_sku'     => 'required|unique:mb_masters',
-        ]);
+        // dd($request->all())
+        // $request->validate([
+        //     'brand_code'          => 'required|unique:mb_masters',
+        //     'brand_name'          => 'required',
+        //     'manufacture_barcode' => 'required',
+        //     'fulfillment_sku'     => 'required|unique:mb_masters',
+        // ]);
 
         $data = $request->all();
         $data['is_disabled'] = $request->has('is_disabled') ? 0 : 1;
@@ -90,38 +91,32 @@ class MbMasterController extends Controller
 
     public function importCsv(Request $request)
     {
-        $request->validate(['csv_file' => 'required|mimes:csv,txt|max:5120']);
-
-        // HITUNG TOTAL BARIS (Header tidak dihitung)
+        $request->validate(['csv_file' => 'required|mimes:csv,txt|max:10240']);
 
         $file = $request->file('csv_file');
-        $fileName = time() . '_' . $file->getClientOriginalName();
+        $fullPath = $file->getRealPath(); // Ambil path sementara
 
-        // Simpan secara eksplisit ke disk 'local' (storage/app)
-        $path = $file->storeAs('uploads', $fileName, 'local');
+        $chunkSize = 1000;
+        $currentChunk = [];
 
-        // Ambil path absolut menggunakan facade Storage
-        $fullPath = Storage::disk('local')->path($path);
-        $totalRows = count(file($fullPath)) - 1;
+        if (($handle = fopen($fullPath, "r")) !== FALSE) {
+            fgetcsv($handle); // Skip header
 
-        // SIMPAN KE DATABASE DULU
-        \DB::table('import_statuses')->insert([
-            'filename' => $fileName,
-            'total_rows' => $totalRows,
-            'processed_rows' => 0,
-            'status' => 'processing',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+            while (($row = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                $currentChunk[] = $row;
 
-        // Kirim ke Queue
-        ImportMbMasterJob::dispatch($fullPath, $fileName)->onQueue('mb-master-import');
+                if (count($currentChunk) >= $chunkSize) {
+                    ImportMbMasterJob::dispatch($currentChunk)->onQueue('mb-master-import');
+                    $currentChunk = [];
+                }
+            }
 
-        return back()->with('success', 'Import started!')->with('importing', true);
-    }
+            if (!empty($currentChunk)) {
+                ImportMbMasterJob::dispatch($currentChunk)->onQueue('mb-master-import');
+            }
+            fclose($handle);
+        }
 
-    public function checkImportStatus() {
-        $status = \DB::table('import_statuses')->latest()->first();
-        return response()->json($status);
+        return back()->with('success', 'Import sedang diproses di background.');
     }
 }
