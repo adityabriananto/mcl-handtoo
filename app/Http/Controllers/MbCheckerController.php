@@ -16,122 +16,143 @@ class MbCheckerController extends Controller
 
     public function verify(Request $request)
     {
-        $request->validate(['search_query' => 'required|string']);
+        $request->validate([
+            'search_query' => 'required|string',
+            'search_type' => 'required|string|in:all,package_no,waybill_no,transaction_number,external_order_no,manufacture_barcode'
+        ]);
 
-        // 1. Bersihkan input user
+        $type = $request->search_type;
         $rawQueries = explode(',', $request->search_query);
         $cleanQueries = collect($rawQueries)->map(function ($item) {
             return str_replace(['`', ' '], '', trim($item));
         })->filter()->values()->toArray();
 
-        // 2. Ambil data lengkap dari Staging terlebih dahulu
-        $stagingData = MbOrderStaging::whereIn('package_no', $cleanQueries)
-                    ->orWhereIn('waybill_no', $cleanQueries)
-                    ->orWhereIn('transaction_number', $cleanQueries)
-                    ->orWhereIn('external_order_no', $cleanQueries)
-                    ->orWhere(function($q) use ($cleanQueries) {
-                        foreach($cleanQueries as $query) {
-                            $q->orWhereRaw("REPLACE(manufacture_barcode, '`', '') = ?", [$query]);
-                        }
-                    })
-                    ->get(['manufacture_barcode', 'transaction_number', 'external_order_no', 'waybill_no']);
-
-        // Ambil semua barcode unik dari staging dan bersihkan backtick-nya
-        $barcodesFromStaging = $stagingData->map(fn($s) => str_replace('`', '', $s->manufacture_barcode))->toArray();
-
-        // 3. Gabungkan dengan query asli (siapa tahu user input barcode langsung)
-        $allTargetBarcodes = array_unique(array_merge($barcodesFromStaging, $cleanQueries));
-
-        // 4. Cari di Master Data
-        $masterData = MbMaster::whereIn('manufacture_barcode', $allTargetBarcodes)
-                    ->where('is_disabled', 0)
-                    ->get();
-
-        // 5. Mapping data Staging ke Master agar detailnya muncul di table
-        $finalResults = $masterData->map(function($master) use ($stagingData) {
-            $cleanMasterBC = str_replace('`', '', $master->manufacture_barcode);
-
-            // Cari info staging yang cocok dengan barcode ini
-            $match = $stagingData->first(function($s) use ($cleanMasterBC) {
-                return str_replace('`', '', $s->manufacture_barcode) === $cleanMasterBC;
+        // 1. Ambil data dari Staging
+        $stagingQuery = MbOrderStaging::query();
+        if ($type === 'manufacture_barcode') {
+            $stagingQuery->where(function($q) use ($cleanQueries) {
+                foreach($cleanQueries as $query) {
+                    $q->orWhereRaw("REPLACE(manufacture_barcode, '`', '') = ?", [$query]);
+                }
             });
+        } else {
+            $stagingQuery->whereIn($type, $cleanQueries);
+        }
 
-            // Tempelkan info staging ke objek master
-            $master->transaction_number = $match->transaction_number ?? '-';
-            $master->external_order_no = $match->external_order_no ?? '-';
-            $master->waybill_no = $match->waybill_no ?? '-';
+        $stagingData = $stagingQuery->get(['manufacture_barcode', 'transaction_number', 'external_order_no', 'waybill_no']);
 
-            return $master;
-        })->groupBy(function($item) {
-            return str_replace('`', '', $item->manufacture_barcode);
-        });
+        // 2. Ambil barcode unik
+        $barcodesFromStaging = $stagingData->map(fn($s) => str_replace('`', '', $s->manufacture_barcode))->toArray();
+        $allTargetBarcodes = array_unique($barcodesFromStaging);
+
+        // 3. Cari SEMUA Brand di Master yang memiliki barcode tersebut (Gunakan groupBy, bukan keyBy)
+        $masterDataGrouped = MbMaster::whereIn('manufacture_barcode', $allTargetBarcodes)
+                    ->where('is_disabled', 0)
+                    ->get()
+                    ->groupBy(fn($m) => str_replace('`', '', $m->manufacture_barcode));
+
+        // 4. MAPPING: Hubungkan Staging dengan SEMUA Brand terkait
+        $finalResults = collect();
+
+        foreach ($stagingData as $order) {
+            $cleanStagingBC = str_replace('`', '', $order->manufacture_barcode);
+            $relatedBrands = $masterDataGrouped->get($cleanStagingBC);
+
+            if ($relatedBrands && $relatedBrands->count() > 0) {
+                foreach ($relatedBrands as $brand) {
+                    // Buat clone order agar setiap brand memiliki barisnya sendiri namun dengan info order yang sama
+                    $newRow = clone $order;
+                    $newRow->brand_name = $brand->brand_name;
+                    $newRow->brand_code = $brand->brand_code;
+                    $newRow->seller_sku = $brand->seller_sku;
+                    $newRow->fulfillment_sku = $brand->fulfillment_sku;
+                    $newRow->is_disabled = $brand->is_disabled;
+                    $newRow->is_multi_brand = $relatedBrands->count() > 1; // Flag untuk UI
+
+                    $finalResults->push($newRow);
+                }
+            } else {
+                // Jika barcode tidak ada di Master
+                $order->brand_name = 'NOT FOUND';
+                $order->brand_code = '-';
+                $order->seller_sku = 'N/A';
+                $order->fulfillment_sku = 'N/A';
+                $order->is_disabled = 1;
+                $order->is_multi_brand = false;
+                $finalResults->push($order);
+            }
+        }
+
+        // Grouping berdasarkan Barcode untuk tampilan tabel
+        $groupedResults = $finalResults->groupBy(fn($item) => str_replace('`', '', $item->manufacture_barcode));
 
         return view('mb_master.checker', [
-            'results' => $finalResults,
-            'searchQuery' => $request->search_query
+            'results' => $groupedResults,
+            'searchQuery' => $request->search_query,
+            'searchType' => $type
         ]);
     }
 
     public function exportBrandCheck()
-{
-    // 1. Ambil semua data staging
-    $groupedPackages = MbOrderStaging::whereNotNull('manufacture_barcode')
-        ->get()
-        ->groupBy('package_no');
+    {
+        // 1. Ambil semua data staging
+        $groupedPackages = MbOrderStaging::whereNotNull('manufacture_barcode')
+            ->get()
+            ->groupBy('package_no');
 
-    $inventoryData = [];
-    $outboundData = [];
+        $inventoryData = [];
+        $outboundData = [];
 
-    // 2. Ambil semua barcode unik & bersihkan tanda petik/backtick
-    $uniqueBarcodes = MbOrderStaging::whereNotNull('manufacture_barcode')
-        ->pluck('manufacture_barcode')
-        ->unique()
-        ->map(fn($bc) => str_replace(["`", "`"], "", $bc))
-        ->toArray();
+        // 2. Ambil semua barcode unik & bersihkan tanda petik/backtick
+        $uniqueBarcodes = MbOrderStaging::whereNotNull('manufacture_barcode')
+            ->pluck('manufacture_barcode')
+            ->unique()
+            ->map(fn($bc) => str_replace(["`", "`"], "", $bc))
+            ->toArray();
 
-    // 3. Ambil Detail Master (Map Barcode ke Koleksi Brand)
-    $masterData = MbMaster::whereIn('manufacture_barcode', $uniqueBarcodes)
-        ->get()
-        ->groupBy('manufacture_barcode');
+        // 3. Ambil Detail Master (Map Barcode ke Koleksi Brand)
+        $masterData = MbMaster::whereIn('manufacture_barcode', $uniqueBarcodes)
+            ->get()
+            ->groupBy('manufacture_barcode');
 
-    foreach ($groupedPackages as $packageNo => $items) {
+        foreach ($groupedPackages as $packageNo => $items) {
 
-        // CEK: Apakah paket ini mengandung minimal satu barcode multibrand?
-        $packageHasMultiBrand = false;
-        foreach ($items as $item) {
-            $cleanBc = str_replace(["'", "`"], "", $item->manufacture_barcode);
-            if (isset($masterData[$cleanBc]) && $masterData[$cleanBc]->count() > 1) {
-                $packageHasMultiBrand = true;
-                break;
+            // CEK: Apakah paket ini mengandung minimal satu barcode multibrand?
+            $packageHasMultiBrand = false;
+            foreach ($items as $item) {
+                $cleanBc = str_replace(["'", "`"], "", $item->manufacture_barcode);
+                if (isset($masterData[$cleanBc]) && $masterData[$cleanBc]->count() > 1) {
+                    $packageHasMultiBrand = true;
+                    break;
+                }
+            }
+
+            // Tentukan tim tujuan berdasarkan kondisi paket
+            $targetTeam = $packageHasMultiBrand ? 'inventory_team' : 'outbound_team';
+
+            foreach ($items as $item) {
+                $cleanBc = str_replace(["'", "`"], "", $item->manufacture_barcode);
+                $brands = $masterData[$cleanBc] ?? collect();
+
+                // Jika barcode tidak ada di master, buat satu baris kosong
+                if ($brands->isEmpty()) {
+                    $row = $this->formatExportRow($item, null, $targetTeam, false);
+                    $this->pushToTeam($row, $targetTeam, $inventoryData, $outboundData);
+                    continue;
+                }
+
+                // LOGIKA DUPLIKASI: Jika barcode punya 2 brand, loop ini akan jalan 2x
+                $isBarcodeMulti = $brands->count() > 1;
+
+                foreach ($brands as $brand) {
+                    $row = $this->formatExportRow($item, $brand, $targetTeam, $isBarcodeMulti);
+                    $this->pushToTeam($row, $targetTeam, $inventoryData, $outboundData);
+                }
             }
         }
 
-        // Tentukan tim tujuan berdasarkan kondisi paket
-        $targetTeam = $packageHasMultiBrand ? 'inventory_team' : 'outbound_team';
-
-        foreach ($items as $item) {
-            $cleanBc = str_replace(["'", "`"], "", $item->manufacture_barcode);
-            $brands = $masterData[$cleanBc] ?? collect();
-
-            // Jika barcode tidak ada di master, buat satu baris kosong
-            if ($brands->isEmpty()) {
-                $row = $this->formatExportRow($item, null, $targetTeam, false);
-                $this->pushToTeam($row, $targetTeam, $inventoryData, $outboundData);
-                continue;
-            }
-
-            // LOGIKA DUPLIKASI: Jika barcode punya 2 brand, loop ini akan jalan 2x
-            $isBarcodeMulti = $brands->count() > 1;
-
-            foreach ($brands as $brand) {
-                $row = $this->formatExportRow($item, $brand, $targetTeam, $isBarcodeMulti);
-                $this->pushToTeam($row, $targetTeam, $inventoryData, $outboundData);
-            }
-        }
+        return $this->processZipAndDownload($inventoryData, $outboundData);
     }
-
-    return $this->processZipAndDownload($inventoryData, $outboundData);
-}
 
     /**
      * Helper method untuk memproses ZIP dan Download

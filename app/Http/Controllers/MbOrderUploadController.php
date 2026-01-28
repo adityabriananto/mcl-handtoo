@@ -29,7 +29,9 @@ class MbOrderUploadController extends Controller
             $query->where('external_order_no', 'like', '%' . $request->external_order_no . '%');
         }
         if ($request->filled('manufacture_barcode')) {
-            $query->where('manufacture_barcode', 'like', '%' . $request->external_order_no . '%');
+            // $query->where('manufacture_barcode', 'like', '%' . $request->manufacture_barcode . '%');
+            $search = str_replace('`', '', $request->manufacture_barcode);
+            $query->where(DB::raw("REPLACE(manufacture_barcode, '`', '')"), 'like', '%' . $search . '%');
         }
 
         $orders = $query->orderBy('created_at', 'desc')->paginate(25);
