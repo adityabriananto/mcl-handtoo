@@ -1,0 +1,36 @@
+  INFO ---------------------------------------------------------------------------
+  INFO START 2026-01-30 10:22:43 +0700 cap staging deploy
+  INFO ---------------------------------------------------------------------------
+  INFO [f4fb2966] Running /usr/bin/env mkdir -p /tmp as root@45.76.180.252
+ DEBUG [f4fb2966] Command: /usr/bin/env mkdir -p /tmp
+  INFO [f4fb2966] Finished in 3.743 seconds with exit status 0 (successful).
+ DEBUG Uploading /tmp/git-ssh-f9b13018c736a240612d.sh 0.0%
+  INFO Uploading /tmp/git-ssh-f9b13018c736a240612d.sh 100.0%
+  INFO [e4f1fcd3] Running /usr/bin/env chmod 700 /tmp/git-ssh-f9b13018c736a240612d.sh as root@45.76.180.252
+ DEBUG [e4f1fcd3] Command: /usr/bin/env chmod 700 /tmp/git-ssh-f9b13018c736a240612d.sh
+  INFO [e4f1fcd3] Finished in 0.109 seconds with exit status 0 (successful).
+  INFO [6cfe113c] Running /usr/bin/env git ls-remote git@gitlab.alibaba-inc.com:aditya.briananto/mcl-handtoo.git HEAD as root@45.76.180.252
+ DEBUG [6cfe113c] Command: ( export GIT_ASKPASS="/bin/echo" GIT_SSH="/tmp/git-ssh-f9b13018c736a240612d.sh" ; /usr/bin/env git ls-remote git@gitlab.alibaba-inc.com:aditya.briananto/mcl-handtoo.git HEAD )
+ DEBUG [6cfe113c] 	ssh: connect to host gitlab.alibaba-inc.com port 22: Connection timed out
+ DEBUG [6cfe113c] 	fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+  INFO ---------------------------------------------------------------------------
+  INFO START 2026-01-30 10:26:12 +0700 cap staging deploy BRANCH=features/add-crunching-logic
+  INFO ---------------------------------------------------------------------------
+  INFO [5ccce633] Running /usr/bin/env mkdir -p /tmp as root@45.76.180.252
+ DEBUG [5ccce633] Command: /usr/bin/env mkdir -p /tmp
+  INFO [5ccce633] Finished in 4.074 seconds with exit status 0 (successful).
+ DEBUG Uploading /tmp/git-ssh-b9f390a9b0c21e024522.sh 0.0%
+  INFO Uploading /tmp/git-ssh-b9f390a9b0c21e024522.sh 100.0%
+  INFO [66e6183d] Running /usr/bin/env chmod 700 /tmp/git-ssh-b9f390a9b0c21e024522.sh as root@45.76.180.252
+ DEBUG [66e6183d] Command: /usr/bin/env chmod 700 /tmp/git-ssh-b9f390a9b0c21e024522.sh
+  INFO [66e6183d] Finished in 0.099 seconds with exit status 0 (successful).
+  INFO [fbb4cd53] Running /usr/bin/env git ls-remote git@gitlab.alibaba-inc.com:aditya.briananto/mcl-handtoo.git HEAD as root@45.76.180.252
+ DEBUG [fbb4cd53] Command: ( export GIT_ASKPASS="/bin/echo" GIT_SSH="/tmp/git-ssh-b9f390a9b0c21e024522.sh" ; /usr/bin/env git ls-remote git@gitlab.alibaba-inc.com:aditya.briananto/mcl-handtoo.git HEAD )
+ DEBUG [fbb4cd53] 	ssh: connect to host gitlab.alibaba-inc.com port 22: Connection timed out
+ DEBUG [fbb4cd53] 	fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
