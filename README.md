@@ -1,58 +1,58 @@
 # 🛠️ Hand Tools Documentation: Handtoo Project Management Tool
 
-Dokumen ini berfungsi sebagai panduan operasional aplikasi **Handtoo** bagi tim atau individu yang akan mengelola, mengembangkan, atau melakukan deployment pada server.
+This document serves as the operational guide for the **Handtoo** application for the team or individuals who will manage, develop, or deploy the project on servers.
 
 ## 1. 📋 Tools Overview
 
 * **Official Name:** MCL-Handtoo
 * **Tools Version:** 1.0.0
-* **Main Objective:** Handtoo adalah aplikasi Manajemen Proyek internal yang dirancang untuk **memfasilitasi pelacakan tugas terpusat, manajemen tim, dan dokumentasi aset proyek**.
+* **Main Objective:** Handtoo is an internal Project Management application designed to **facilitate centralized task tracking, team management, and project asset documentation**.
 * **Developed By:** TPM - Aditya Briananto
 
 ---
 
 ## 2. 💻 Technical Details
 
-Aplikasi ini dibangun dengan *stack* teknologi Laravel modern untuk memastikan performa dan skalabilitas:
+The application is built using a modern Laravel stack to ensure high performance and scalability:
 
-| Kategori | Detail |
+| Category | Detail |
 | :--- | :--- |
 | **Main Framework** | **Laravel 11** (PHP 8.2+) |
 | **Front-end Stack** | Blade & Livewire |
 | **Asset Bundler** | **Vite** |
-| **Database** | MySQL (Min. versi 8.0) |
+| **Database** | MySQL (Min. version 8.0) |
 | **Deployment Tool** | **Capistrano 3** (Ruby based) |
 
 ---
 
 ## 3. 🚀 Deployment Guide (Capistrano)
 
-Proyek ini menggunakan **Capistrano** untuk memastikan *Zero Downtime Deployment* melalui mekanisme *Atomic Symlink*.
+This project utilizes **Capistrano** to ensure *Zero Downtime Deployment* through an *Atomic Symlink* mechanism.
 
-### Prasyarat Lokal (Developer Machine)
-* **Ruby:** Versi 3.2.2 (Disarankan menggunakan `rbenv`).
-* **Bundler:** Versi terbaru (`gem install bundler`).
-* **SSH Access:** Public key Anda harus terdaftar di server target.
+### Local Prerequisites (Developer Machine)
+* **Ruby:** Version 3.2.2 (Recommended to manage via `rbenv`).
+* **Bundler:** Latest version (`gem install bundler`).
+* **SSH Access:** Your public key must be registered on the target server.
 
-### Struktur Folder Server
+### Server Directory Structure
 
 
-Struktur di server (`/var/www/handtoo`) dikelola secara otomatis:
-* `releases/`: Menyimpan beberapa versi rilis terakhir.
-* `shared/`: Menyimpan file permanen yang tidak berubah antar rilis (seperti `.env`, `storage`, dan folder upload).
-* `current/`: Pintasan (*symlink*) yang selalu mengarah ke versi rilis aktif. **Nginx harus diarahkan ke folder ini.**
+The structure on the server (`/var/www/handtoo`) is managed automatically:
+* `releases/`: Stores a history of several previous deployment versions.
+* `shared/`: Stores permanent files that persist across releases (such as `.env`, `storage`, and upload folders).
+* `current/`: A shortcut (*symlink*) that always points to the active release version. **Nginx must be pointed to this folder.**
 
-### Perintah Deployment
+### Deployment Commands
 
-1.  **Deploy ke Staging (Branch Default):**
+1.  **Deploy to Staging (Default Branch):**
     ```bash
     bundle exec cap staging deploy
     ```
-2.  **Deploy Branch Spesifik (Misal: Untuk Code Review):**
+2.  **Deploy Specific Branch (e.g., for Code Review):**
     ```bash
     bundle exec cap staging deploy BRANCH=features/add-crunching-logic
     ```
-3.  **Rollback (Jika Terjadi Error di Produksi):**
+3.  **Rollback (In case of Production Errors):**
     ```bash
     bundle exec cap staging deploy:rollback
     ```
@@ -61,7 +61,7 @@ Struktur di server (`/var/www/handtoo`) dikelola secara otomatis:
 
 ## 4. ⚙️ Installation & Local Setup Guide
 
-Ikuti langkah-langkah berikut untuk menjalankan Handtoo di lingkungan lokal:
+Follow these steps to run Handtoo in your local environment:
 
 1.  **Clone Repository:**
     ```bash
@@ -77,9 +77,9 @@ Ikuti langkah-langkah berikut untuk menjalankan Handtoo di lingkungan lokal:
     npm install && npm run dev
     ```
 4.  **Environment Configuration:**
-    * Salin file konfigurasi: `cp .env.example .env`
-    * Generate Key: `php artisan key:generate`
-    * Sesuaikan konfigurasi database (`DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`) di file `.env`.
+    * Copy the configuration file: `cp .env.example .env`
+    * Generate Application Key: `php artisan key:generate`
+    * Adjust database configuration (`DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`) in the `.env` file.
 
 5.  **Database Setup:**
     ```bash
@@ -88,9 +88,9 @@ Ikuti langkah-langkah berikut untuk menjalankan Handtoo di lingkungan lokal:
 
 ---
 
-## 5. ▶️ Cara Menjalankan Aplikasi (Lokal)
+## 5. ▶️ Running the Application (Local)
 
-Anda membutuhkan dua terminal yang berjalan secara bersamaan:
+You will need two terminals running simultaneously:
 
 1.  **Terminal 1 (PHP Server):**
     ```bash
@@ -103,11 +103,11 @@ Anda membutuhkan dua terminal yang berjalan secara bersamaan:
 
 ---
 
-## 6. ⚠️ Catatan Penting untuk Maintainer
+## 6. ⚠️ Critical Notes for Maintainers
 
-* **Dilarang mengubah file langsung di server** (folder `current/`). Semua perubahan harus melalui Git dan dideploy ulang via Capistrano agar tidak tertimpa rilis baru.
-* **Konfigurasi .env Server:** Jika ada perubahan environment di server, ubah file `.env` yang berada di folder `shared/`, bukan di folder rilis.
-* **Clean Releases:** Capistrano secara otomatis menyimpan 5 rilis terakhir untuk menghemat ruang disk.
+* **Direct Editing Prohibited:** Do not modify files directly on the server (inside the `current/` folder). All changes must go through Git and be redeployed via Capistrano to prevent data loss during the next release.
+* **Server .env Configuration:** If environment changes are required on the server, modify the `.env` file located in the `shared/` folder, not within the release folders.
+* **Clean Releases:** Capistrano automatically retains the last 5 releases to optimize disk space.
 
 ---
 
