@@ -2,8 +2,8 @@
 lock "~> 3.20.0"
 
 set :application, "handtoo"
-set :repo_url, "git@gitlab.alibaba-inc.com:aditya.briananto/mcl-handtoo.git"
-# set :linked_files, %w{.env}
+set :repo_url, "git@github.com:adityabriananto/mcl-handtoo.git"
+set :linked_files, %w{.env}
 set :linked_dirs, %w{public/nfsi public/temp-storage public/exports storage/logs storage/app/private/temp storage/app/private/temp_imports storage/app/private/uploads}
 set :keep_releases, 2
 
@@ -24,6 +24,7 @@ namespace :deploy do
                 execute "chmod a+w #{release_path.join('storage')} -R"
                 execute "cd '#{release_path}'; composer install"
                 execute "php #{release_path.join('artisan')} migrate"
+                execute "php #{release_path.join('artisan')} storage:link"
                 # execute "php #{release_path.join('artisan')} migrate --force"
         end
     end

@@ -9,11 +9,14 @@ GEM
       i18n
       rake (>= 10.0.0)
       sshkit (>= 1.9.0)
-    capistrano-bundler (2.2.0)
-      capistrano (~> 3.1)
-    capistrano-rails (1.7.0)
-      capistrano (~> 3.1)
-      capistrano-bundler (>= 1.1, < 3)
+    capistrano-composer (0.0.6)
+      capistrano (>= 3.0.0.pre)
+    capistrano-file-permissions (1.0.0)
+      capistrano (~> 3.0)
+    capistrano-laravel (1.2.3)
+      capistrano (>= 3.0.0)
+      capistrano-composer (>= 0.0.6)
+      capistrano-file-permissions (>= 1.0.0)
     concurrent-ruby (1.3.6)
     i18n (1.14.8)
       concurrent-ruby (~> 1.0)
@@ -34,11 +37,30 @@ GEM
       ostruct
 
 PLATFORMS
+  arm64-darwin-25
   ruby
 
 DEPENDENCIES
-  capistrano (~> 3.10)
-  capistrano-rails (~> 1.3)
+  capistrano (~> 3.17)
+  capistrano-composer
+  capistrano-laravel
+
+CHECKSUMS
+  airbrussh (1.6.0) sha256=7e2cf581f2319d2c2b2b672c9fc486efb4dfcfed4bd2dadbef5f10b8b2a000d0
+  base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
+  capistrano (3.20.0) sha256=0113e58dda99add0342e56a244f664734c59f442c5ed734f5303b0b559b479c9
+  capistrano-composer (0.0.6) sha256=dc32796263212a1e9ea4e573422a2fa893649805fb8fd2055901e26515fb3397
+  capistrano-file-permissions (1.0.0) sha256=1e0e4332fd115f8cd3ec05c69816f5d5386b5adb1a1fb7912eedb4760c48c6e4
+  capistrano-laravel (1.2.3) sha256=c902ee40ebe6413f5dea63820f7d92eb9be0bd12b314940860f162d923261b6f
+  concurrent-ruby (1.3.6) sha256=6b56837e1e7e5292f9864f34b69c5a2cbc75c0cf5338f1ce9903d10fa762d5ab
+  i18n (1.14.8) sha256=285778639134865c5e0f6269e0b818256017e8cde89993fdfcbfb64d088824a5
+  logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
+  net-scp (4.1.0) sha256=a99b0b92a1e5d360b0de4ffbf2dc0c91531502d3d4f56c28b0139a7c093d1a5d
+  net-sftp (4.0.0) sha256=65bb91c859c2f93b09826757af11b69af931a3a9155050f50d1b06d384526364
+  net-ssh (7.3.0) sha256=172076c4b30ce56fb25a03961b0c4da14e1246426401b0f89cba1a3b54bf3ef0
+  ostruct (0.6.3) sha256=95a2ed4a4bd1d190784e666b47b2d3f078e4a9efda2fccf18f84ddc6538ed912
+  rake (13.3.1) sha256=8c9e89d09f66a26a01264e7e3480ec0607f0c497a861ef16063604b1b08eb19c
+  sshkit (1.25.0) sha256=c8c6543cdb60f91f1d277306d585dd11b6a064cb44eab0972827e4311ff96744
 
 BUNDLED WITH
-   1.17.2
+  4.0.5
