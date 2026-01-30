@@ -1,38 +1,67 @@
 # 🛠️ Hand Tools Documentation: Handtoo Project Management Tool
 
-This document serves as the MCL Hand Tools guide for the **Handtoo** tool to the team/individual who will subsequently manage or operate it.
+Dokumen ini berfungsi sebagai panduan operasional aplikasi **Handtoo** bagi tim atau individu yang akan mengelola, mengembangkan, atau melakukan deployment pada server.
 
 ## 1. 📋 Tools Overview
 
 * **Official Name:** MCL-Handtoo
 * **Tools Version:** 1.0.0
-* **Main Objective:** Handtoo is an internal Project Management application designed to **facilitate centralized task tracking, team management, and project asset documentation**.
+* **Main Objective:** Handtoo adalah aplikasi Manajemen Proyek internal yang dirancang untuk **memfasilitasi pelacakan tugas terpusat, manajemen tim, dan dokumentasi aset proyek**.
 * **Developed By:** TPM - Aditya Briananto
+
+---
 
 ## 2. 💻 Technical Details
 
-This tool was developed using the modern Laravel technology stack:
+Aplikasi ini dibangun dengan *stack* teknologi Laravel modern untuk memastikan performa dan skalabilitas:
 
-| Category | Detail |
+| Kategori | Detail |
 | :--- | :--- |
-| **Main Framework** | **Laravel 11** (PHP) |
+| **Main Framework** | **Laravel 11** (PHP 8.2+) |
 | **Front-end Stack** | Blade & Livewire |
 | **Asset Bundler** | **Vite** |
-| **Database** | MySQL (version 8.0+ recommended) |
+| **Database** | MySQL (Min. versi 8.0) |
+| **Deployment Tool** | **Capistrano 3** (Ruby based) |
 
-### Dependencies and System Prerequisites
+---
 
-To run this tool, your environment must have the following prerequisites installed:
+## 3. 🚀 Deployment Guide (Capistrano)
 
-1.  **PHP** version 8.2 or higher.
-2.  **Composer** (PHP dependency manager).
-3.  **Node.js** and **npm/yarn** (For Vite and front-end dependencies).
-4.  **MySQL** or another database configured in the `.env` file.
-5.  Web Server (Apache/Nginx/run via `php artisan serve`).
+Proyek ini menggunakan **Capistrano** untuk memastikan *Zero Downtime Deployment* melalui mekanisme *Atomic Symlink*.
 
-## 3. ⚙️ Installation & Local Setup Guide
+### Prasyarat Lokal (Developer Machine)
+* **Ruby:** Versi 3.2.2 (Disarankan menggunakan `rbenv`).
+* **Bundler:** Versi terbaru (`gem install bundler`).
+* **SSH Access:** Public key Anda harus terdaftar di server target.
 
-Follow these steps to install and set up Handtoo in your local environment:
+### Struktur Folder Server
+
+
+Struktur di server (`/var/www/handtoo`) dikelola secara otomatis:
+* `releases/`: Menyimpan beberapa versi rilis terakhir.
+* `shared/`: Menyimpan file permanen yang tidak berubah antar rilis (seperti `.env`, `storage`, dan folder upload).
+* `current/`: Pintasan (*symlink*) yang selalu mengarah ke versi rilis aktif. **Nginx harus diarahkan ke folder ini.**
+
+### Perintah Deployment
+
+1.  **Deploy ke Staging (Branch Default):**
+    ```bash
+    bundle exec cap staging deploy
+    ```
+2.  **Deploy Branch Spesifik (Misal: Untuk Code Review):**
+    ```bash
+    bundle exec cap staging deploy BRANCH=features/add-crunching-logic
+    ```
+3.  **Rollback (Jika Terjadi Error di Produksi):**
+    ```bash
+    bundle exec cap staging deploy:rollback
+    ```
+
+---
+
+## 4. ⚙️ Installation & Local Setup Guide
+
+Ikuti langkah-langkah berikut untuk menjalankan Handtoo di lingkungan lokal:
 
 1.  **Clone Repository:**
     ```bash
@@ -43,28 +72,43 @@ Follow these steps to install and set up Handtoo in your local environment:
     ```bash
     composer install
     ```
-3.  **Install Front-end Dependencies (Node.js):**
+3.  **Install Front-end Dependencies:**
     ```bash
-    npm install
-    # OR
-    yarn install
+    npm install && npm run dev
     ```
 4.  **Environment Configuration:**
-    * Copy the configuration file: `cp .env.example .env`
-    * Generate Application Key: `php artisan key:generate`
-    * **Edit the `.env` file** and adjust the database configuration (`DB_...`) and application URL (`APP_URL`).
+    * Salin file konfigurasi: `cp .env.example .env`
+    * Generate Key: `php artisan key:generate`
+    * Sesuaikan konfigurasi database (`DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`) di file `.env`.
 
 5.  **Database Setup:**
-    * Run migrations to create tables: `php artisan migrate`
-    * (Optional) Seed dummy data if available: `php artisan db:seed`
+    ```bash
+    php artisan migrate
+    ```
 
-## 4. ▶️ How to Run the Application
+---
 
-The Handtoo application requires two processes to run: the PHP Server and Vite.
+## 5. ▶️ Cara Menjalankan Aplikasi (Lokal)
 
-### Step 1: Run Laravel Server
+Anda membutuhkan dua terminal yang berjalan secara bersamaan:
 
-Execute the following command in the first terminal:
+1.  **Terminal 1 (PHP Server):**
+    ```bash
+    php artisan serve
+    ```
+2.  **Terminal 2 (Vite Hot Reload):**
+    ```bash
+    npm run dev
+    ```
 
-```bash
-php artisan serve
+---
+
+## 6. ⚠️ Catatan Penting untuk Maintainer
+
+* **Dilarang mengubah file langsung di server** (folder `current/`). Semua perubahan harus melalui Git dan dideploy ulang via Capistrano agar tidak tertimpa rilis baru.
+* **Konfigurasi .env Server:** Jika ada perubahan environment di server, ubah file `.env` yang berada di folder `shared/`, bukan di folder rilis.
+* **Clean Releases:** Capistrano secara otomatis menyimpan 5 rilis terakhir untuk menghemat ruang disk.
+
+---
+
+**TPM Team - MCL Project**
