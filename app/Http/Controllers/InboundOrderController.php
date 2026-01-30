@@ -403,4 +403,66 @@ class InboundOrderController extends Controller
 
         return redirect()->back()->with('success', $message);
     }
+
+    public function opsIndex(Request $request)
+    {
+        // 1. Handle Reset Filter khusus untuk Ops
+        if ($request->has('reset')) {
+            session()->forget('ops_inbound_filters');
+            return redirect()->route('inbound.ops_index');
+        }
+
+        // 2. Simpan Filter ke Session (Gunakan key berbeda agar tidak tabrakan dengan Admin)
+        if ($request->isMethod('post') || $request->hasAny(['search', 'status'])) {
+            session(['ops_inbound_filters' => $request->only([
+                'search',
+                'inbound_order_no',
+                'client',
+                'warehouse',
+                'status',
+                'date'
+            ])]);
+        }
+
+        $filters = session('ops_inbound_filters', []);
+
+        /**
+         * 3. LOGIKA FILTER OTOMATIS
+         * Ops publik tidak boleh melihat data yang sudah 'Completed'
+         * kecuali mereka sengaja memfilternya (atau kita kunci sama sekali).
+         */
+        $query = InboundRequest::with(['details', 'children.details'])
+            ->filter($filters)
+            ->whereNull('parent_id')
+            ->where('status', '!=', 'Completed'); // Hard exclusion untuk keamanan ops publik
+
+        // 4. Hitung Statistik (Tanpa 'Completed')
+        $allData = InboundRequest::select('id', 'parent_id', 'status')
+            ->with('children:id,parent_id,status')
+            ->filter($filters)
+            ->where('status', '!=', 'Completed')
+            ->get();
+
+        $operationalUnits = $allData->filter(function($item) {
+            return $item->parent_id !== null || ($item->parent_id === null && $item->children->count() === 0);
+        });
+
+        $stats = (object)[
+            'total'        => $operationalUnits->count(),
+            'pending'      => $operationalUnits->where('status', 'Pending')->count(),
+            'processing'   => $operationalUnits->where('status', 'Processing')->count(),
+            'completed'    => 0, // Set 0 karena menu ini khusus In-Progress
+        ];
+
+        // 5. Final Query untuk Table
+        $requests = $query->orderByRaw("CASE WHEN status = 'Pending' THEN 0 ELSE 1 END")
+            ->orderBy('created_at', 'asc')
+            ->paginate(50);
+
+        $clients = InboundRequest::distinct()->whereNotNull('client_name')->pluck('client_name');
+        $warehouses = InboundRequest::distinct()->whereNotNull('warehouse_code')->pluck('warehouse_code');
+
+        // Gunakan view yang sama, logika blade @auth/@guest akan menangani perbedaan tombol
+        return view('inbound.ops_index', compact('requests', 'warehouses', 'clients', 'filters', 'stats'));
+    }
 }

@@ -65,6 +65,35 @@
                             </div>
                         </div>
 
+                        {{-- Menu Inbound --}}
+                        <div class="relative" x-data="{ open: false }" @click.away="open = false">
+                            <button @click="open = !open"
+                                    class="flex items-center px-3 py-2 rounded-md text-sm font-medium transition duration-150 focus:outline-none
+                                        @if(request()->routeIs('ops.inbound.*')))
+                                            bg-blue-600 text-white
+                                        @else
+                                            text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-500
+                                        @endif">
+                                <span>📥  Inbound</span>
+                                <svg class="ml-1 h-4 w-4 fill-current" viewBox="0 0 20 20">
+                                    <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                                </svg>
+                            </button>
+
+                            <div x-show="open" x-cloak x-transition.opacity.scale.95
+                                class="absolute right-0 mt-2 w-56 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-20">
+                                <a href="{{ route('ops.inbound.index') }}"
+                               class="flex items-center px-3 py-2 rounded-md text-sm font-medium transition duration-150 focus:outline-none
+                                    @if(request()->routeIs('ops.inbound.*'))
+                                        bg-blue-600 text-white
+                                    @else
+                                        text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-500
+                                    @endif">
+                                <span>Inbound Order Data</span>
+                            </a>
+                            </div>
+                        </div>
+
                         {{-- Menu MB Master --}}
                         <div class="relative" x-data="{ open: false }" @click.away="open = false">
                             <button @click="open = !open"
