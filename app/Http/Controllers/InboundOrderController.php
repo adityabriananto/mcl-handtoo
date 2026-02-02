@@ -433,4 +433,28 @@ class InboundOrderController extends Controller
         // Gunakan view yang sama, logika blade @auth/@guest akan menangani perbedaan tombol
         return view('inbound.ops_index', compact('requests', 'warehouses', 'clients', 'filters', 'stats'));
     }
+
+    public function uploadActualQuantity(Request $request)
+    {
+        $request->validate([
+            'actual_file' => 'required|mimes:xlsx,xls,csv|max:20480', // Support up to 20MB
+        ]);
+
+        try {
+            $file = $request->file('actual_file');
+            $fileName = time() . '_actual_' . $file->getClientOriginalName();
+
+            // Simpan ke folder temp di storage/app/uploads
+            $path = $file->storeAs('uploads', $fileName, 'local');
+            $fullPath = Storage::disk('local')->path($path);
+
+            // Dispatch Job ke queue 'io-number-upload' atau default
+            \App\Jobs\ProcessInboundActualUpload::dispatch($fullPath)->onQueue('io-result-upload');
+
+            return back()->with('success', "File sedang diproses di background. Status akan terupdate otomatis beberapa saat lagi.");
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal mengupload file: ' . $e->getMessage());
+        }
+    }
 }

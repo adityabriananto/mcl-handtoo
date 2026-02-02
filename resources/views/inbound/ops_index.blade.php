@@ -260,27 +260,45 @@
         </div>
     </div>
 
-    {{-- MODAL UPLOAD IO --}}
+    {{-- MODAL UPLOAD ACTUAL QUANTITY (FOR OPS) --}}
     <div x-show="uploadModal" class="fixed inset-0 z-[100] overflow-y-auto" x-cloak x-transition>
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="fixed inset-0 bg-gray-950/90 backdrop-blur-sm" @click="if(!loading) uploadModal = false"></div>
             <div class="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl z-[110] w-full max-w-md p-8 relative border border-gray-200">
                 <div class="text-center mb-6">
-                    <div class="inline-flex p-3 bg-indigo-100 rounded-2xl text-indigo-600 mb-3"><svg class="w-6 h-6" :class="loading ? 'animate-bounce' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg></div>
-                    <h3 class="text-lg font-black text-gray-900 dark:text-white uppercase italic">Upload IO Data</h3>
+                    <div class="inline-flex p-3 bg-green-100 rounded-2xl text-green-600 mb-3">
+                        <svg class="w-6 h-6" :class="loading ? 'animate-bounce' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-black text-gray-900 dark:text-white uppercase italic">Upload Actual Qty</h3>
+                    <p class="text-[9px] text-gray-500 font-bold uppercase mt-1">Update Received Good via Excel (OutOrderCode)</p>
                 </div>
-                <form action="{{ route('inbound.upload') }}" method="POST" enctype="multipart/form-data" @submit="loading = true">
+
+                <form action="{{ route('inbound.upload_actual') }}" method="POST" enctype="multipart/form-data" @submit="loading = true">
                     @csrf
                     <div class="relative group mb-6" x-show="!loading">
-                        <input type="file" name="csv_file" required accept=".csv, .xls, .xlsx" @change="const file = $event.target.files[0]; if(file) { fileName = file.name; fileSize = (file.size/1024).toFixed(1) + ' KB'; }" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-                        <div class="border-2 border-dashed rounded-3xl p-8 text-center transition-all" :class="fileName ? 'border-green-500 bg-green-50/5' : 'border-gray-200 group-hover:border-indigo-500'">
-                            <p x-show="!fileName" class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Select File</p>
-                            <div x-show="fileName" x-cloak><p class="text-[10px] font-black text-gray-900 dark:text-white truncate" x-text="fileName"></p><p class="text-[9px] font-bold text-green-600 mt-1" x-text="fileSize"></p></div>
+                        <input type="file" name="actual_file" required accept=".csv, .xls, .xlsx"
+                            @change="const file = $event.target.files[0]; if(file) { fileName = file.name; fileSize = (file.size/1024).toFixed(1) + ' KB'; }"
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+
+                        <div class="border-2 border-dashed rounded-3xl p-8 text-center transition-all"
+                            :class="fileName ? 'border-green-500 bg-green-50/5' : 'border-gray-200 group-hover:border-green-500'">
+                            <p x-show="!fileName" class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Select Excel/CSV File</p>
+                            <div x-show="fileName" x-cloak>
+                                <p class="text-[10px] font-black text-gray-900 dark:text-white truncate" x-text="fileName"></p>
+                                <p class="text-[9px] font-bold text-green-600 mt-1" x-text="fileSize"></p>
+                            </div>
                         </div>
                     </div>
+
                     <div class="flex gap-3">
                         <button type="button" x-show="!loading" @click="uploadModal = false; fileName=''" class="flex-1 py-3 text-[10px] font-black text-gray-400 uppercase">Cancel</button>
-                        <button type="submit" :disabled="loading || !fileName" class="flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition shadow-lg" :class="loading ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white'"><span x-text="loading ? 'Processing...' : 'Upload Now'"></span></button>
+                        <button type="submit" :disabled="loading || !fileName"
+                            class="flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition shadow-lg"
+                            :class="loading ? 'bg-gray-100 text-gray-400' : 'bg-green-600 text-white'">
+                            <span x-text="loading ? 'Updating Database...' : 'Confirm Upload'"></span>
+                        </button>
                     </div>
                 </form>
             </div>
