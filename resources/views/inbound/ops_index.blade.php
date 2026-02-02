@@ -217,13 +217,6 @@
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                     </a>
 
-                                    {{-- 4. TOMBOL EXPORT --}}
-                                    @if($skuCount <= 100 || $hasChildren)
-                                        <button @click="exportId = {{ $item->id }}; exportType = '{{ $hasChildren ? 'batch' : 'single' }}'; exportModal = true;" class="p-2 bg-green-600 text-white rounded-xl shadow-md shadow-green-900/20 active:scale-90 transition" title="Export">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                        </button>
-                                    @endif
-
                                 </div>
                             </td>
                         </tr>
@@ -254,7 +247,6 @@
                                         <div class="flex justify-end gap-2">
                                             {{-- TOMBOL COMPLETED UNTUK CHILD DIHILANGKAN --}}
                                             <a href="{{ route('inbound.show', $child->id) }}" class="p-2 bg-white dark:bg-gray-700 text-blue-600 rounded-xl border active:scale-95 shadow-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></a>
-                                            <button @click="exportId = {{ $child->id }}; exportType = 'single'; exportModal = true;" class="p-2 bg-green-600 text-white rounded-xl active:scale-95 shadow-md"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -289,52 +281,6 @@
                     <div class="flex gap-3">
                         <button type="button" x-show="!loading" @click="uploadModal = false; fileName=''" class="flex-1 py-3 text-[10px] font-black text-gray-400 uppercase">Cancel</button>
                         <button type="submit" :disabled="loading || !fileName" class="flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition shadow-lg" :class="loading ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white'"><span x-text="loading ? 'Processing...' : 'Upload Now'"></span></button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    {{-- MODAL EXPORT --}}
-    <div x-show="exportModal" class="fixed inset-0 z-[150] overflow-y-auto" x-cloak x-transition>
-        <div class="flex items-center justify-center min-h-screen px-4 py-8">
-            <div class="fixed inset-0 bg-gray-950/80 backdrop-blur-sm" @click="exportModal = false"></div>
-            <div class="bg-gray-900 rounded-[2.5rem] p-8 z-[160] w-full max-w-md relative border border-gray-800 shadow-2xl overflow-hidden">
-                <div class="mb-6 text-center">
-                    <h3 class="text-xl font-black text-white uppercase tracking-tighter italic">Export Configuration</h3>
-                    <p class="text-[10px] text-gray-500 font-bold uppercase mt-1 tracking-widest">ID: <span x-text="exportId" class="text-blue-500"></span></p>
-                </div>
-                <form :action="'{{ url('/inbound/export') }}/' + exportId" method="GET">
-                    <input type="hidden" name="type" :value="exportType">
-                    <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                        <div class="p-4 bg-gray-800/60 rounded-2xl border border-gray-700">
-                            <div class="flex justify-between items-center" :class="bundling === 'Y' ? 'mb-4' : ''">
-                                <label class="text-[10px] font-black uppercase text-pink-500 tracking-widest">Bundling Service</label>
-                                <select name="bundling" x-model="bundling" class="bg-gray-900 border-gray-700 text-white rounded-lg text-[10px] font-bold outline-none focus:border-pink-500"><option value="">No</option><option value="Y">Active</option></select>
-                            </div>
-                            <div x-show="bundling === 'Y'" x-transition><input type="number" name="bundling_qty" placeholder="Qty per bundle..." class="w-full bg-gray-900 border-gray-700 text-white rounded-xl text-xs font-bold outline-none focus:border-pink-500 px-3 py-2"></div>
-                        </div>
-                        <div class="p-4 bg-gray-800/60 rounded-2xl border border-gray-700">
-                            <div class="flex justify-between items-center" :class="vasNeeded === 'Y' ? 'mb-4' : ''">
-                                <label class="text-[10px] font-black uppercase text-purple-500 tracking-widest">VAS Service</label>
-                                <select name="vas_needed" x-model="vasNeeded" class="bg-gray-900 border-gray-700 text-white rounded-lg text-[10px] font-bold outline-none focus:border-purple-500"><option value="">None</option><option value="Y">Needed</option></select>
-                            </div>
-                            <div x-show="vasNeeded === 'Y'" x-transition><input type="text" name="vas_instruction" placeholder="Special Instructions..." class="w-full bg-gray-900 border-gray-700 text-white rounded-xl text-xs font-bold outline-none focus:border-purple-500 px-3 py-2"></div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="p-4 bg-gray-800/60 rounded-2xl border border-gray-700">
-                                <label class="block text-[10px] font-black text-gray-500 mb-2 uppercase tracking-widest">Repacking</label>
-                                <select name="repacking" class="w-full bg-gray-900 border-gray-700 text-white rounded-xl text-xs font-bold outline-none focus:border-blue-500 transition cursor-pointer"><option value="">No</option><option value="Y">Yes</option></select>
-                            </div>
-                            <div class="p-4 bg-gray-800/60 rounded-2xl border border-gray-700">
-                                <label class="block text-[10px] font-black text-gray-500 mb-2 uppercase tracking-widest">Labeling</label>
-                                <select name="labeling" class="w-full bg-gray-900 border-gray-700 text-white rounded-xl text-xs font-bold outline-none focus:border-blue-500 transition cursor-pointer"><option value="">No</option><option value="Y">Yes</option></select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-8 flex gap-3">
-                        <button type="button" @click="exportModal = false" class="flex-1 py-4 text-xs font-black text-gray-500 uppercase">Cancel</button>
-                        <button type="submit" class="flex-1 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black shadow-xl uppercase active:scale-95 transition">Generate CSV</button>
                     </div>
                 </form>
             </div>

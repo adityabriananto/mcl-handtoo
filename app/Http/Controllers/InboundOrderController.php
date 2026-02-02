@@ -15,6 +15,8 @@ use ZipArchive;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use Rap2hpoutre\FastExcel\FastExcel;
+use Illuminate\Support\Collection;
 
 class InboundOrderController extends Controller
 {
@@ -263,123 +265,89 @@ class InboundOrderController extends Controller
     public function export(Request $request, $id)
     {
         $inbound = InboundRequest::with(['details', 'children.details'])->findOrFail($id);
-        $vasNeeded = $request->vas_needed ?: '';
-        $instruction = ($vasNeeded === 'Y') ? $request->vas_instruction : '';
 
-        // LOGIKA BATCH EXPORT (ZIP)
+        // Fungsi pembantu untuk memetakan data sesuai header template
+        $mapRow = function($model, $sku, $qty) {
+            return [
+                'Delivery Type(required)(must be "Dropoff")' => 'Dropoff',
+                'Inbound warehouse name(required)' => $model->warehouse_code,
+                'Reference Order No.' => $model->reference_number,
+                'Estimated Date(required)(yyyy-mm-dd)' => $model->estimate_time ? date('Y-m-d', strtotime($model->estimate_time)) : date('Y-m-d'),
+                'Estimated Hour(required)(hh)' => $model->estimate_time ? date('H', strtotime($model->estimate_time)) : '00',
+                'Seller SKU(required)' => $sku,
+                'Request Quantity(required)' => $qty,
+                'VAS Needed("Y"/Null)' => '',
+                'Repacking("Y"/Null)' => '',
+                'Labeling("Y"/Null)' => '',
+                'Bundling("Y"/Null)' => '',
+                'No. of items to be bundled(2~9 integer)' => '',
+                'VAS instruction(If \'VAS Needed\' is \'Y\', this field is required)(no more than 256 characters)' => ''
+            ];
+        };
+
+        // --- LOGIKA BATCH EXPORT (ZIP berisi file XLSX) ---
         if ($request->type == 'batch' && $inbound->children->count() > 0) {
             $zipName = "Batch-Export-{$inbound->reference_number}.zip";
-            $zip = new ZipArchive;
-            $tempFile = tempnam(sys_get_temp_dir(), 'zip');
+            $zip = new \ZipArchive;
+            $tempZip = tempnam(sys_get_temp_dir(), 'zip');
 
-            if ($zip->open($tempFile, ZipArchive::CREATE) === TRUE) {
+            if ($zip->open($tempZip, \ZipArchive::CREATE) === TRUE) {
                 foreach ($inbound->children as $child) {
-                    $csvContent = fopen('php://temp', 'r+');
-                    fputcsv($csvContent, ['Seller SKU', 'Request Quantity', 'Vas Needed', 'Repacking', 'Labeling', 'Bundling', 'No. of items to be bundled', 'Vas Instruction']);
+                    $rows = new Collection();
+                    $uniqueSkus = $child->details->groupBy('seller_sku');
 
-                    // AGGREGATION: Group by SKU untuk baris Child
-                    $uniqueSkus = $child->details->groupBy('seller_sku')->map(function ($row) {
-                        return [
-                            'seller_sku' => $row->first()->seller_sku,
-                            'total_qty'  => $row->sum('requested_quantity'),
-                        ];
-                    });
-
-                    foreach ($uniqueSkus as $item) {
-                        fputcsv($csvContent, [
-                            $item['seller_sku'],
-                            $item['total_qty'],
-                            $vasNeeded,
-                            $request->repacking,
-                            $request->labeling,
-                            $request->bundling,
-                            $request->bundle_items, // Pastikan nama variabel sesuai dengan modal (bundle_items)
-                            $instruction
-                        ]);
+                    foreach ($uniqueSkus as $sku => $details) {
+                        $rows->push($mapRow($child, $sku, $details->sum('requested_quantity')));
                     }
 
-                    rewind($csvContent);
-                    $zip->addFromString("Export-{$child->reference_number}.csv", stream_get_contents($csvContent));
-                    fclose($csvContent);
+                    $tempExcel = tempnam(sys_get_temp_dir(), 'xlsx');
+                    (new FastExcel($rows))->export($tempExcel);
+                    $zip->addFile($tempExcel, "Export-{$child->reference_number}.xlsx");
                 }
                 $zip->close();
             }
-
-            return response()->download($tempFile, $zipName)->deleteFileAfterSend(true);
+            return response()->download($tempZip, $zipName)->deleteFileAfterSend(true);
         }
 
-        // LOGIKA SINGLE EXPORT (CSV) - Dikelompokkan berdasarkan SKU Unik
-        $filename = "Export-{$inbound->reference_number}.csv";
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ];
+        // --- LOGIKA SINGLE EXPORT (XLSX) ---
+        $rows = new Collection();
+        $uniqueSkus = $inbound->details->groupBy('seller_sku');
+        foreach ($uniqueSkus as $sku => $details) {
+            $rows->push($mapRow($inbound, $sku, $details->sum('requested_quantity')));
+        }
 
-        return response()->stream(function() use ($inbound, $request, $vasNeeded, $instruction) {
-            $file = fopen('php://output', 'w');
-            fputcsv($file, ['Seller SKU', 'Request Quantity', 'Vas Needed', 'Repacking', 'Labeling', 'Bundling', 'No. of items to be bundled', 'Vas Instruction']);
-
-            // AGGREGATION: Group by SKU untuk Inbound Utama
-            $uniqueSkus = $inbound->details->groupBy('seller_sku')->map(function ($row) {
-                return [
-                    'seller_sku' => $row->first()->seller_sku,
-                    'total_qty'  => $row->sum('requested_quantity'),
-                ];
-            });
-
-            foreach ($uniqueSkus as $item) {
-                fputcsv($file, [
-                    $item['seller_sku'],
-                    $item['total_qty'],
-                    $vasNeeded,
-                    $request->repacking,
-                    $request->labeling,
-                    $request->bundling,
-                    $request->bundle_items, // Sesuaikan dengan name di HTML (bundle_items)
-                    $instruction
-                ]);
-            }
-            fclose($file);
-        }, 200, $headers);
+        $filename = "Export-{$inbound->reference_number}.xlsx";
+        return (new FastExcel($rows))->download($filename);
     }
 
     public function exportChildren(InboundRequest $inbound)
     {
-        // Pastikan ini adalah parent yang punya children
         $children = $inbound->children()->with('details')->get();
+        if ($children->isEmpty()) return back()->with('error', 'No child documents found.');
 
-        if ($children->isEmpty()) {
-            return back()->with('error', 'No child documents found.');
+        $rows = new Collection();
+        foreach ($children as $child) {
+            $uniqueSkus = $child->details->groupBy('seller_sku');
+            foreach ($uniqueSkus as $sku => $details) {
+                $rows->push([
+                    'Delivery Type(required)(must be "Dropoff")' => 'Dropoff',
+                    'Inbound warehouse name(required)' => $child->warehouse_code,
+                    'Reference Order No.' => $child->reference_number,
+                    'Estimated Date(required)(yyyy-mm-dd)' => $child->estimate_time ? date('Y-m-d', strtotime($child->estimate_time)) : date('Y-m-d'),
+                    'Estimated Hour(required)(hh)' => $child->estimate_time ? date('H', strtotime($child->estimate_time)) : '00',
+                    'Seller SKU(required)' => $sku,
+                    'Request Quantity(required)' => $details->sum('requested_quantity'),
+                    'VAS Needed("Y"/Null)' => '',
+                    'Repacking("Y"/Null)' => '',
+                    'Labeling("Y"/Null)' => '',
+                    'Bundling("Y"/Null)' => '',
+                    'No. of items to be bundled(2~9 integer)' => '',
+                    'VAS instruction(If \'VAS Needed\' is \'Y\', this field is required)(no more than 256 characters)' => ''
+                ]);
+            }
         }
 
-        $fileName = 'Export_Children_' . $inbound->reference_number . '.csv';
-
-        $response = new StreamedResponse(function () use ($children) {
-            $handle = fopen('php://output', 'w');
-
-            // Header CSV
-            fputcsv($handle, ['Parent Ref', 'Child Ref', 'Warehouse', 'Seller SKU', 'Product Name', 'Quantity']);
-
-            foreach ($children as $child) {
-                foreach ($child->details as $detail) {
-                    fputcsv($handle, [
-                        $child->parent->reference_number,
-                        $child->reference_number,
-                        $child->warehouse_code,
-                        $detail->seller_sku,
-                        $detail->product_name ?? '-',
-                        $detail->requested_quantity,
-                    ]);
-                }
-            }
-
-            fclose($handle);
-        });
-
-        $response->headers->set('Content-Type', 'text/csv');
-        $response->headers->set('Content-Disposition', 'attachment; filename="' . $fileName . '"');
-
-        return $response;
+        return (new FastExcel($rows))->download("Export_Children_{$inbound->reference_number}.xlsx");
     }
 
     public function updateStatus(Request $request, $id)
