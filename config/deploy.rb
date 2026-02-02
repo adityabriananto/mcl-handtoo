@@ -55,7 +55,7 @@ namespace :deploy do
 
                 # 5. Clear & Optimize Cache
                 # Jalankan ini terakhir setelah semua class dan file siap
-                execute :php, "artisan optimize:clear"
+                execute :php, "artisan optimize:clear || true"
                 execute :php, "artisan config:cache"
                 execute :php, "artisan route:cache"
                 execute :php, "artisan view:cache"
