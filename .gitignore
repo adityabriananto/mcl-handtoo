@@ -8,6 +8,7 @@
 /storage/pail
 /vendor
 .env
+capistrano.log
 .env.backup
 .env.production
 .phpactor.json

@@ -1,0 +1,432 @@
+  INFO ---------------------------------------------------------------------------
+  INFO START 2026-02-02 08:59:40 +0700 cap staging deploy
+  INFO ---------------------------------------------------------------------------
+  INFO [214a4465] Running /usr/bin/env mkdir -p /tmp as root@45.76.180.252
+ DEBUG [214a4465] Command: /usr/bin/env mkdir -p /tmp
+  INFO [214a4465] Finished in 4.562 seconds with exit status 0 (successful).
+ DEBUG Uploading /tmp/git-ssh-ac11f5510406da3e6f3e.sh 0.0%
+  INFO Uploading /tmp/git-ssh-ac11f5510406da3e6f3e.sh 100.0%
+  INFO [b3963cef] Running /usr/bin/env chmod 700 /tmp/git-ssh-ac11f5510406da3e6f3e.sh as root@45.76.180.252
+ DEBUG [b3963cef] Command: /usr/bin/env chmod 700 /tmp/git-ssh-ac11f5510406da3e6f3e.sh
+  INFO [b3963cef] Finished in 0.191 seconds with exit status 0 (successful).
+  INFO [8c46ebf1] Running /usr/bin/env git ls-remote git@github.com:adityabriananto/mcl-handtoo.git HEAD as root@45.76.180.252
+ DEBUG [8c46ebf1] Command: ( export GIT_ASKPASS="/bin/echo" GIT_SSH="/tmp/git-ssh-ac11f5510406da3e6f3e.sh" ; /usr/bin/env git ls-remote git@github.com:adityabriananto/mcl-handtoo.git HEAD )
+ DEBUG [8c46ebf1] 	281c6311f5767868ff345b273ccb9adb362759dc	HEAD
+  INFO [8c46ebf1] Finished in 2.757 seconds with exit status 0 (successful).
+  INFO [63da29c1] Running /usr/bin/env mkdir -p /var/www/html/mcl-handtoo_stg/shared /var/www/html/mcl-handtoo_stg/releases as root@45.76.180.252
+ DEBUG [63da29c1] Command: /usr/bin/env mkdir -p /var/www/html/mcl-handtoo_stg/shared /var/www/html/mcl-handtoo_stg/releases
+  INFO [63da29c1] Finished in 0.097 seconds with exit status 0 (successful).
+  INFO [b59433e4] Running /usr/bin/env mkdir -p /var/www/html/mcl-handtoo_stg/shared/public/nfsi /var/www/html/mcl-handtoo_stg/shared/public/temp-storage /var/www/html/mcl-handtoo_stg/shared/public/exports /var/www/html/mcl-handtoo_stg/shared/storage/logs /var/www/html/mcl-handtoo_stg/shared/storage/app/private/temp /var/www/html/mcl-handtoo_stg/shared/storage/app/private/temp_imports /var/www/html/mcl-handtoo_stg/shared/storage/app/private/uploads as root@45.76.180.252
+ DEBUG [b59433e4] Command: /usr/bin/env mkdir -p /var/www/html/mcl-handtoo_stg/shared/public/nfsi /var/www/html/mcl-handtoo_stg/shared/public/temp-storage /var/www/html/mcl-handtoo_stg/shared/public/exports /var/www/html/mcl-handtoo_stg/shared/storage/logs /var/www/html/mcl-handtoo_stg/shared/storage/app/private/temp /var/www/html/mcl-handtoo_stg/shared/storage/app/private/temp_imports /var/www/html/mcl-handtoo_stg/shared/storage/app/private/uploads
+  INFO [b59433e4] Finished in 0.097 seconds with exit status 0 (successful).
+  INFO [79989f99] Running /usr/bin/env mkdir -p /var/www/html/mcl-handtoo_stg/shared as root@45.76.180.252
+ DEBUG [79989f99] Command: /usr/bin/env mkdir -p /var/www/html/mcl-handtoo_stg/shared
+  INFO [79989f99] Finished in 0.179 seconds with exit status 0 (successful).
+ DEBUG [687ac2b1] Running [ -f /var/www/html/mcl-handtoo_stg/shared/.env ] as root@45.76.180.252
+ DEBUG [687ac2b1] Command: [ -f /var/www/html/mcl-handtoo_stg/shared/.env ]
+ DEBUG [687ac2b1] Finished in 0.096 seconds with exit status 0 (successful).
+ DEBUG [89e4c161] Running [ -f /var/www/html/mcl-handtoo_stg/current/REVISION ] as root@45.76.180.252
+ DEBUG [89e4c161] Command: [ -f /var/www/html/mcl-handtoo_stg/current/REVISION ]
+ DEBUG [89e4c161] Finished in 0.099 seconds with exit status 0 (successful).
+ DEBUG [d55dfc52] Running /usr/bin/env cat /var/www/html/mcl-handtoo_stg/current/REVISION 2>/dev/null as root@45.76.180.252
+ DEBUG [d55dfc52] Command: /usr/bin/env cat /var/www/html/mcl-handtoo_stg/current/REVISION 2>/dev/null
+ DEBUG [d55dfc52] 	d388280a1a2eaaa20658466308528d6b825a6908
+ DEBUG [d55dfc52] Finished in 0.101 seconds with exit status 0 (successful).
+ DEBUG [effde990] Running [ -f /var/www/html/mcl-handtoo_stg/current/REVISION_TIME ] as root@45.76.180.252
+ DEBUG [effde990] Command: [ -f /var/www/html/mcl-handtoo_stg/current/REVISION_TIME ]
+ DEBUG [effde990] Finished in 0.098 seconds with exit status 0 (successful).
+ DEBUG [87979dcb] Running /usr/bin/env cat /var/www/html/mcl-handtoo_stg/current/REVISION_TIME 2>/dev/null as root@45.76.180.252
+ DEBUG [87979dcb] Command: /usr/bin/env cat /var/www/html/mcl-handtoo_stg/current/REVISION_TIME 2>/dev/null
+ DEBUG [87979dcb] 	1769744808
+ DEBUG [87979dcb] Finished in 0.150 seconds with exit status 0 (successful).
+ DEBUG [08d00be0] Running [ -f /var/www/html/mcl-handtoo_stg/repo/HEAD ] as root@45.76.180.252
+ DEBUG [08d00be0] Command: [ -f /var/www/html/mcl-handtoo_stg/repo/HEAD ]
+ DEBUG [08d00be0] Finished in 0.102 seconds with exit status 0 (successful).
+  INFO The repository mirror is at /var/www/html/mcl-handtoo_stg/repo
+ DEBUG [5ad71890] Running if test ! -d /var/www/html/mcl-handtoo_stg/repo; then echo "Directory does not exist '/var/www/html/mcl-handtoo_stg/repo'" 1>&2; false; fi as root@45.76.180.252
+ DEBUG [5ad71890] Command: if test ! -d /var/www/html/mcl-handtoo_stg/repo; then echo "Directory does not exist '/var/www/html/mcl-handtoo_stg/repo'" 1>&2; false; fi
+ DEBUG [5ad71890] Finished in 0.096 seconds with exit status 0 (successful).
+  INFO [5a3c0d2d] Running /usr/bin/env git remote set-url origin git@github.com:adityabriananto/mcl-handtoo.git as root@45.76.180.252
+ DEBUG [5a3c0d2d] Command: cd /var/www/html/mcl-handtoo_stg/repo && ( export GIT_ASKPASS="/bin/echo" GIT_SSH="/tmp/git-ssh-ac11f5510406da3e6f3e.sh" ; /usr/bin/env git remote set-url origin git@github.com:adityabriananto/mcl-handtoo.git )
+  INFO [5a3c0d2d] Finished in 0.104 seconds with exit status 0 (successful).
+  INFO [a1f1b10d] Running /usr/bin/env git remote update --prune as root@45.76.180.252
+ DEBUG [a1f1b10d] Command: cd /var/www/html/mcl-handtoo_stg/repo && ( export GIT_ASKPASS="/bin/echo" GIT_SSH="/tmp/git-ssh-ac11f5510406da3e6f3e.sh" ; /usr/bin/env git remote update --prune )
+ DEBUG [a1f1b10d] 	From github.com:adityabriananto/mcl-handtoo
+   d388280a..281c6311  master     -> master
+  INFO [a1f1b10d] Finished in 3.137 seconds with exit status 0 (successful).
+ DEBUG [b9b42610] Running if test ! -d /var/www/html/mcl-handtoo_stg/repo; then echo "Directory does not exist '/var/www/html/mcl-handtoo_stg/repo'" 1>&2; false; fi as root@45.76.180.252
+ DEBUG [b9b42610] Command: if test ! -d /var/www/html/mcl-handtoo_stg/repo; then echo "Directory does not exist '/var/www/html/mcl-handtoo_stg/repo'" 1>&2; false; fi
+ DEBUG [b9b42610] Finished in 0.096 seconds with exit status 0 (successful).
+  INFO [53a48785] Running /usr/bin/env mkdir -p /var/www/html/mcl-handtoo_stg/releases/20260202015949 as root@45.76.180.252
+ DEBUG [53a48785] Command: cd /var/www/html/mcl-handtoo_stg/repo && ( export GIT_ASKPASS="/bin/echo" GIT_SSH="/tmp/git-ssh-ac11f5510406da3e6f3e.sh" ; /usr/bin/env mkdir -p /var/www/html/mcl-handtoo_stg/releases/20260202015949 )
+  INFO [53a48785] Finished in 0.195 seconds with exit status 0 (successful).
+  INFO [ae1b5a23] Running /usr/bin/env git archive master | /usr/bin/env tar -x -f - -C /var/www/html/mcl-handtoo_stg/releases/20260202015949 as root@45.76.180.252
+ DEBUG [ae1b5a23] Command: cd /var/www/html/mcl-handtoo_stg/repo && ( export GIT_ASKPASS="/bin/echo" GIT_SSH="/tmp/git-ssh-ac11f5510406da3e6f3e.sh" ; /usr/bin/env git archive master | /usr/bin/env tar -x -f - -C /var/www/html/mcl-handtoo_stg/releases/20260202015949 )
+  INFO [ae1b5a23] Finished in 0.127 seconds with exit status 0 (successful).
+ DEBUG [d69c8617] Running if test ! -d /var/www/html/mcl-handtoo_stg/repo; then echo "Directory does not exist '/var/www/html/mcl-handtoo_stg/repo'" 1>&2; false; fi as root@45.76.180.252
+ DEBUG [d69c8617] Command: if test ! -d /var/www/html/mcl-handtoo_stg/repo; then echo "Directory does not exist '/var/www/html/mcl-handtoo_stg/repo'" 1>&2; false; fi
+ DEBUG [d69c8617] Finished in 0.099 seconds with exit status 0 (successful).
+ DEBUG [0787bbb7] Running /usr/bin/env git rev-list --max-count=1 master as root@45.76.180.252
+ DEBUG [0787bbb7] Command: cd /var/www/html/mcl-handtoo_stg/repo && ( export GIT_ASKPASS="/bin/echo" GIT_SSH="/tmp/git-ssh-ac11f5510406da3e6f3e.sh" ; /usr/bin/env git rev-list --max-count=1 master )
+ DEBUG [0787bbb7] 	281c6311f5767868ff345b273ccb9adb362759dc
+ DEBUG [0787bbb7] Finished in 0.199 seconds with exit status 0 (successful).
+ DEBUG [f166af65] Running if test ! -d /var/www/html/mcl-handtoo_stg/releases/20260202015949; then echo "Directory does not exist '/var/www/html/mcl-handtoo_stg/releases/20260202015949'" 1>&2; false; fi as root@45.76.180.252
+ DEBUG [f166af65] Command: if test ! -d /var/www/html/mcl-handtoo_stg/releases/20260202015949; then echo "Directory does not exist '/var/www/html/mcl-handtoo_stg/releases/20260202015949'" 1>&2; false; fi
+ DEBUG [f166af65] Finished in 0.099 seconds with exit status 0 (successful).
+  INFO [7c7a338c] Running /usr/bin/env echo "281c6311f5767868ff345b273ccb9adb362759dc" > REVISION as root@45.76.180.252
+ DEBUG [7c7a338c] Command: cd /var/www/html/mcl-handtoo_stg/releases/20260202015949 && /usr/bin/env echo "281c6311f5767868ff345b273ccb9adb362759dc" > REVISION
+  INFO [7c7a338c] Finished in 0.102 seconds with exit status 0 (successful).
+ DEBUG [0560b3cc] Running if test ! -d /var/www/html/mcl-handtoo_stg/repo; then echo "Directory does not exist '/var/www/html/mcl-handtoo_stg/repo'" 1>&2; false; fi as root@45.76.180.252
+ DEBUG [0560b3cc] Command: if test ! -d /var/www/html/mcl-handtoo_stg/repo; then echo "Directory does not exist '/var/www/html/mcl-handtoo_stg/repo'" 1>&2; false; fi
+ DEBUG [0560b3cc] Finished in 0.098 seconds with exit status 0 (successful).
+ DEBUG [7ae34030] Running /usr/bin/env git --no-pager log -1 --pretty=format:"%ct" master as root@45.76.180.252
+ DEBUG [7ae34030] Command: cd /var/www/html/mcl-handtoo_stg/repo && ( export GIT_ASKPASS="/bin/echo" GIT_SSH="/tmp/git-ssh-ac11f5510406da3e6f3e.sh" ; /usr/bin/env git --no-pager log -1 --pretty=format:"%ct" master )
+ DEBUG [7ae34030] 	1769997570
+ DEBUG [7ae34030] Finished in 0.098 seconds with exit status 0 (successful).
+ DEBUG [d0e0e41f] Running if test ! -d /var/www/html/mcl-handtoo_stg/releases/20260202015949; then echo "Directory does not exist '/var/www/html/mcl-handtoo_stg/releases/20260202015949'" 1>&2; false; fi as root@45.76.180.252
+ DEBUG [d0e0e41f] Command: if test ! -d /var/www/html/mcl-handtoo_stg/releases/20260202015949; then echo "Directory does not exist '/var/www/html/mcl-handtoo_stg/releases/20260202015949'" 1>&2; false; fi
+ DEBUG [d0e0e41f] Finished in 0.150 seconds with exit status 0 (successful).
+  INFO [7508fe0d] Running /usr/bin/env echo "1769997570" > REVISION_TIME as root@45.76.180.252
+ DEBUG [7508fe0d] Command: cd /var/www/html/mcl-handtoo_stg/releases/20260202015949 && /usr/bin/env echo "1769997570" > REVISION_TIME
+  INFO [7508fe0d] Finished in 0.100 seconds with exit status 0 (successful).
+  INFO [748b4b4f] Running /usr/bin/env mkdir -p /var/www/html/mcl-handtoo_stg/releases/20260202015949 as root@45.76.180.252
+ DEBUG [748b4b4f] Command: /usr/bin/env mkdir -p /var/www/html/mcl-handtoo_stg/releases/20260202015949
+  INFO [748b4b4f] Finished in 0.100 seconds with exit status 0 (successful).
+ DEBUG [dae2436b] Running [ -L /var/www/html/mcl-handtoo_stg/releases/20260202015949/.env ] as root@45.76.180.252
+ DEBUG [dae2436b] Command: [ -L /var/www/html/mcl-handtoo_stg/releases/20260202015949/.env ]
+ DEBUG [dae2436b] Finished in 0.098 seconds with exit status 1 (failed).
+ DEBUG [38e4a5e5] Running [ -f /var/www/html/mcl-handtoo_stg/releases/20260202015949/.env ] as root@45.76.180.252
+ DEBUG [38e4a5e5] Command: [ -f /var/www/html/mcl-handtoo_stg/releases/20260202015949/.env ]
+ DEBUG [38e4a5e5] Finished in 0.186 seconds with exit status 1 (failed).
+  INFO [1e99fd67] Running /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/shared/.env /var/www/html/mcl-handtoo_stg/releases/20260202015949/.env as root@45.76.180.252
+ DEBUG [1e99fd67] Command: /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/shared/.env /var/www/html/mcl-handtoo_stg/releases/20260202015949/.env
+  INFO [1e99fd67] Finished in 0.101 seconds with exit status 0 (successful).
+  INFO [606ebb0d] Running /usr/bin/env mkdir -p /var/www/html/mcl-handtoo_stg/releases/20260202015949/public /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private as root@45.76.180.252
+ DEBUG [606ebb0d] Command: /usr/bin/env mkdir -p /var/www/html/mcl-handtoo_stg/releases/20260202015949/public /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private
+  INFO [606ebb0d] Finished in 0.102 seconds with exit status 0 (successful).
+ DEBUG [277569d8] Running [ -L /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/nfsi ] as root@45.76.180.252
+ DEBUG [277569d8] Command: [ -L /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/nfsi ]
+ DEBUG [277569d8] Finished in 0.098 seconds with exit status 1 (failed).
+ DEBUG [13cc2cc9] Running [ -d /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/nfsi ] as root@45.76.180.252
+ DEBUG [13cc2cc9] Command: [ -d /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/nfsi ]
+ DEBUG [13cc2cc9] Finished in 0.093 seconds with exit status 1 (failed).
+  INFO [be2dbcf3] Running /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/shared/public/nfsi /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/nfsi as root@45.76.180.252
+ DEBUG [be2dbcf3] Command: /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/shared/public/nfsi /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/nfsi
+  INFO [be2dbcf3] Finished in 0.166 seconds with exit status 0 (successful).
+ DEBUG [c835fd2f] Running [ -L /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/temp-storage ] as root@45.76.180.252
+ DEBUG [c835fd2f] Command: [ -L /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/temp-storage ]
+ DEBUG [c835fd2f] Finished in 0.097 seconds with exit status 1 (failed).
+ DEBUG [4833fa4e] Running [ -d /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/temp-storage ] as root@45.76.180.252
+ DEBUG [4833fa4e] Command: [ -d /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/temp-storage ]
+ DEBUG [4833fa4e] Finished in 0.098 seconds with exit status 1 (failed).
+  INFO [070cd293] Running /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/shared/public/temp-storage /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/temp-storage as root@45.76.180.252
+ DEBUG [070cd293] Command: /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/shared/public/temp-storage /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/temp-storage
+  INFO [070cd293] Finished in 0.101 seconds with exit status 0 (successful).
+ DEBUG [007ccc31] Running [ -L /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/exports ] as root@45.76.180.252
+ DEBUG [007ccc31] Command: [ -L /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/exports ]
+ DEBUG [007ccc31] Finished in 0.182 seconds with exit status 1 (failed).
+ DEBUG [85302a0b] Running [ -d /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/exports ] as root@45.76.180.252
+ DEBUG [85302a0b] Command: [ -d /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/exports ]
+ DEBUG [85302a0b] Finished in 0.096 seconds with exit status 1 (failed).
+  INFO [ee5bf5ff] Running /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/shared/public/exports /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/exports as root@45.76.180.252
+ DEBUG [ee5bf5ff] Command: /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/shared/public/exports /var/www/html/mcl-handtoo_stg/releases/20260202015949/public/exports
+  INFO [ee5bf5ff] Finished in 0.099 seconds with exit status 0 (successful).
+ DEBUG [39de9cf8] Running [ -L /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/logs ] as root@45.76.180.252
+ DEBUG [39de9cf8] Command: [ -L /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/logs ]
+ DEBUG [39de9cf8] Finished in 0.097 seconds with exit status 1 (failed).
+ DEBUG [93089872] Running [ -d /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/logs ] as root@45.76.180.252
+ DEBUG [93089872] Command: [ -d /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/logs ]
+ DEBUG [93089872] Finished in 0.100 seconds with exit status 0 (successful).
+  INFO [af199dea] Running /usr/bin/env rm -rf /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/logs as root@45.76.180.252
+ DEBUG [af199dea] Command: /usr/bin/env rm -rf /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/logs
+  INFO [af199dea] Finished in 0.169 seconds with exit status 0 (successful).
+  INFO [f2866932] Running /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/shared/storage/logs /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/logs as root@45.76.180.252
+ DEBUG [f2866932] Command: /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/shared/storage/logs /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/logs
+  INFO [f2866932] Finished in 0.101 seconds with exit status 0 (successful).
+ DEBUG [268b0359] Running [ -L /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/temp ] as root@45.76.180.252
+ DEBUG [268b0359] Command: [ -L /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/temp ]
+ DEBUG [268b0359] Finished in 0.098 seconds with exit status 1 (failed).
+ DEBUG [774e75ad] Running [ -d /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/temp ] as root@45.76.180.252
+ DEBUG [774e75ad] Command: [ -d /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/temp ]
+ DEBUG [774e75ad] Finished in 0.101 seconds with exit status 1 (failed).
+  INFO [be4d25ce] Running /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/shared/storage/app/private/temp /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/temp as root@45.76.180.252
+ DEBUG [be4d25ce] Command: /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/shared/storage/app/private/temp /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/temp
+  INFO [be4d25ce] Finished in 0.182 seconds with exit status 0 (successful).
+ DEBUG [cbddcd85] Running [ -L /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/temp_imports ] as root@45.76.180.252
+ DEBUG [cbddcd85] Command: [ -L /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/temp_imports ]
+ DEBUG [cbddcd85] Finished in 0.098 seconds with exit status 1 (failed).
+ DEBUG [dcc63c58] Running [ -d /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/temp_imports ] as root@45.76.180.252
+ DEBUG [dcc63c58] Command: [ -d /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/temp_imports ]
+ DEBUG [dcc63c58] Finished in 0.098 seconds with exit status 1 (failed).
+  INFO [36592cd0] Running /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/shared/storage/app/private/temp_imports /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/temp_imports as root@45.76.180.252
+ DEBUG [36592cd0] Command: /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/shared/storage/app/private/temp_imports /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/temp_imports
+  INFO [36592cd0] Finished in 0.098 seconds with exit status 0 (successful).
+ DEBUG [cafd5d20] Running [ -L /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/uploads ] as root@45.76.180.252
+ DEBUG [cafd5d20] Command: [ -L /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/uploads ]
+ DEBUG [cafd5d20] Finished in 0.095 seconds with exit status 1 (failed).
+ DEBUG [c279b383] Running [ -d /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/uploads ] as root@45.76.180.252
+ DEBUG [c279b383] Command: [ -d /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/uploads ]
+ DEBUG [c279b383] Finished in 0.169 seconds with exit status 1 (failed).
+  INFO [f7f1bf13] Running /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/shared/storage/app/private/uploads /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/uploads as root@45.76.180.252
+ DEBUG [f7f1bf13] Command: /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/shared/storage/app/private/uploads /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage/app/private/uploads
+  INFO [f7f1bf13] Finished in 0.095 seconds with exit status 0 (successful).
+  INFO [07b61b59] Running chmod a+w /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage -R as root@45.76.180.252
+ DEBUG [07b61b59] Command: chmod a+w /var/www/html/mcl-handtoo_stg/releases/20260202015949/storage -R
+  INFO [07b61b59] Finished in 0.093 seconds with exit status 0 (successful).
+  INFO [8dc7f97e] Running cd '/var/www/html/mcl-handtoo_stg/releases/20260202015949'; composer install as root@45.76.180.252
+ DEBUG [8dc7f97e] Command: cd '/var/www/html/mcl-handtoo_stg/releases/20260202015949'; composer install
+ DEBUG [8dc7f97e] 	PHP Warning:  Module "gd" is already loaded in Unknown on line 0
+ DEBUG [8dc7f97e] 	Composer plugins have been disabled for safety in this non-interactive session.
+ DEBUG [8dc7f97e] 	Set COMPOSER_ALLOW_SUPERUSER=1 if you want to allow plugins to run as root/super user.
+ DEBUG [8dc7f97e] 	Do not run Composer as root/super user! See https://getcomposer.org/root for details
+ DEBUG [8dc7f97e] 	Installing dependencies from lock file (including require-dev)
+ DEBUG [8dc7f97e] 	Verifying lock file contents can be installed on current platform.
+ DEBUG [8dc7f97e] 	Package operations: 132 installs, 0 updates, 0 removals
+ DEBUG [8dc7f97e] 	  - Downloading openspout/openspout (v4.32.0)
+ DEBUG [8dc7f97e] 	  - Downloading rap2hpoutre/fast-excel (v5.6.0)
+ DEBUG [8dc7f97e] 	 0/2 [>---------------------------]   0%
+ DEBUG [8dc7f97e] 	
+ 2/2 [============================] 100%
+ DEBUG [8dc7f97e] 	  - Installing voku/portable-ascii (2.0.3): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/polyfill-php80 (v1.33.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/polyfill-mbstring (v1.33.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/polyfill-ctype (v1.33.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing phpoption/phpoption (1.9.5): Extracting archive
+  - Installing graham-campbell/result-type (v1.1.4): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing vlucas/phpdotenv (v5.6.3): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/css-selector (v7.4.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing tijsverkoyen/css-to-inline-styles (v2.4.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/deprecation-contracts (v3.6.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/var-dumper (v7.4.4): Extracting archive
+  - Installing symfony/polyfill-uuid (v1.33.0): Extracting archive
+  - Installing symfony/uid (v7.4.4): Extracting archive
+  - Installing symfony/routing (v7.4.4): Extracting archive
+  - Installing symfony/process (v7.4.4): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/polyfill-php85 (v1.33.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/polyfill-php84 (v1.33.0): Extracting archive
+  - Installing symfony/polyfill-php83 (v1.33.0): Extracting archive
+  - Installing symfony/polyfill-intl-normalizer (v1.33.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/polyfill-intl-idn (v1.33.0): Extracting archive
+  - Installing symfony/mime (v7.4.4): Extracting archive
+  - Installing psr/container (2.0.2): Extracting archive
+  - Installing symfony/service-contracts (v3.6.1): Extracting archive
+  - Installing psr/event-dispatcher (1.0.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/event-dispatcher-contracts (v3.6.0): Extracting archive
+  - Installing symfony/event-dispatcher (v8.0.4): Extracting archive
+  - Installing psr/log (3.0.2): Extracting archive
+  - Installing doctrine/lexer (3.0.1): Extracting archive
+  - Installing egulias/email-validator (4.0.4): Extracting archive
+  - Installing symfony/mailer (v7.4.4): Extracting archive
+  - Installing symfony/http-foundation (v7.4.4): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/error-handler (v7.4.4): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/http-kernel (v7.4.4): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/finder (v7.4.4): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/polyfill-intl-grapheme (v1.33.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/string (v8.0.4): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/console (v7.4.4): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing ramsey/collection (2.1.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing brick/math (0.14.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing ramsey/uuid (4.9.2): Extracting archive
+  - Installing psr/simple-cache (3.0.0): Extracting archive
+  - Installing nunomaduro/termwind (v2.3.3): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/translation-contracts (v3.6.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/translation (v8.0.4): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing psr/clock (1.0.0): Extracting archive
+  - Installing symfony/clock (v8.0.0): Extracting archive
+  - Installing carbonphp/carbon-doctrine-types (3.2.0): Extracting archive
+  - Installing nesbot/carbon (3.11.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing monolog/monolog (3.10.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing psr/http-message (2.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing psr/http-factory (1.1.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing league/uri-interfaces (7.8.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing league/uri (7.8.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing league/mime-type-detection (1.16.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing league/flysystem-local (3.31.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing league/flysystem (3.31.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing nette/utils (v4.1.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing nette/schema (v1.3.3): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing dflydev/dot-access-data (v3.0.3): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing league/config (v1.2.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing league/commonmark (2.8.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing laravel/serializable-closure (v2.0.8): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing laravel/prompts (v0.3.10): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing guzzlehttp/uri-template (v1.0.5): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing psr/http-client (1.0.3): Extracting archive
+  - Installing ralouphie/getallheaders (3.0.3): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing guzzlehttp/psr7 (2.8.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing guzzlehttp/promises (2.3.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing guzzlehttp/guzzle (7.10.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing fruitcake/php-cors (v1.4.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing dragonmantank/cron-expression (v3.6.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing doctrine/inflector (2.1.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing laravel/framework (v12.48.1): Extracting archive
+  - Installing masterminds/html5 (2.10.0): Extracting archive
+  - Installing thecodingmachine/safe (v3.3.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing sabberworm/php-css-parser (v9.1.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing dompdf/php-svg-lib (1.0.2): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing dompdf/php-font-lib (1.0.2): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing dompdf/dompdf (v3.1.4): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing barryvdh/laravel-dompdf (v3.1.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing fakerphp/faker (v1.24.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing laravel/breeze (v2.3.8): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing laravel/pail (v1.2.4): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing laravel/pint (v1.27.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/yaml (v7.4.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing laravel/sail (v1.52.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing laravel/sanctum (v4.2.4): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing nikic/php-parser (v5.7.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing psy/psysh (v0.12.18): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing laravel/tinker (v2.11.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing markbaker/matrix (3.0.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing markbaker/complex (3.0.2): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing maennchen/zipstream-php (3.2.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing ezyang/htmlpurifier (v4.19.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing composer/pcre (3.3.2): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing phpoffice/phpspreadsheet (1.30.2): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing composer/semver (3.4.4): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing maatwebsite/excel (3.1.67): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing milon/barcode (v12.0.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing hamcrest/hamcrest-php (v2.1.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing mockery/mockery (1.6.12): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing filp/whoops (2.18.4): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing nunomaduro/collision (v8.8.3): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing staabm/side-effects-detector (1.0.5): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing sebastian/version (5.0.2): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing sebastian/type (5.1.3): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing sebastian/recursion-context (6.0.3): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing sebastian/object-reflector (4.0.1): Extracting archive
+  - Installing sebastian/object-enumerator (6.0.1): Extracting archive
+  - Installing sebastian/global-state (7.0.2): Extracting archive
+  - Installing sebastian/exporter (6.3.2): Extracting archive
+  - Installing sebastian/environment (7.2.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing sebastian/diff (6.0.2): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing sebastian/comparator (6.3.3): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing sebastian/code-unit (3.0.3): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing sebastian/cli-parser (3.0.2): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing phpunit/php-timer (7.0.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing phpunit/php-text-template (4.0.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing phpunit/php-invoker (5.0.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing phpunit/php-file-iterator (5.1.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing theseer/tokenizer (1.3.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing sebastian/lines-of-code (3.0.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing sebastian/complexity (4.0.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing sebastian/code-unit-reverse-lookup (4.0.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing phpunit/php-code-coverage (11.0.12): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing phar-io/version (3.2.1): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing phar-io/manifest (2.0.4): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing myclabs/deep-copy (1.13.4): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing phpunit/phpunit (11.5.49): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing openspout/openspout (v4.32.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing rap2hpoutre/fast-excel (v5.6.0): Extracting archive
+ DEBUG [8dc7f97e] 	  - Installing symfony/dom-crawler (v8.0.4): Extracting archive
+ DEBUG [8dc7f97e] 	   0/132 [>---------------------------]   0%
+ DEBUG [8dc7f97e] 	
+  23/132 [====>-----------------------]  17%
+ DEBUG [8dc7f97e] 	
+  32/132 [======>---------------------]  24%
+ DEBUG [8dc7f97e] 	
+  42/132 [========>-------------------]  31%
+ DEBUG [8dc7f97e] 	
+  59/132 [============>---------------]  44%
+ DEBUG [8dc7f97e] 	
+  68/132 [==============>-------------]  51%
+ DEBUG [8dc7f97e] 	
+  81/132 [=================>----------]  61%
+ DEBUG [8dc7f97e] 	
+  94/132 [===================>--------]  71%
+ DEBUG [8dc7f97e] 	
+ 113/132 [=======================>----]  85%
+ DEBUG [8dc7f97e] 	
+ 123/132 [==========================>-]  93%
+ DEBUG [8dc7f97e] 	
+ 132/132 [============================] 100%
+ DEBUG [8dc7f97e] 	
+ DEBUG [8dc7f97e] 	Generating optimized autoload files
+ DEBUG [8dc7f97e] 	Class App\Commands\CleanStagingData located in ./app/Console/Commands/CleanStagingData.php does not comply with psr-4 autoloading standard (rule: App\ => ./app). Skipping.
+ DEBUG [8dc7f97e] 	> Illuminate\Foundation\ComposerScripts::postAutoloadDump
+ DEBUG [8dc7f97e] 	> @php artisan package:discover --ansi
+ DEBUG [8dc7f97e] 	PHP Warning:  Module "gd" is already loaded in Unknown on line 0
+ DEBUG [8dc7f97e] 	
+  [37;44m INFO [39;49m Discovering packages.  
+
+ DEBUG [8dc7f97e] 	  barryvdh/laravel-dompdf 
+ DEBUG [8dc7f97e] 	[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m
+ DEBUG [8dc7f97e] 	 [32;1mDONE[39;22m
+  laravel/breeze 
+ DEBUG [8dc7f97e] 	[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m
+ DEBUG [8dc7f97e] 	 [32;1mDONE[39;22m
+ DEBUG [8dc7f97e] 	  laravel/pail 
+ DEBUG [8dc7f97e] 	[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m
+ DEBUG [8dc7f97e] 	 [32;1mDONE[39;22m
+ DEBUG [8dc7f97e] 	  laravel/sail 
+ DEBUG [8dc7f97e] 	[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m
+ DEBUG [8dc7f97e] 	 [32;1mDONE[39;22m
+ DEBUG [8dc7f97e] 	  laravel/sanctum 
+ DEBUG [8dc7f97e] 	[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m
+ DEBUG [8dc7f97e] 	 [32;1mDONE[39;22m
+  laravel/tinker 
+ DEBUG [8dc7f97e] 	[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m
+ DEBUG [8dc7f97e] 	 [32;1mDONE[39;22m
+ DEBUG [8dc7f97e] 	  maatwebsite/excel 
+ DEBUG [8dc7f97e] 	[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m
+ DEBUG [8dc7f97e] 	 [32;1mDONE[39;22m
+ DEBUG [8dc7f97e] 	  milon/barcode 
+ DEBUG [8dc7f97e] 	[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m
+ DEBUG [8dc7f97e] 	 [32;1mDONE[39;22m
+ DEBUG [8dc7f97e] 	  nesbot/carbon 
+ DEBUG [8dc7f97e] 	[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m
+ DEBUG [8dc7f97e] 	 [32;1mDONE[39;22m
+  nunomaduro/collision 
+ DEBUG [8dc7f97e] 	[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m
+ DEBUG [8dc7f97e] 	 [32;1mDONE[39;22m
+ DEBUG [8dc7f97e] 	  nunomaduro/termwind 
+ DEBUG [8dc7f97e] 	[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m
+ DEBUG [8dc7f97e] 	 [32;1mDONE[39;22m
+ DEBUG [8dc7f97e] 	  rap2hpoutre/fast-excel 
+ DEBUG [8dc7f97e] 	[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m
+ DEBUG [8dc7f97e] 	 [32;1mDONE[39;22m
+ DEBUG [8dc7f97e] 	
+ DEBUG [8dc7f97e] 	91 packages you are using are looking for funding.
+ DEBUG [8dc7f97e] 	Use the `composer fund` command to find out more!
+  INFO [8dc7f97e] Finished in 6.062 seconds with exit status 0 (successful).
+  INFO [5d90559c] Running php /var/www/html/mcl-handtoo_stg/releases/20260202015949/artisan migrate as root@45.76.180.252
+ DEBUG [5d90559c] Command: php /var/www/html/mcl-handtoo_stg/releases/20260202015949/artisan migrate
+ DEBUG [5d90559c] 	PHP Warning:  Module "gd" is already loaded in Unknown on line 0
+ DEBUG [5d90559c] 	
+   INFO  Nothing to migrate.  
+
+  INFO [5d90559c] Finished in 0.322 seconds with exit status 0 (successful).
+  INFO [2c3ca77c] Running php /var/www/html/mcl-handtoo_stg/releases/20260202015949/artisan storage:link as root@45.76.180.252
+ DEBUG [2c3ca77c] Command: php /var/www/html/mcl-handtoo_stg/releases/20260202015949/artisan storage:link
+ DEBUG [2c3ca77c] 	PHP Warning:  Module "gd" is already loaded in Unknown on line 0
+ DEBUG [2c3ca77c] 	
+   INFO  The [public/storage] link has been connected to [storage/app/public].  
+
+  INFO [2c3ca77c] Finished in 0.296 seconds with exit status 0 (successful).
+  INFO [ae0832d4] Running /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/releases/20260202015949 /var/www/html/mcl-handtoo_stg/releases/current as root@45.76.180.252
+ DEBUG [ae0832d4] Command: /usr/bin/env ln -s /var/www/html/mcl-handtoo_stg/releases/20260202015949 /var/www/html/mcl-handtoo_stg/releases/current
+  INFO [ae0832d4] Finished in 0.097 seconds with exit status 0 (successful).
+  INFO [93744704] Running /usr/bin/env mv /var/www/html/mcl-handtoo_stg/releases/current /var/www/html/mcl-handtoo_stg as root@45.76.180.252
+ DEBUG [93744704] Command: /usr/bin/env mv /var/www/html/mcl-handtoo_stg/releases/current /var/www/html/mcl-handtoo_stg
+  INFO [93744704] Finished in 0.105 seconds with exit status 0 (successful).
+ DEBUG [f404e450] Running /usr/bin/env ls -x /var/www/html/mcl-handtoo_stg/releases as root@45.76.180.252
+ DEBUG [f404e450] Command: /usr/bin/env ls -x /var/www/html/mcl-handtoo_stg/releases
+ DEBUG [f404e450] 	20260130035301	20260130035515	20260202015949
+ DEBUG [f404e450] Finished in 0.100 seconds with exit status 0 (successful).
+  INFO Keeping 2 of 3 deployed releases on 45.76.180.252
+ DEBUG [a0717431] Running [ -d /var/www/html/mcl-handtoo_stg/current ] as root@45.76.180.252
+ DEBUG [a0717431] Command: [ -d /var/www/html/mcl-handtoo_stg/current ]
+ DEBUG [a0717431] Finished in 0.158 seconds with exit status 0 (successful).
+ DEBUG [5b25fe17] Running /usr/bin/env readlink /var/www/html/mcl-handtoo_stg/current as root@45.76.180.252
+ DEBUG [5b25fe17] Command: /usr/bin/env readlink /var/www/html/mcl-handtoo_stg/current
+ DEBUG [5b25fe17] 	/var/www/html/mcl-handtoo_stg/releases/20260202015949
+ DEBUG [5b25fe17] Finished in 0.099 seconds with exit status 0 (successful).
+  INFO [53549511] Running /usr/bin/env rm -rf /var/www/html/mcl-handtoo_stg/releases/20260130035301 as root@45.76.180.252
+ DEBUG [53549511] Command: /usr/bin/env rm -rf /var/www/html/mcl-handtoo_stg/releases/20260130035301
+  INFO [53549511] Finished in 0.638 seconds with exit status 0 (successful).
+ DEBUG [7602b2e7] Running if test ! -d /var/www/html/mcl-handtoo_stg/releases; then echo "Directory does not exist '/var/www/html/mcl-handtoo_stg/releases'" 1>&2; false; fi as root@45.76.180.252
+ DEBUG [7602b2e7] Command: if test ! -d /var/www/html/mcl-handtoo_stg/releases; then echo "Directory does not exist '/var/www/html/mcl-handtoo_stg/releases'" 1>&2; false; fi
+ DEBUG [7602b2e7] Finished in 0.097 seconds with exit status 0 (successful).
+  INFO [df08d950] Running /usr/bin/env echo "Branch master (at 281c6311f5767868ff345b273ccb9adb362759dc) deployed as release 20260202015949 by lazada" >> /var/www/html/mcl-handtoo_stg/revisions.log as root@45.76.180.252
+ DEBUG [df08d950] Command: cd /var/www/html/mcl-handtoo_stg/releases && /usr/bin/env echo "Branch master (at 281c6311f5767868ff345b273ccb9adb362759dc) deployed as release 20260202015949 by lazada" >> /var/www/html/mcl-handtoo_stg/revisions.log
+  INFO [df08d950] Finished in 0.170 seconds with exit status 0 (successful).
