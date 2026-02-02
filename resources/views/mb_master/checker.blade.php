@@ -4,7 +4,21 @@
 <style>
     [x-cloak] { display: none !important; }
 
-    /* Fix Dropdown Terpotong: Pastikan parent tidak overflow hidden */
+    /* FIX: Pastikan Root Stacking Context bersih */
+    .page-container {
+        position: relative;
+        isolation: isolate;
+    }
+
+    /* FIX: Header harus memiliki z-index tertinggi dan overflow terlihat */
+    .sticky-header {
+        position: sticky;
+        top: 0;
+        z-index: 1000 !important; /* Sangat tinggi untuk mengalahkan elemen tabel */
+        padding-top: 1rem;
+        padding-bottom: 0.5rem;
+    }
+
     .header-card {
         background-color: #1e293b;
         border: 1px solid #334155;
@@ -12,6 +26,8 @@
         padding: 1rem;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
         position: relative;
+        z-index: 1001;
+        overflow: visible !important; /* FIX: Agar dropdown select tidak terpotong */
     }
 
     /* Input Grouping */
@@ -22,6 +38,8 @@
         border: 2px solid #4f46e5;
         border-radius: 0.75rem;
         background: #ffffff;
+        position: relative;
+        overflow: visible !important; /* FIX: Penting untuk elemen input/select interior */
     }
 
     .select-box {
@@ -41,6 +59,8 @@
         background-repeat: no-repeat;
         background-position: right 0.5rem center;
         background-size: 1rem;
+        position: relative;
+        z-index: 1002;
     }
 
     .input-box {
@@ -50,6 +70,7 @@
         font-weight: 700;
         border: none;
         outline: none;
+        background: white;
     }
 
     .btn-indigo {
@@ -80,24 +101,26 @@
     .btn-green:hover { transform: translateY(-1px); filter: brightness(1.1); }
 
     /* Table Styling */
-    .dark-table { background-color: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; overflow: hidden; }
+    .dark-table {
+        background-color: #1e293b;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 1rem;
+        overflow: hidden;
+        position: relative;
+        z-index: 1; /* Pastikan tabel berada di bawah header */
+    }
     .balanced-td { padding: 1.25rem 1.5rem !important; }
 
-    /* Highlight hanya untuk konflik Brand */
     .row-multi-brand {
         background-color: rgba(153, 27, 27, 0.4) !important;
         border-left: 8px solid #ef4444 !important;
     }
-
-    /* Scrollbar */
-    .dark-table::-webkit-scrollbar { height: 8px; }
-    .dark-table::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
 </style>
 
-<div class="max-w-[1800px] mx-auto space-y-6" x-data="{ loading: false, exporting: false }">
+<div class="max-w-[1800px] mx-auto space-y-6 page-container" x-data="{ loading: false, exporting: false }">
 
     {{-- HEADER & SEARCH AREA --}}
-    <div class="sticky top-0 z-[100] pt-4 px-2">
+    <div class="sticky-header px-2">
         <div class="header-card">
             <div class="flex flex-col lg:flex-row items-center gap-4">
 
@@ -171,7 +194,6 @@
                 <tbody class="text-sm font-bold text-slate-200">
                     @forelse($results as $barcode => $orders)
                         @php
-                            // LOGIKA UTAMA: Hitung jumlah BRAND unik, bukan jumlah baris order
                             $uniqueBrandCount = $orders->unique('brand_name')->count();
                         @endphp
 
@@ -179,8 +201,6 @@
                         <tr class="border-b border-slate-700 transition-colors {{ $uniqueBrandCount > 1 ? 'row-multi-brand' : 'hover:bg-white/5' }}">
                             <td class="balanced-td">
                                 <span class="text-indigo-400 font-mono text-lg block leading-none">{{ $barcode }}</span>
-
-                                {{-- Flagging hanya jika benar-benar ada lebih dari 1 brand --}}
                                 @if($uniqueBrandCount > 1)
                                     <span class="text-[9px] bg-red-600 text-white px-2 py-0.5 rounded mt-2 inline-block animate-pulse">
                                         MULTI BRAND ({{ $uniqueBrandCount }})
