@@ -6,21 +6,22 @@
 <style>
     [x-cloak] { display: none !important; }
     .table-compact td { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
-    .status-badge {
-        display: inline-block;
-        min-width: 85px;
-        text-align: center;
-    }
+    .status-badge { display: inline-block; min-width: 85px; text-align: center; }
     .custom-scrollbar::-webkit-scrollbar { width: 4px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+
+    /* Animasi tambahan untuk loading */
+    .pulse-blue { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
 </style>
 
 @php
     $statusColors = [
-        'Pending'    => 'bg-yellow-50 text-yellow-700 border-yellow-200',
-        'Processing' => 'bg-blue-50 text-blue-700 border-blue-200',
-        'Completed'  => 'bg-green-50 text-green-700 border-green-200',
+        'Pending'           => 'bg-yellow-50 text-yellow-700 border-yellow-200',
+        'Processing'        => 'bg-blue-50 text-blue-700 border-blue-200',
+        'Partial Completed' => 'bg-orange-50 text-orange-700 border-orange-200',
+        'Completed'         => 'bg-green-50 text-green-700 border-green-200',
     ];
 
     $summary = $stats;
@@ -63,38 +64,34 @@
         <div class="flex items-center gap-6">
             <div>
                 <h1 class="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Inbound <span class="text-blue-600">Portal</span></h1>
-                <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">Compact View v2.8</p>
+                <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">Compact View v3.0</p>
             </div>
-            <div class="flex gap-6 border-l pl-6 border-gray-100 dark:border-gray-800">
-                <div>
-                    <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Active</p>
-                    <p class="text-xl font-black leading-none text-blue-600 text-center">{{ number_format($summary->total) }}</p>
+            <div class="flex gap-4 border-l pl-6 border-gray-100 dark:border-gray-800 overflow-x-auto custom-scrollbar">
+                <div class="text-center min-w-[60px]">
+                    <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Total</p>
+                    <p class="text-lg font-black leading-none text-blue-600">{{ number_format($summary->total) }}</p>
                 </div>
-                <div>
-                    <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Completed</p>
-                    <p class="text-xl font-black leading-none text-blue-600 text-center">{{ number_format($summary->completed) }}</p>
+                <div class="text-center min-w-[60px]">
+                    <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Done</p>
+                    <p class="text-lg font-black leading-none text-green-600">{{ number_format($summary->completed) }}</p>
                 </div>
-                <div>
-                    <p class="text-[9px] font-bold text-amber-500 uppercase tracking-widest text-center">Processing</p>
-                    <p class="text-xl font-black leading-none text-gray-800 dark:text-white text-center">{{ number_format($summary->processing) }}</p>
-                </div>
-                <div>
-                    <p class="text-[9px] font-bold text-amber-500 uppercase tracking-widest text-center">Pending</p>
-                    <p class="text-xl font-black leading-none text-gray-800 dark:text-white text-center">{{ number_format($summary->pending) }}</p>
+                <div class="text-center min-w-[60px]">
+                    <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Process</p>
+                    <p class="text-lg font-black leading-none text-amber-500">{{ number_format($summary->processing) }}</p>
                 </div>
             </div>
         </div>
 
         <button @click="uploadModal = true"
                 class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition shadow-lg shadow-indigo-500/20 active:scale-95">
-            Update IO Number
+            Update Actual Good
         </button>
     </div>
 
-    {{-- 2. Filter Bar --}}
-    <div class="grid grid-cols-2 md:grid-cols-7 gap-2">
-        <input x-model="search" type="text" placeholder="Search Ref..." class="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] focus:ring-2 focus:ring-blue-500 dark:text-white">
-        <input x-model="filterIo" type="text" placeholder="Search IO..." class="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] focus:ring-2 focus:ring-blue-500 dark:text-white">
+    {{-- 2. Filter Bar (Tetap Sama) --}}
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-2">
+        <input x-model="search" type="text" placeholder="Ref No..." class="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] focus:ring-2 focus:ring-blue-500 dark:text-white">
+        <input x-model="filterIo" type="text" placeholder="IO No..." class="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] focus:ring-2 focus:ring-blue-500 dark:text-white">
         <select x-model="filterClient" class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] px-2 py-2 dark:text-white font-bold">
             <option value="">All Clients</option>
             @foreach($clients as $client) <option value="{{ $client }}">{{ $client }}</option> @endforeach
@@ -103,10 +100,11 @@
             <option value="">All Status</option>
             <option value="Pending">Pending</option>
             <option value="Processing">Processing</option>
+            <option value="Partial Completed">Partial Completed</option>
             <option value="Completed">Completed</option>
         </select>
         <input x-model="filterDate" type="date" class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] px-2 py-2 dark:text-white">
-        <button @click="search=''; filterIo=''; filterStatus=''; filterDate=''; filterWh=''; filterClient=''" class="text-[10px] font-black text-red-600 bg-red-50 rounded-xl px-2 py-2 uppercase">Reset</button>
+        <button @click="search=''; filterIo=''; filterStatus=''; filterDate=''; filterWh=''; filterClient=''" class="text-[10px] font-black text-red-600 bg-red-50 rounded-xl px-2 py-2 uppercase border border-red-100">Clear</button>
     </div>
 
     {{-- 3. Data Table --}}
@@ -131,6 +129,7 @@
                             $fullQty = $hasChildren ? $item->children->flatMap->details->sum('requested_quantity') : $item->details->sum('requested_quantity');
                             $formattedDate = $item->created_at->format('Y-m-d');
                             $childRefs = $item->children->pluck('reference_number')->join(' ');
+                            $isLocked = in_array($item->status, ['Completed']);
                         @endphp
 
                         <tr x-show="shouldShow('{{ $item->reference_number . ' ' . $childRefs }}', '{{ $item->status }}', '{{ $formattedDate }}', '{{ $item->warehouse_code }}', '{{ $item->client_name }}', '{{ $item->inbound_order_no }}')"
@@ -151,9 +150,9 @@
                                     <span class="font-black text-gray-900 dark:text-white uppercase leading-none tracking-tight text-sm">{{ $item->reference_number }}</span>
                                     <div class="flex items-center gap-2 mt-1">
                                         <span class="text-[9px] text-blue-600 font-extrabold uppercase bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">{{ $item->client_name }}</span>
-                                        <span class="text-[9px] text-gray-400 font-bold">• {{ number_format($fullQty) }} Units ({{ $skuCount }} SKU)</span>
+                                        <span class="text-[9px] text-gray-400 font-bold">• {{ number_format($fullQty) }} Units</span>
                                     </div>
-                                    <span class="mt-1.5 text-[11px] text-indigo-600 dark:text-indigo-400 font-black uppercase italic">IO: {{ $item->inbound_order_no ?? 'WAITING...' }}</span>
+                                    <span class="mt-1.5 text-[10px] text-indigo-600 dark:text-indigo-400 font-black uppercase italic">IO: {{ $item->inbound_order_no ?? 'WAITING...' }}</span>
                                 </div>
                             </td>
 
@@ -166,95 +165,114 @@
 
                             <td class="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">{{ $item->warehouse_code }}</td>
 
-                           <td class="px-4 py-3 text-center">
-                                <div class="flex flex-col items-center">
-                                    <span class="status-badge px-3 py-1 rounded-full text-[10px] font-black uppercase border {{ $statusColors[$item->status] ?? 'bg-gray-100' }}">
-                                        {{ $item->status }}
-                                    </span>
-
-                                    @if($skuCount > 200 && !$hasChildren)
-                                        <span class="text-[8px] font-black text-red-500 uppercase mt-1 animate-pulse tracking-tighter">
-                                            ⚠️ Split Required
-                                        </span>
-                                    @endif
-                                </div>
+                            <td class="px-4 py-3 text-center">
+                                <span class="status-badge px-3 py-1 rounded-full text-[9px] font-black uppercase border {{ $statusColors[$item->status] ?? 'bg-gray-100' }}">
+                                    {{ $item->status }}
+                                </span>
                             </td>
 
                             <td class="px-4 py-3 text-right">
                                 <div class="flex justify-end gap-2">
+                                    {{-- RESET (If Locked) --}}
+                                    @if($isLocked || $item->status === 'Partial Completed')
+                                        <form action="{{ route('inbound.reset_status', $item->id) }}" method="POST" onsubmit="return confirm('Unlock data ini?')">
+                                            @csrf
+                                            <button type="submit" class="p-2 bg-orange-50 text-orange-600 rounded-xl hover:bg-orange-600 hover:text-white transition border border-orange-200 shadow-sm">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2z"></path></svg>
+                                            </button>
+                                        </form>
+                                    @endif
 
-                                    {{-- 1. TOMBOL SPLIT --}}
-                                    @if($skuCount > 100 && !$hasChildren)
+                                    {{-- SPLIT --}}
+                                    @if($skuCount > 100 && !$hasChildren && !$isLocked)
                                         <form action="{{ route('inbound.split', $item->id) }}" method="POST" @submit="splitLoading = true">
                                             @csrf
-                                            <button type="submit" :disabled="splitLoading" class="px-3 py-2 bg-orange-100 text-orange-700 rounded-xl border border-orange-200 hover:bg-orange-600 hover:text-white transition flex items-center gap-2 group shadow-sm shadow-orange-900/10">
-                                                <span x-show="!splitLoading" class="text-[9px] font-black uppercase tracking-widest">Split</span>
+                                            <button type="submit" :disabled="splitLoading" class="px-3 py-2 bg-orange-100 text-orange-700 rounded-xl border border-orange-200 hover:bg-orange-600 hover:text-white transition flex items-center gap-2 shadow-sm">
+                                                <span x-show="!splitLoading" class="text-[9px] font-black uppercase">Split</span>
                                                 <svg x-show="splitLoading" class="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                             </button>
                                         </form>
                                     @endif
 
-                                    {{-- 2. TOMBOL COMPLETE --}}
-                                    @if($item->status !== 'Completed' && !$hasChildren)
-                                        @if($skuCount <= 100)
-                                            <form action="{{ route('inbound.complete', $item->id) }}" method="POST" @submit="statusLoading = true">
-                                                @csrf
-                                                <button type="submit" :disabled="statusLoading" class="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition active:scale-90 shadow-md shadow-blue-900/20" title="Mark as Completed">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-                                                </button>
-                                            </form>
-                                        @else
-                                            <div class="p-2 bg-gray-50 text-gray-300 rounded-xl border border-gray-100 cursor-not-allowed" title="Split required for 100+ SKU">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                                            </div>
-                                        @endif
+                                    {{-- COMPLETE (Parent/Single) --}}
+                                    @if(!$isLocked && !$hasChildren && $skuCount <= 100)
+                                        <form action="{{ route('inbound.complete', $item->id) }}" method="POST" @submit="statusLoading = true">
+                                            @csrf
+                                            <button type="submit" :disabled="statusLoading" class="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition active:scale-90 shadow-md shadow-blue-900/20">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                            </button>
+                                        </form>
                                     @endif
 
-                                    {{-- 3. TOMBOL VIEW --}}
-                                    <a href="{{ route('inbound.show', $item->id) }}" class="p-2 bg-gray-100 dark:bg-gray-800 text-gray-600 rounded-xl border border-gray-200 active:scale-90 transition shadow-sm" title="View Details">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    <a href="{{ route('inbound.show', $item->id) }}" class="p-2 bg-gray-100 dark:bg-gray-800 text-gray-600 rounded-xl border border-gray-200" title="View">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                                     </a>
 
-                                    {{-- 4. TOMBOL EXPORT (XLSX) --}}
-                                    @if($skuCount <= 100 || $hasChildren)
-                                        <button @click="exportId = {{ $item->id }}; exportType = '{{ $hasChildren ? 'batch' : 'single' }}'; exportModal = true;" class="p-2 bg-green-600 text-white rounded-xl shadow-md shadow-green-900/20 active:scale-90 transition" title="Export to XLSX">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                        </button>
-                                    @endif
-
+                                    <button @click="exportId = {{ $item->id }}; exportType = '{{ $hasChildren ? 'batch' : 'single' }}'; exportModal = true;" class="p-2 bg-green-600 text-white rounded-xl shadow-md active:scale-95 transition" title="Export">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
 
+                        {{-- CHILD ROWS --}}
                         @if($hasChildren)
                             @foreach($item->children as $child)
-                                <tr x-show="expandedRows.includes({{ $item->id }})" x-transition class="bg-slate-100 dark:bg-gray-800/80 border-l-4 border-blue-600 shadow-inner">
+                                @php $isChildLocked = ($child->status === 'Completed'); @endphp
+                                <tr x-show="expandedRows.includes({{ $item->id }})" x-transition class="bg-slate-50 dark:bg-gray-800/40 border-l-4 border-blue-600 shadow-inner">
                                     <td class="px-3 py-3 text-center text-blue-600 font-black text-xs italic">↳</td>
+
                                     <td class="px-4 py-3">
-                                        <div class="flex flex-col pl-3 border-l-2 border-blue-500">
-                                            <span class="text-[11px] font-black text-slate-800 dark:text-gray-100 uppercase leading-none">{{ $child->reference_number }}</span>
-                                            <span class="mt-1 text-[10px] text-indigo-600 dark:text-indigo-400 font-black italic uppercase">IO: {{ $child->inbound_order_no ?? 'PENDING' }}</span>
+                                        <div class="flex flex-col">
+                                            <span class="text-[11px] font-black text-slate-700 dark:text-gray-200 uppercase leading-none">{{ $child->reference_number }}</span>
+                                            <span class="mt-1 text-[10px] text-indigo-500 font-extrabold italic uppercase">IO: {{ $child->inbound_order_no ?? 'PENDING' }}</span>
                                         </div>
                                     </td>
-                                    <td class="px-4 py-3 text-[10px] leading-tight text-slate-600 dark:text-gray-400">
-                                        <span class="font-bold">In: {{ $child->created_at->format('d/m H:i') }}</span>
+
+                                    <td class="px-4 py-3 text-[10px] leading-tight text-gray-500 font-bold">
+                                        {{ $child->created_at->format('d/m H:i') }}
                                     </td>
-                                    <td class="px-4 py-3 text-center text-[10px] font-black text-slate-500 uppercase">{{ $child->warehouse_code }}</td>
+
+                                    <td class="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase">
+                                        {{ $child->warehouse_code }}
+                                    </td>
+
                                     <td class="px-4 py-3 text-center">
-                                        <span class="status-badge px-3 py-1 rounded-full text-[10px] font-black uppercase border shadow-sm {{ $statusColors[$child->status] ?? 'bg-gray-200' }}">
+                                        <span class="status-badge px-3 py-1 rounded-full text-[9px] font-black uppercase border shadow-sm {{ $statusColors[$child->status] ?? 'bg-gray-100' }}">
                                             {{ $child->status }}
                                         </span>
                                     </td>
+
                                     <td class="px-4 py-3 text-right">
                                         <div class="flex justify-end gap-2">
-                                            @if($child->status !== 'Completed')
-                                                <form action="{{ route('inbound.complete', $child->id) }}" method="POST" @submit="statusLoading = true">
+                                            {{-- CHILD RESET --}}
+                                            @if($isChildLocked)
+                                                <form action="{{ route('inbound.reset_status', $child->id) }}" method="POST">
                                                     @csrf
-                                                    <button type="submit" :disabled="statusLoading" class="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition shadow-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></button>
+                                                    <button type="submit" class="p-2 bg-orange-50 text-orange-600 rounded-xl hover:bg-orange-600 hover:text-white transition border border-orange-200 shadow-sm" title="Reset Child">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2z"></path></svg>
+                                                    </button>
                                                 </form>
                                             @endif
-                                            <a href="{{ route('inbound.show', $child->id) }}" class="p-2 bg-white dark:bg-gray-700 text-blue-600 rounded-xl border active:scale-95 shadow-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></a>
-                                            <button @click="exportId = {{ $child->id }}; exportType = 'single'; exportModal = true;" class="p-2 bg-green-600 text-white rounded-xl active:scale-95 shadow-md"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg></button>
+
+                                            {{-- CHILD COMPLETE MANUAL --}}
+                                            @if(!$isChildLocked)
+                                                <form action="{{ route('inbound.complete', $child->id) }}" method="POST" @submit="statusLoading = true">
+                                                    @csrf
+                                                    <button type="submit" :disabled="statusLoading" class="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition active:scale-90 shadow-md shadow-blue-900/20" title="Complete Child">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                                    </button>
+                                                </form>
+                                            @endif
+
+                                            {{-- CHILD VIEW & EXPORT --}}
+                                            <a href="{{ route('inbound.show', $child->id) }}" class="p-2 bg-white dark:bg-gray-700 text-gray-600 rounded-xl border border-gray-200 active:scale-95 shadow-sm">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                            </a>
+
+                                            <button @click="exportId = {{ $child->id }}; exportType = 'single'; exportModal = true;" class="p-2 bg-green-600 text-white rounded-xl shadow-md active:scale-95 transition">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -275,7 +293,7 @@
             <div class="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl z-[110] w-full max-w-md p-8 relative border border-gray-200">
                 <div class="text-center mb-6">
                     <div class="inline-flex p-3 bg-indigo-100 rounded-2xl text-indigo-600 mb-3"><svg class="w-6 h-6" :class="loading ? 'animate-bounce' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg></div>
-                    <h3 class="text-lg font-black text-gray-900 dark:text-white uppercase italic">Upload IO Data</h3>
+                    <h3 class="text-lg font-black text-gray-900 dark:text-white uppercase italic">Upload Actual Data</h3>
                 </div>
                 <form action="{{ route('inbound.upload') }}" method="POST" enctype="multipart/form-data" @submit="loading = true">
                     @csrf
@@ -288,46 +306,22 @@
                     </div>
                     <div class="flex gap-3">
                         <button type="button" x-show="!loading" @click="uploadModal = false; fileName=''" class="flex-1 py-3 text-[10px] font-black text-gray-400 uppercase">Cancel</button>
-                        <button type="submit" :disabled="loading || !fileName" class="flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition shadow-lg" :class="loading ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white'"><span x-text="loading ? 'Processing...' : 'Upload Now'"></span></button>
+                        <button type="submit" :disabled="loading || !fileName" class="flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition shadow-lg" :class="loading ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white'"><span x-text="loading ? 'Uploading...' : 'Confirm'"></span></button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    {{-- ULTRA-COMPACT EXPORT MODAL --}}
+    {{-- EXPORT MODAL --}}
     <div x-show="exportModal" class="fixed inset-0 z-[150] flex items-center justify-center p-6" x-cloak x-transition>
         <div class="fixed inset-0 bg-gray-950/60 backdrop-blur-[2px]" @click="exportModal = false"></div>
-
-        <div class="bg-gray-900 rounded-[2rem] p-6 z-[160] w-[240px] aspect-square flex flex-col justify-between items-center border border-gray-800 shadow-2xl relative overflow-hidden">
-
-            <div class="absolute -top-10 -right-10 w-24 h-24 bg-blue-600/10 blur-3xl rounded-full"></div>
-
-            <div class="text-center mt-2">
-                <div class="w-12 h-12 bg-blue-600/20 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-blue-500/30">
-                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                </div>
-                <h3 class="text-xs font-black text-white uppercase tracking-widest italic">Export XLSX</h3>
-                <p class="text-[9px] text-gray-500 font-bold mt-1 uppercase tracking-tighter" x-text="'ID: ' + exportId"></p>
-            </div>
-
+        <div class="bg-gray-900 rounded-[2rem] p-6 z-[160] w-[240px] flex flex-col items-center border border-gray-800 shadow-2xl relative">
+            <h3 class="text-xs font-black text-white uppercase tracking-widest italic mb-4">Export XLSX</h3>
             <form :action="'{{ url('/inbound/export') }}/' + exportId" method="GET" class="w-full">
                 <input type="hidden" name="type" :value="exportType">
-
-                <div class="space-y-2">
-                    <button type="submit"
-                            @click="setTimeout(() => exportModal = false, 500)"
-                            class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase transition-all active:scale-95 shadow-lg shadow-blue-900/40">
-                        Download
-                    </button>
-
-                    <button type="button" @click="exportModal = false"
-                            class="w-full py-1 text-[8px] font-bold text-gray-600 uppercase tracking-[0.2em] hover:text-gray-400 transition">
-                        Cancel
-                    </button>
-                </div>
+                <button type="submit" @click="setTimeout(() => exportModal = false, 500)" class="w-full py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl text-[10px] font-black uppercase transition-all shadow-lg">Download</button>
+                <button type="button" @click="exportModal = false" class="w-full mt-2 py-2 text-[8px] font-bold text-gray-500 uppercase tracking-widest">Cancel</button>
             </form>
         </div>
     </div>

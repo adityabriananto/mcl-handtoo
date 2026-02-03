@@ -352,24 +352,73 @@ class InboundOrderController extends Controller
 
     public function updateStatus(Request $request, $id)
     {
-        $inbound = InboundRequest::with('children')->findOrFail($id);
+        try {
+            DB::beginTransaction();
 
-        // Jika tipe adalah batch, update semua anak (Sub-IO) dan induknya
-        if ($request->type === 'batch') {
-            // Update semua Sub-IO
-            $inbound->children()->update(['status' => 'Completed']);
-            // Update Induk
-            $inbound->update(['status' => 'Completed']);
+            $inbound = InboundRequest::with(['children', 'details'])->findOrFail($id);
 
-            $message = "Main IO and all Sub-IOs have been marked as Completed.";
-        } else {
-            // Update individu (bisa Main IO tanpa split atau Sub-IO itu sendiri)
-            $inbound->update(['status' => 'Completed']);
+            if ($request->type === 'batch') {
+                // 1. Update Induk & Semua Anak menjadi Completed
+                $inbound->update(['status' => 'Completed']);
+                $inbound->children()->update(['status' => 'Completed']);
 
-            $message = "Inbound {$inbound->reference_number} marked as Completed.";
+                // 2. Update Quantity untuk Semua (Induk & Anak) secara masif
+                $allIds = $inbound->children->pluck('id')->push($inbound->id);
+
+                DB::table('inbound_order_details')
+                    ->whereIn('inbound_order_id', $allIds)
+                    ->update([
+                        'received_good' => DB::raw('requested_quantity'),
+                        'updated_at' => now()
+                    ]);
+
+                $message = "Main IO and all Sub-IOs marked as Completed with quantities synced.";
+            } else {
+                // 1. Update Status IO/Sub-IO yang dipilih
+                $inbound->update(['status' => 'Completed']);
+
+                // 2. Sync Quantity: received_good = requested_quantity pada item yang diklik
+                foreach ($inbound->details as $detail) {
+                    $detail->update(['received_good' => $detail->requested_quantity]);
+                }
+
+                // 3. Jika ini adalah Child, sinkronkan STATUS dan DATA QUANTITY ke Parent
+                if ($inbound->parent_id) {
+                    // Sinkronkan Status (Logic yang sudah kita buat sebelumnya)
+                    $this->syncParentStatus($inbound->parent_id);
+
+                    // Sinkronkan Data Quantity dari Child ke Parent
+                    $this->syncParentDataFromChildren($inbound->parent_id);
+                }
+
+                $message = "Inbound {$inbound->reference_number} marked as Completed.";
+            }
+
+            DB::commit();
+            return redirect()->back()->with('success', $message);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
         }
+    }
 
-        return redirect()->back()->with('success', $message);
+    private function syncParentDataFromChildren($parentId)
+    {
+        $parent = InboundRequest::with('details')->find($parentId);
+        $childrenIds = InboundRequest::where('parent_id', $parentId)->pluck('id');
+
+        foreach ($parent->details as $parentDetail) {
+            // Hitung total received_good dari semua child untuk SKU yang sama
+            $totalReceived = DB::table('inbound_order_details')
+                ->whereIn('inbound_order_id', $childrenIds)
+                ->where('seller_sku', $parentDetail->seller_sku)
+                ->sum('received_good');
+
+            $parentDetail->update([
+                'received_good' => $totalReceived
+            ]);
+        }
     }
 
     public function opsIndex(Request $request)
@@ -456,5 +505,75 @@ class InboundOrderController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal mengupload file: ' . $e->getMessage());
         }
+    }
+
+    public function resetStatus($id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $inbound = InboundRequest::with('children')->findOrFail($id);
+
+            // 1. Tentukan ID mana saja yang perlu di-reset
+            // Jika Parent, sertakan semua Child-nya. Jika Child, hanya dirinya sendiri.
+            $idsToReset = collect([$inbound->id]);
+            if ($inbound->children->count() > 0) {
+                $idsToReset = $idsToReset->merge($inbound->children->pluck('id'));
+            }
+
+            // 2. Reset Status ke Processing untuk semua ID terkait
+            InboundRequest::whereIn('id', $idsToReset)->update(['status' => 'Processing']);
+
+            // 3. Reset Quantity (received_good) menjadi 0 untuk semua detail terkait
+            DB::table('inbound_order_details')
+                ->whereIn('inbound_order_id', $idsToReset)
+                ->update(['received_good' => 0, 'updated_at' => now()]);
+
+            // 4. Jika yang di-reset adalah Child individu, update status Parent-nya
+            if ($inbound->parent_id) {
+                $this->syncParentStatus($inbound->parent_id);
+                // Update quantity parent berdasarkan sisa child yang mungkin masih completed
+                $this->syncParentDataFromChildren($inbound->parent_id);
+            }
+
+            DB::commit();
+            return back()->with('success', 'Status dan quantity berhasil di-reset.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal reset: ' . $e->getMessage());
+        }
+    }
+
+    private function syncParentStatus($parentId)
+    {
+        $parent = InboundRequest::find($parentId);
+        if (!$parent) return;
+
+        $statusCounts = InboundRequest::where('parent_id', $parentId)
+            ->select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
+        $totalChildren = array_sum($statusCounts);
+        $completedCount = $statusCounts['Completed'] ?? 0;
+
+        // Check jika ada progress (selain Pending)
+        $hasProgress = ($statusCounts['Processing'] ?? 0) > 0 ||
+                    ($statusCounts['Partial Completed'] ?? 0) > 0 ||
+                    ($completedCount > 0);
+
+        // Logic Penentuan Status
+        if ($completedCount === $totalChildren && $totalChildren > 0) {
+            $newStatus = 'Completed';
+        } elseif ($hasProgress) {
+            // Jika ada satu saja child yang sudah Completed atau sedang Processing
+            $newStatus = 'Partial Completed';
+        } else {
+            $newStatus = 'Processing';
+        }
+
+        $parent->update(['status' => $newStatus]);
     }
 }

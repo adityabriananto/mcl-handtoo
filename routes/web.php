@@ -123,6 +123,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Specialized
         Route::post('/{id}/split', [InboundOrderController::class, 'split'])->name('split');
         Route::get('/{inbound}/export-children', [InboundOrderController::class, 'exportChildren'])->name('export.children');
+
+        // Route Reset Status (Fitur Backdoor Admin)
+        Route::post('/inbound/{id}/reset-status', [InboundOrderController::class, 'resetStatus'])->name('reset_status');
     });
 
     // --- Configuration & Admin Section ---

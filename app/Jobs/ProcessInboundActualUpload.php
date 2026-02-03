@@ -25,10 +25,8 @@ class ProcessInboundActualUpload implements ShouldQueue
 
     public function handle()
     {
-        // 1. Ambil semua data dari Excel ke dalam Collection
         $allRows = (new FastExcel)->import($this->filePath);
 
-        // 2. Pecah menjadi chunk per 100 data
         $allRows->chunk(100)->each(function ($chunk) {
             DB::transaction(function () use ($chunk) {
                 $inboundIdsInChunk = [];
@@ -40,25 +38,28 @@ class ProcessInboundActualUpload implements ShouldQueue
 
                     if (!$outOrderCode || !$productBarcode) continue;
 
-                    // Cari Inbound Header
-                    $inbound = InboundRequest::where('fulfillment_order_no', $outOrderCode)->first();
+                    // TAMBAHKAN PENGECEKAN STATUS DI SINI
+                    // Hanya ambil data yang statusnya BUKAN Completed dan BUKAN Partial Completed
+                    $inbound = InboundRequest::where('fulfillment_order_no', $outOrderCode)
+                        ->whereNotIn('status', ['Completed', 'Partial Completed']) // Proteksi data
+                        ->first();
 
                     if ($inbound) {
-                        // Update Detail SKU
                         InboundRequestDetail::where('inbound_request_id', $inbound->id)
                             ->where('fulfillment_sku', $productBarcode)
                             ->update(['received_good' => (int)$actualQty]);
 
                         $inboundIdsInChunk[] = $inbound->id;
+                    } else {
+                        // Opsional: Log jika ada baris yang dilewati karena status sudah terkunci
+                        \Log::info("SKU {$productBarcode} pada IO {$outOrderCode} di-skip karena status sudah Completed/Partial.");
                     }
                 }
 
-                // 3. Sync Status untuk Inbound yang ada di chunk ini
                 $this->syncInboundStatus(array_unique($inboundIdsInChunk));
             });
         });
 
-        // Hapus file setelah selesai
         if (file_exists($this->filePath)) {
             unlink($this->filePath);
         }
@@ -68,15 +69,64 @@ class ProcessInboundActualUpload implements ShouldQueue
     {
         foreach ($ids as $id) {
             $inbound = InboundRequest::with('details')->find($id);
-            if ($inbound) {
-                $totalRequested = $inbound->details->sum('requested_quantity');
-                $totalReceived  = $inbound->details->sum('received_good');
+            if (!$inbound) continue;
 
-                if ($totalReceived >= $totalRequested && $totalRequested > 0) {
-                    $inbound->update(['status' => 'Completed']);
-                } elseif ($totalReceived > 0) {
-                    $inbound->update(['status' => 'Processing']);
-                }
+            // --- 1. Tentukan Status untuk Inbound Tersebut (Single atau Child) ---
+            $status = $this->calculateInboundStatus($inbound);
+            $inbound->update(['status' => $status]);
+
+            // --- 2. Jika ini adalah Child, Update juga Status Parent-nya ---
+            if ($inbound->parent_id) { // Asumsi kolom parent_id tersedia
+                $this->syncParentStatus($inbound->parent_id);
+            }
+        }
+    }
+
+    /**
+     * Logika status untuk Single atau Child individual
+     */
+    private function calculateInboundStatus($inbound)
+    {
+        $totalRequested = $inbound->details->sum('requested_quantity');
+        $totalReceived  = $inbound->details->sum('received_good');
+
+        if ($totalRequested <= 0) return $inbound->status;
+
+        // Jika diterima >= diminta (Completed)
+        if ($totalReceived >= $totalRequested) {
+            return 'Completed';
+        }
+
+        // Jika ada yang diterima tapi kurang dari yang diminta (Partial Completed)
+        if ($totalReceived > 0 && $totalReceived < $totalRequested) {
+            return 'Partial Completed';
+        }
+
+        return 'Processing';
+    }
+
+    /**
+     * Logika khusus untuk Parent berdasarkan status Child-nya
+     */
+    private function syncParentStatus($parentId)
+    {
+        $parent = InboundRequest::with('children')->find($parentId);
+        if (!$parent) return;
+
+        // Cek apakah ada child yang berstatus "Partial Completed"
+        $hasPartialChild = $parent->children()->where('status', 'Partial Completed')->exists();
+
+        if ($hasPartialChild) {
+            $parent->update(['status' => 'Partial Completed']);
+        } else {
+            // Jika tidak ada yang partial, cek apakah semua sudah Completed
+            $allCompleted = $parent->children()->count() === $parent->children()->where('status', 'Completed')->count();
+
+            if ($allCompleted) {
+                $parent->update(['status' => 'Completed']);
+            } else {
+                // Jika belum semua completed tapi tidak ada yang partial (berarti ada yang pending/processing)
+                $parent->update(['status' => 'Processing']);
             }
         }
     }
