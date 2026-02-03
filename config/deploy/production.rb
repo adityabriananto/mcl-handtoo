@@ -9,7 +9,7 @@
 
 role :app, %w{root@45.76.180.252}
 
-set :deploy_to, '/var/www/html/mcl-handtoo'
+set :deploy_to, '/var/www/html/mcl-handtoo_live'
 ask(:password, nil, echo: false)
 
 server '45.76.180.252', user: 'root', my_property: :my_value
