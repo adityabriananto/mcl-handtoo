@@ -71,6 +71,23 @@ Route::get('/ops/inbound', [InboundOrderController::class, 'opsIndex'])->name('o
 Route::post('/ops/inbound', [InboundOrderController::class, 'opsIndex'])->name('ops.inbound.filter');
 
 Route::post('/inbound/upload-actual', [InboundOrderController::class, 'uploadActualQuantity'])->name('inbound.upload_actual');
+
+// --- MB Master (Brand Data) ---
+Route::prefix('mb-master')->name('mb-master.')->group(function () {
+    // View & Data
+    Route::get('/', [MbMasterController::class, 'index'])->name('index');
+    Route::get('/import-status', [MbMasterController::class, 'checkImportStatus'])->name('import-status');
+
+    // Actions
+    Route::post('/', [MbMasterController::class, 'store'])->name('store');
+    Route::post('/import', [MbMasterController::class, 'importCsv'])->name('import');
+
+    // PERBAIKAN DI SINI: Hilangkan prefix berlebih dan sesuaikan parameter
+    Route::patch('/{mbMaster}', [MbMasterController::class, 'update'])->name('update');
+
+    Route::delete('/{id}', [MbMasterController::class, 'destroy'])->name('destroy');
+});
+
 /*
 |--------------------------------------------------------------------------
 | Authenticated Routes (Semua Menu Master & Admin)
@@ -85,22 +102,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/profile', 'edit')->name('profile.edit');
         Route::patch('/profile', 'update')->name('profile.update');
         Route::delete('/profile', 'destroy')->name('profile.destroy');
-    });
-
-    // --- MB Master (Brand Data) ---
-    Route::prefix('mb-master')->name('mb-master.')->group(function () {
-        // View & Data
-        Route::get('/', [MbMasterController::class, 'index'])->name('index');
-        Route::get('/import-status', [MbMasterController::class, 'checkImportStatus'])->name('import-status');
-
-        // Actions
-        Route::post('/', [MbMasterController::class, 'store'])->name('store');
-        Route::post('/import', [MbMasterController::class, 'importCsv'])->name('import');
-
-        // PERBAIKAN DI SINI: Hilangkan prefix berlebih dan sesuaikan parameter
-        Route::patch('/{mbMaster}', [MbMasterController::class, 'update'])->name('update');
-
-        Route::delete('/{id}', [MbMasterController::class, 'destroy'])->name('destroy');
     });
 
     // --- Inbound Routes ---

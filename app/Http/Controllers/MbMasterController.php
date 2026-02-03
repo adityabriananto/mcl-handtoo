@@ -12,7 +12,7 @@ class MbMasterController extends Controller
 {
     public function index(Request $request)
     {
-        // Ambil data unik untuk dropdown filter
+        // 1. Ambil data unik untuk dropdown filter
         $filterOptions = [
             'brands' => MbMaster::select('brand_code', 'brand_name')
                 ->groupBy('brand_code', 'brand_name')
@@ -22,33 +22,52 @@ class MbMasterController extends Controller
 
         $query = MbMaster::query();
 
-        // Filter Brand (bisa berupa code atau name dari dropdown)
+        // 2. Terapkan Filter (Logic yang sama untuk View & Export)
         if ($request->filled('brand')) {
             $query->where(function($q) use ($request) {
                 $q->where('brand_code', $request->brand)
                 ->orWhere('brand_name', 'like', "%{$request->brand}%");
             });
         }
-
         if ($request->filled('barcode')) {
             $query->where('manufacture_barcode', 'like', "%{$request->barcode}%");
         }
-
         if ($request->filled('f_sku')) {
             $query->where('fulfillment_sku', 'like', "%{$request->f_sku}%");
         }
-
         if ($request->filled('s_sku')) {
             $query->where('seller_sku', 'like', "%{$request->s_sku}%");
         }
-
-        // Filter Status
         if ($request->filled('status')) {
             $statusValue = $request->status == 'active' ? 0 : 1;
             $query->where('is_disabled', $statusValue);
         }
 
-        $masters = $query->latest()->paginate(10)->withQueryString();
+       if ($request->has('export')) {
+            // 1. Bersihkan semua output buffer agar file tidak korup
+            if (ob_get_contents()) ob_end_clean();
+            ob_start();
+
+            // 2. Gunakan get() jika cursor() masih bermasalah dengan fastexcel di env Anda
+            // atau gunakan generator jika data sangat banyak
+            $exportData = $query->get();
+
+            // 3. Pastikan return fastexcel langsung dikembalikan
+            return (new \Rap2hpoutre\FastExcel\FastExcel($exportData))
+                ->download('MB_Master_Export_'.date('YmdHis').'.csv', function ($item) {
+                    return [
+                        'Brand Code'          => $item->brand_code,
+                        'Brand Name'          => $item->brand_name,
+                        'Manufacture Barcode' => $item->manufacture_barcode,
+                        'Fulfillment SKU'     => $item->fulfillment_sku,
+                        'Seller SKU'          => $item->seller_sku ?? '-',
+                        'Status'              => $item->is_disabled ? 'Disabled' : 'Active',
+                    ];
+                });
+        }
+
+        // 4. Final Query untuk View
+        $masters = $query->latest()->paginate(50)->withQueryString();
 
         return view('mb_master.index', compact('masters', 'filterOptions'));
     }

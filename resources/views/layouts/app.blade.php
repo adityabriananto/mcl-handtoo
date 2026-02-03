@@ -117,6 +117,15 @@
                             <div x-show="open" x-cloak x-transition.opacity.scale.95
                                 class="absolute right-0 mt-2 w-52 rounded-xl shadow-xl py-2 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-20 border border-gray-100 dark:border-gray-700">
 
+                                <a href="{{ route('mb-master.index') }}"
+                                class="group flex items-center px-4 py-2.5 text-sm transition-all
+                                    {{ request()->routeIs('mb-master.index')
+                                        ? 'bg-blue-50 text-blue-600 font-bold dark:bg-blue-900/20'
+                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                    }}">
+                                    <span class="w-1.5 h-1.5 rounded-full mr-2 {{ request()->routeIs('mb-master.index') ? 'bg-blue-600' : 'bg-gray-300' }}"></span>
+                                    MB Master Data
+                                </a>
                                 {{-- MB Order Data Link --}}
                                 <a href="{{ route('mb-orders.index') }}"
                                     class="group flex items-center px-4 py-2.5 text-sm transition-all

@@ -133,14 +133,23 @@
                 </div>
 
                 <div class="flex gap-1">
+                    {{-- Button Submit Normal untuk Filter --}}
                     <button type="submit" class="bg-gray-900 dark:bg-indigo-600 text-white px-3 py-2.5 rounded-xl text-[9px] font-black uppercase transition hover:bg-indigo-700 active:scale-95">
                         Filter
                     </button>
+
+                    {{-- Button Export (Menambah parameter 'export' ke URL) --}}
+                    <a :href="'{{ route('mb-master.index') }}?export=1&' + new URLSearchParams(new FormData($el.closest('form'))).toString()"
+                    class="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-3 py-2.5 rounded-xl text-[9px] font-black uppercase transition hover:bg-emerald-600 hover:text-white active:scale-95 border border-emerald-200 dark:border-emerald-800/50 flex items-center">
+                        Export CSV
+                    </a>
+
                     <a href="{{ route('mb-master.index') }}" class="bg-gray-100 dark:bg-gray-800 text-gray-400 p-2.5 rounded-xl hover:text-red-500 transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
                     </a>
                 </div>
-
                 <div class="hidden lg:block w-px h-8 bg-gray-100 dark:bg-gray-800 mx-1"></div>
 
                 <div class="flex gap-1 ml-auto">
