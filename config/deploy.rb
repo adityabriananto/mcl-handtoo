@@ -42,13 +42,8 @@ namespace :deploy do
                 execute :npm, "install"
                 execute :npm, "run build"
 
-                # DEKRIPSI ENV
-                # Mengambil Key dari environment variable terminal saat Anda menjalankan deploy
-                # Perintah: LARAVEL_ENV_ENCRYPTION_KEY=base64:xxx... cap production deploy
-                # execute :php, "artisan env:decrypt --key=#{ENV['LARAVEL_ENV_ENCRYPTION_KEY']} --force"
-
                 # 3. Database Migration
-                execute :php, "artisan migrate --force"
+                execute :php, "artisan migrate --force --no-interaction"
 
                 # 4. Storage & Permissions
                 # Membuat folder jika belum ada dan mengatur akses
@@ -60,11 +55,10 @@ namespace :deploy do
 
                 # 5. Clear & Optimize Cache
                 # Jalankan ini terakhir setelah semua class dan file siap
-                execute :php, "artisan optimize:clear || true"
+                execute :php, "artisan optimize:clear" || true
                 execute :php, "artisan config:cache"
                 execute :php, "artisan route:cache"
                 execute :php, "artisan view:cache"
-
             end
         end
     end

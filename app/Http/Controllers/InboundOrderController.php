@@ -266,11 +266,14 @@ class InboundOrderController extends Controller
     {
         $inbound = InboundRequest::with(['details', 'children.details'])->findOrFail($id);
 
+        $warehouseMap = config('warehouses.list');
+
         // Fungsi pembantu untuk memetakan data sesuai header template
-        $mapRow = function($model, $sku, $qty) {
+        $mapRow = function($model, $sku, $qty) use ($warehouseMap) {
+            $warehouseName = $warehouseMap[$model->warehouse_code] ?? $model->warehouse_code;
             return [
                 'Delivery Type(required)(must be "Dropoff")' => 'Dropoff',
-                'Inbound warehouse name(required)' => $model->warehouse_code,
+                'Inbound warehouse name(required)' => $warehouseName,
                 'Reference Order No.' => $model->reference_number,
                 'Estimated Date(required)(yyyy-mm-dd)' => $model->estimate_time ? date('Y-m-d', strtotime($model->estimate_time)) : date('Y-m-d'),
                 'Estimated Hour(required)(hh)' => $model->estimate_time ? date('H', strtotime($model->estimate_time)) : '00',
@@ -325,13 +328,16 @@ class InboundOrderController extends Controller
         $children = $inbound->children()->with('details')->get();
         if ($children->isEmpty()) return back()->with('error', 'No child documents found.');
 
+        $warehouseMap = config('warehouses.list');
+
         $rows = new Collection();
         foreach ($children as $child) {
             $uniqueSkus = $child->details->groupBy('seller_sku');
             foreach ($uniqueSkus as $sku => $details) {
+                $warehouseName = $warehouseMap[$child->warehouse_code] ?? $child->warehouse_code;
                 $rows->push([
                     'Delivery Type(required)(must be "Dropoff")' => 'Dropoff',
-                    'Inbound warehouse name(required)' => $child->warehouse_code,
+                    'Inbound warehouse name(required)' => $warehouseName,
                     'Reference Order No.' => $child->reference_number,
                     'Estimated Date(required)(yyyy-mm-dd)' => $child->estimate_time ? date('Y-m-d', strtotime($child->estimate_time)) : date('Y-m-d'),
                     'Estimated Hour(required)(hh)' => $child->estimate_time ? date('H', strtotime($child->estimate_time)) : '00',
