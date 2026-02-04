@@ -43,7 +43,8 @@ namespace :deploy do
                 execute :npm, "run build"
 
                 # 3. Database Migration
-                execute :php, "artisan migrate --force --no-interaction"
+                execute "cd '#{release_path}';"
+                execute :php, "#{release_path.join('artisan')} migrate --force --no-interaction"
 
                 # 4. Storage & Permissions
                 # Membuat folder jika belum ada dan mengatur akses
