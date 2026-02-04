@@ -45,7 +45,7 @@ class ProcessInboundActualUpload implements ShouldQueue
                         ->first();
 
                     if ($inbound) {
-                        InboundRequestDetail::where('inbound_request_id', $inbound->id)
+                        InboundRequestDetail::where('inbound_order_id', $inbound->id)
                             ->where('fulfillment_sku', $productBarcode)
                             ->update(['received_good' => (int)$actualQty]);
 
