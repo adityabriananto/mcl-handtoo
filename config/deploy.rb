@@ -48,7 +48,7 @@ namespace :deploy do
                 # execute :php, "artisan env:decrypt --key=#{ENV['LARAVEL_ENV_ENCRYPTION_KEY']} --force"
 
                 # 3. Database Migration
-                # execute :php, "artisan migrate --force"
+                execute :php, "artisan migrate --force"
 
                 # 4. Storage & Permissions
                 # Membuat folder jika belum ada dan mengatur akses
