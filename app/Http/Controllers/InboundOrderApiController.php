@@ -26,6 +26,7 @@ class InboundOrderApiController extends Controller
 
         $validator = Validator::make($request->all(), [
             'comment'        => 'required|string',
+            'reference_number' => 'required|string',
             'estimate_time'  => 'required', // Format fleksibel mengikuti Carbon
             'warehouse_code' => 'required|string',
             'skus'           => 'required|array',
