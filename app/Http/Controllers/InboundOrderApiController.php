@@ -120,12 +120,12 @@ class InboundOrderApiController extends Controller
     public function getInboundOrderDetail(Request $request)
     {
         $client = ClientApi::where('app_key', $request['app_key'])->first();
+        $type = 'GetInboundOrderDetails';
 
         if (empty($client)) {
-            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, 'GetInboundOrderDetails');
+            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, $type);
         }
 
-        // Pastikan memanggil first() di akhir dan muat relasi yang dibutuhkan Resource
         $query = InboundRequest::with(['details', 'children', 'parent'])
                     ->where('client_name', $client->client_name)
                     ->where('reference_number', $request['inbound_order_no']);
@@ -134,92 +134,57 @@ class InboundOrderApiController extends Controller
             $query->where('comment', $request['brand_os']);
         }
 
-        $inbound = $query->first(); // Ambil data pertama atau null
+        $inbound = $query->first();
 
         if (!$inbound) {
-            // $statusCode = 404;
-            // $responseContent = [
-            //     'success' => false,
-            //     'message' => 'Reference number not found.'
-            // ];
-            // $this->logApi($request, $responseContent, $statusCode, 'GetInboundOrderDetails');
-            // return response()->json($responseContent, $statusCode);
-            return $this->buildApiResponse(false, 'Data Not Found', 'Inbound Order Number not found.', 400, $request, 'GetInboundOrderDetails');
-
+            return $this->buildApiResponse(false, 'Data Not Found', 'Inbound Order Number not found.', 400, $request, $type);
         }
 
-        // $statusCode = 200;
-        // $responseContent = [
-        //     'success' => true,
-        //     'data' => new InboundResourceDetail($inbound)
-        // ];
+        // Mengembalikan data menggunakan Resource yang sudah diformat khusus
+        $resource = new InboundResourceDetail($inbound);
 
-        // $this->logApi($request, $responseContent, $statusCode, 'GetInboundOrder');
-        // return response()->json($responseContent, $statusCode);
-        return $this->buildApiResponse(true, null, new InboundResourceDetail($inbound), 200, $request, 'GetInboundOrderDetails');
-    }
-
-    private function buildApiResponse($success, $errorCode, $dataOrMessage, $status, $request, $type) {
-        $responseContent = [
-            'success' => $success,
-            'code'    => $status,
-            'body'    => $success ? $dataOrMessage : null,
-            'error'   => !$success ? [
-                'error'    => $errorCode,
-                'error_message' => $dataOrMessage
-            ] : null
-        ];
-
-        // Simpan Log
-        $this->logApi($request, $responseContent, $status, $type);
-
-        return response()->json($responseContent, $status)
-                        ->header('Content-Type', 'application/json');
+        return $this->buildApiResponse(true, null, $resource, 200, $request, $type);
     }
 
     public function cancel(Request $request)
     {
         $type = 'CancelInboundOrder';
 
+        // 1. Cek Client API
         $client = ClientApi::where('app_key', $request['app_key'])->first();
-
         if (empty($client)) {
-            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, 'GetInboundOrderDetails');
+            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, $type);
         }
 
-        // 1. Validasi Input
+        // 2. Validasi Input
         $validator = Validator::make($request->all(), [
             'inbound_order_no' => 'required|exists:inbound_orders,reference_number'
         ]);
 
         if ($validator->fails()) {
-            $response = ['code' => '1', 'message' => $validator->errors()->first()];
-            $this->logApi($request, $response, 400, $type); // Log Error Validasi
-            return response()->json($response, 400);
+            return $this->buildApiResponse(false, 'VALIDATION_ERROR', $validator->errors()->first(), 400, $request, $type);
         }
 
         $inbound = InboundRequest::where('reference_number', $request->inbound_order_no)->first();
 
-        // 2. Cek Status (Jika sudah Cancelled)
+        // 3. Validasi State (Status)
         if ($inbound->status === 'Cancelled') {
-            $response = ['code' => '1', 'message' => 'Inbound is already cancelled.'];
-            $this->logApi($request, $response, 400, $type);
-            return response()->json($response, 400);
+            return $this->buildApiResponse(false, 'ALREADY_CANCELLED', 'Inbound is already cancelled.', 400, $request, $type);
         }
 
-        // 3. Cek Status (Jika sudah Completed)
         if ($inbound->status === 'Completed') {
-            $response = ['code' => '1', 'message' => 'Cannot cancel a completed inbound.'];
-            $this->logApi($request, $response, 400, $type);
-            return response()->json($response, 400);
+            return $this->buildApiResponse(false, 'FORBIDDEN', 'Cannot cancel a completed inbound.', 400, $request, $type);
         }
 
         try {
             \DB::transaction(function () use ($inbound) {
+                // Jika Parent: Cancel bapak dan anak-anak yang belum completed
                 if (!$inbound->parent_id && $inbound->children->count() > 0) {
                     $inbound->update(['status' => 'Cancelled']);
                     $inbound->children()->where('status', '!=', 'Completed')->update(['status' => 'Cancelled']);
-                } else {
+                }
+                // Jika Child atau Single: Cancel diri sendiri dan sync bapaknya
+                else {
                     $inbound->update(['status' => 'Cancelled']);
                     if ($inbound->parent_id) {
                         $this->updateParentStatusAfterChildCancel($inbound->parent_id);
@@ -227,25 +192,18 @@ class InboundOrderApiController extends Controller
                 }
             });
 
-            // 4. Log Berhasil
-            $response = [
-                "code" => "0",
-                "data" => [
-                    "reference_number" => $inbound->reference_number,
-                    "status"           => "Cancelled",
-                    "updated_at"       => now()->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z')
-                ],
-                "request_id" => (string) \Illuminate\Support\Str::uuid()
+            // 4. Response Berhasil
+            $dataResponse = [
+                "reference_number" => $inbound->reference_number,
+                "status"           => "Cancelled",
+                "updated_at"       => now()->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z')
             ];
 
-            $this->logApi($request, $response, 200, $type);
-            return response()->json($response, 200);
+            return $this->buildApiResponse(true, null, $dataResponse, 200, $request, $type);
 
         } catch (\Exception $e) {
-            // 5. Log Error Server
-            $response = ['code' => '1', 'message' => 'Internal Server Error: ' . $e->getMessage()];
-            $this->logApi($request, $response, 500, $type);
-            return response()->json($response, 500);
+            // 5. Response Error Server
+            return $this->buildApiResponse(false, 'SERVER_ERROR', $e->getMessage(), 500, $request, $type);
         }
     }
 
@@ -254,27 +212,57 @@ class InboundOrderApiController extends Controller
      */
     private function updateParentStatusAfterChildCancel($parentId)
     {
+        // Ambil data parent beserta status semua anaknya
         $parent = InboundRequest::with('children')->find($parentId);
         if (!$parent) return;
 
-        $childrenStatus = $parent->children()->pluck('status')->toArray();
-        $totalChildren = count($childrenStatus);
-        $cancelledCount = count(array_filter($childrenStatus, fn($s) => $s === 'Cancelled'));
-        $completedCount = count(array_filter($childrenStatus, fn($s) => $s === 'Completed'));
+        $childrenStatuses = $parent->children()->pluck('status')->toArray();
+        $totalChildren    = count($childrenStatuses);
 
-        // Sesuai permintaan: Jika salah satu child di-cancel,
-        // status parent menjadi 'Partial Completed' (asumsi ada child lain yang masih jalan/selesai)
-        if ($cancelledCount > 0 && $cancelledCount < $totalChildren) {
+        // Hitung distribusi status anak-anaknya
+        $cancelledCount = count(array_filter($childrenStatuses, fn($s) => $s === 'Cancelled'));
+        $completedCount = count(array_filter($childrenStatuses, fn($s) => $s === 'Completed'));
+
+        /**
+         * LOGIKA KEPUTUSAN STATUS PARENT:
+         */
+
+        // 1. Jika SEMUA anak sudah Cancelled, maka Parent otomatis Cancelled.
+        if ($cancelledCount === $totalChildren) {
+            $parent->update(['status' => 'Cancelled']);
+        }
+        // 2. Jika ada anak yang sudah Completed (berhasil masuk) tapi ada juga yang Cancelled,
+        //    maka Parent dianggap "Partial Completed" karena tidak semua barang masuk.
+        elseif ($completedCount > 0) {
             $parent->update(['status' => 'Partial Completed']);
         }
-        // Jika ternyata semua child akhirnya menjadi cancelled
-        elseif ($cancelledCount === $totalChildren) {
-            $parent->update(['status' => 'Cancelled']);
+        // 3. Jika ada yang Cancelled tapi sisanya masih "Processing" (belum di-apa-apakan),
+        //    maka Parent tetap menjadi "Partial Completed" sebagai tanda ada pembatalan di tengah jalan.
+        elseif ($cancelledCount > 0 && $cancelledCount < $totalChildren) {
+            $parent->update(['status' => 'Partial Completed']);
         }
-        // Jika semua sisa child sudah Completed
-        elseif ($completedCount + $cancelledCount === $totalChildren) {
-            $parent->update(['status' => 'Cancelled']);
+    }
+
+    protected function buildApiResponse($success, $message, $data, $status, $request, $type)
+    {
+        $response = [
+            "code"       => $success ? "0" : (string) $status,
+            "data"       => $data, // Ini akan berisi hasil dari InboundResourceDetail
+            "request_id" => (string) \Str::uuid()
+        ];
+
+        // Jika terjadi error, kita bisa selipkan message di dalam data atau level atas
+        if (!$success) {
+            $response["data"] = [
+                "error_type" => $message,
+                "message"    => $data // Jika data berisi pesan error string
+            ];
         }
+
+        // Simpan ke log tabel api_logs
+        $this->logApi($request, $response, $status, $type);
+
+        return response()->json($response, $status);
     }
 
     private function logApi($request, $response, $status, $type) {
