@@ -14,55 +14,63 @@ class InboundResourceDetail extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        // Hapus dd($this) agar data bisa mengalir ke frontend/export
+        // Menggunakan pemetaan warehouse dari config yang kita buat sebelumnya
+        $warehouseMap = config('warehouses.list');
+        $warehouseName = $warehouseMap[$this->warehouse_code] ?? $this->inbound_warehouse;
 
         return [
-            'reference_number' => $this->reference_number,
-            'brand_os'         => $this->comment,
-            'io_number'        => $this->inbound_order_no,
-            'io_type'          => $this->parent_id ? 'Child' : ($this->children->count() > 0 ? 'Parent' : 'Single'),
-            'status'           => $this->status,
-            'io_status'        => $this->io_status,
-            'warehouse_code'   => $this->warehouse_code,
-            'warehouse_name'   => $this->inbound_warehouse,
-
-            // Relasi Dokumen (Hanya muncul jika relevan menggunakan whenLoaded)
-            'relation' => [
-                'is_parent' => $this->children->count() > 0,
-                'is_child'  => $this->parent_id !== null,
-
-                // Jika ini Parent, tampilkan daftar anak-anaknya
-                'children' => $this->children->map(function($child) {
+            "code" => "0",
+            "data" => [
+                "inbound_warehouse"        => $warehouseName,
+                "skus" => $this->details->map(function($detail) {
                     return [
-                        'id'               => $child->id,
-                        'reference_number' => $child->reference_number,
-                        'io_number'        => $child->inbound_order_no,
-                        'status'           => $child->status,
-                        'io_status'        => $child->io_status,
-                        'total_qty'        => $child->details->sum('requested_quantity'),
+                        "shelf_life_flag"        => "false",
+                        "comments"               => $this->comment ?? "",
+                        "item_inbounded_damaged" => (string) ($detail->received_damaged ?? 0),
+                        "requested_quantity"     => (string) $detail->requested_quantity,
+                        "serial_number_flag"     => "false",
+                        "fulfillment_sku"        => $detail->seller_sku, // Sesuaikan jika ada field fulfillment_sku
+                        "seller_sku"             => [
+                            $detail->seller_sku
+                        ],
+                        "item_inbounded_expired" => "0",
+                        "item_inbounded_good"    => (string) ($detail->received_good ?? 0),
+                        "sku_status"             => $this->status,
+                        "fulfillment_sku_name"   => $detail->product_name ?? "-",
+                        "barcodes"               => [
+                            $detail->barcode ?? $detail->seller_sku
+                        ]
                     ];
                 }),
-
-                // Jika ini Child, tampilkan referensi bapaknya
-                'parent_ref' => $this->parent ? $this->parent->reference_number : null,
+                // Format waktu UTC ISO8601
+                "inbound_time"             => $this->created_at ? $this->created_at->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
+                "inbound_warehouse_code"   => $this->warehouse_code,
+                "created_at"               => $this->created_at ? $this->created_at->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
+                "seller_mobile"            => "-", // Sesuaikan field jika ada
+                "seller_country"           => "-",
+                "fulfillment_order_number" => $this->inbound_order_no,
+                "need_reservation"         => "false",
+                "seller_postcode"          => "-",
+                "seller_warehouse_name"    => $this->inbound_warehouse,
+                "updated_at"               => $this->updated_at ? $this->updated_at->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
+                "estimate_time"            => $this->estimate_time ? \Illuminate\Support\Carbon::parse($this->estimate_time)->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
+                "delivery_type"            => "Dropoff",
+                "seller_contact"           => "-",
+                "io_status"                => $this->status,
+                "comments"                 => $this->comment,
+                "marketplace"              => "LAZADA_ID",
+                "warehouse_address"        => "-",
+                "reservation_order"        => "-",
+                "shop_name"                => "-",
+                "reference_number"         => $this->reference_number,
+                "seller_address"           => "-",
+                "seller_city"              => "-",
+                "reservation_status"       => "-",
+                "warehouse_name"           => $warehouseName,
+                "io_type"                  => "normal",
+                "io_number"                => $this->inbound_order_no
             ],
-
-            // Data Barang (Details)
-            'summary' => [
-                'total_sku'   => $this->details->count(),
-                'total_units' => (int) $this->details->sum('requested_quantity'),
-            ],
-
-            'items' => $this->details->map(function($detail) {
-                return [
-                    'sku'              => $detail->seller_sku,
-                    'product_name'     => $detail->product_name ?? '-',
-                    'qty'              => (int) $detail->requested_quantity,
-                    'received_good'    => (int) $detail->received_good
-                ];
-            }),
-
-            'created_at' => $this->created_at ? $this->created_at->format('Y-m-d H:i:s') : null,
+            "request_id" => (string) \Str::uuid() // Menghasilkan ID unik untuk setiap request
         ];
     }
 }

@@ -163,7 +163,7 @@ class InboundOrderApiController extends Controller
         $responseContent = [
             'success' => $success,
             'code'    => $status,
-            'data'    => $success ? $dataOrMessage : null,
+            'body'    => $success ? $dataOrMessage : null,
             'error'   => !$success ? [
                 'error'    => $errorCode,
                 'error_message' => $dataOrMessage
