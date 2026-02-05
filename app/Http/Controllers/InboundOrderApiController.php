@@ -25,12 +25,12 @@ class InboundOrderApiController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'comment'        => 'required|string',
-            'reference_number' => 'required|string',
-            'estimate_time'  => 'required', // Format fleksibel mengikuti Carbon
-            'warehouse_code' => 'required|string',
-            'skus'           => 'required|array',
-            'skus.*.seller_sku' => 'required|string',
+            'comment'                   => 'required|string',
+            'reference_number'          => 'required|string',
+            'estimate_time'             => 'required|date_format:Y-m-d\TH:i:s\Z',
+            'warehouse_code'            => 'required|string',
+            'skus'                      => 'required|array',
+            'skus.*.seller_sku'         => 'required|string',
             'skus.*.requested_quantity' => 'required|numeric'
         ]);
 
