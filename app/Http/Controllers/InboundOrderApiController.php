@@ -181,6 +181,12 @@ class InboundOrderApiController extends Controller
     {
         $type = 'CancelInboundOrder';
 
+        $client = ClientApi::where('app_key', $request['app_key'])->first();
+
+        if (empty($client)) {
+            return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, 'GetInboundOrderDetails');
+        }
+
         // 1. Validasi Input
         $validator = Validator::make($request->all(), [
             'inbound_order_no' => 'required|exists:inbound_orders,reference_number'
@@ -188,8 +194,8 @@ class InboundOrderApiController extends Controller
 
         if ($validator->fails()) {
             $response = ['code' => '1', 'message' => $validator->errors()->first()];
-            $this->logApi($request, $response, 422, $type); // Log Error Validasi
-            return response()->json($response, 422);
+            $this->logApi($request, $response, 400, $type); // Log Error Validasi
+            return response()->json($response, 400);
         }
 
         $inbound = InboundRequest::where('reference_number', $request->inbound_order_no)->first();
@@ -197,8 +203,8 @@ class InboundOrderApiController extends Controller
         // 2. Cek Status (Jika sudah Cancelled)
         if ($inbound->status === 'Cancelled') {
             $response = ['code' => '1', 'message' => 'Inbound is already cancelled.'];
-            $this->logApi($request, $response, 422, $type);
-            return response()->json($response, 422);
+            $this->logApi($request, $response, 400, $type);
+            return response()->json($response, 400);
         }
 
         // 3. Cek Status (Jika sudah Completed)
