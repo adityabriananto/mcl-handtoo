@@ -27,7 +27,7 @@ class InboundResourceDetail extends JsonResource
                     "item_inbounded_damaged" => (string) ($detail->received_damaged ?? 0),
                     "requested_quantity"     => (string) $detail->requested_quantity,
                     "serial_number_flag"     => "false",
-                    "fulfillment_sku"        => $detail->seller_sku, // Sesuaikan jika ada field fulfillment_sku
+                    "fulfillment_sku"        => $detail->fulfillment_sku ?? null, // Sesuaikan jika ada field fulfillment_sku
                     "seller_sku"             => [
                         $detail->seller_sku
                     ],
