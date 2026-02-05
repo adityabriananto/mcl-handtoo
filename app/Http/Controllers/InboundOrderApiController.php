@@ -54,7 +54,7 @@ class InboundOrderApiController extends Controller
         $inboundOrder->warehouse_code        = $request->warehouse_code;
         $inboundOrder->delivery_type         = $request->delivery_type;
         $inboundOrder->seller_warehouse_code = $request->seller_warehouse_code;
-        $inboundOrder->estimate_time         = Carbon::parse($request->estimate_time, 'UTC')->setTimezone('Asia/Jakarta')->toDateTimeString();
+        $inboundOrder->estimate_time         = Carbon::parse($request->estimate_time)->toDateTimeString();
         $inboundOrder->comment               = $request->comment;
         $inboundOrder->status                = 'Pending';
         $inboundOrder->save();
