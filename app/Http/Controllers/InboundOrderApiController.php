@@ -177,6 +177,100 @@ class InboundOrderApiController extends Controller
                         ->header('Content-Type', 'application/json');
     }
 
+    public function cancel(Request $request)
+    {
+        $type = 'CancelInboundOrder';
+
+        // 1. Validasi Input
+        $validator = Validator::make($request->all(), [
+            'inbound_order_no' => 'required|exists:inbound_orders,reference_number'
+        ]);
+
+        if ($validator->fails()) {
+            $response = ['code' => '1', 'message' => $validator->errors()->first()];
+            $this->logApi($request, $response, 422, $type); // Log Error Validasi
+            return response()->json($response, 422);
+        }
+
+        $inbound = InboundRequest::where('reference_number', $request->inbound_order_no)->first();
+
+        // 2. Cek Status (Jika sudah Cancelled)
+        if ($inbound->status === 'Cancelled') {
+            $response = ['code' => '1', 'message' => 'Inbound is already cancelled.'];
+            $this->logApi($request, $response, 422, $type);
+            return response()->json($response, 422);
+        }
+
+        // 3. Cek Status (Jika sudah Completed)
+        if ($inbound->status === 'Completed') {
+            $response = ['code' => '1', 'message' => 'Cannot cancel a completed inbound.'];
+            $this->logApi($request, $response, 400, $type);
+            return response()->json($response, 400);
+        }
+
+        try {
+            \DB::transaction(function () use ($inbound) {
+                if (!$inbound->parent_id && $inbound->children->count() > 0) {
+                    $inbound->update(['status' => 'Cancelled']);
+                    $inbound->children()->where('status', '!=', 'Completed')->update(['status' => 'Cancelled']);
+                } else {
+                    $inbound->update(['status' => 'Cancelled']);
+                    if ($inbound->parent_id) {
+                        $this->updateParentStatusAfterChildCancel($inbound->parent_id);
+                    }
+                }
+            });
+
+            // 4. Log Berhasil
+            $response = [
+                "code" => "0",
+                "data" => [
+                    "reference_number" => $inbound->reference_number,
+                    "status"           => "Cancelled",
+                    "updated_at"       => now()->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z')
+                ],
+                "request_id" => (string) \Illuminate\Support\Str::uuid()
+            ];
+
+            $this->logApi($request, $response, 200, $type);
+            return response()->json($response, 200);
+
+        } catch (\Exception $e) {
+            // 5. Log Error Server
+            $response = ['code' => '1', 'message' => 'Internal Server Error: ' . $e->getMessage()];
+            $this->logApi($request, $response, 500, $type);
+            return response()->json($response, 500);
+        }
+    }
+
+    /**
+     * Logika sinkronisasi status Parent setelah salah satu Child di-cancel
+     */
+    private function updateParentStatusAfterChildCancel($parentId)
+    {
+        $parent = InboundRequest::with('children')->find($parentId);
+        if (!$parent) return;
+
+        $childrenStatus = $parent->children()->pluck('status')->toArray();
+        $totalChildren = count($childrenStatus);
+        $cancelledCount = count(array_filter($childrenStatus, fn($s) => $s === 'Cancelled'));
+        $completedCount = count(array_filter($childrenStatus, fn($s) => $s === 'Completed'));
+
+        // Sesuai permintaan: Jika salah satu child di-cancel,
+        // status parent menjadi 'Partial Completed' (asumsi ada child lain yang masih jalan/selesai)
+        if ($cancelledCount > 0 && $cancelledCount < $totalChildren) {
+            $parent->update(['status' => 'Partial Completed']);
+        }
+        // Jika ternyata semua child akhirnya menjadi cancelled
+        elseif ($cancelledCount === $totalChildren) {
+            $parent->update(['status' => 'Cancelled']);
+        }
+        // Jika semua sisa child sudah Completed
+        elseif ($completedCount + $cancelledCount === $totalChildren) {
+            $parent->update(['status' => 'Cancelled']);
+        }
+    }
+
     private function logApi($request, $response, $status, $type) {
         $client = ClientApi::where('app_key',$request['app_key'])->first();
         // \Log::info($request->fullUrl());
