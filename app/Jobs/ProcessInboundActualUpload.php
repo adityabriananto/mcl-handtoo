@@ -35,7 +35,7 @@ class ProcessInboundActualUpload implements ShouldQueue
                 // Ambil semua inbound yang relevan dalam satu query (Eager Load Details)
                 $inbounds = InboundRequest::with('details')
                     ->whereIn('fulfillment_order_no', $orderCodes)
-                    ->whereNotIn('status', ['Completed', 'Partial Completed'])
+                    ->whereNotIn('status', ['Completed', 'Partial Completed', 'Cancelled'])
                     ->get()
                     ->keyBy('fulfillment_order_no');
 
