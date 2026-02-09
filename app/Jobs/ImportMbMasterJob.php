@@ -35,9 +35,11 @@ class ImportMbMasterJob implements ShouldQueue
                  * Jika belum ada, maka akan dibuat data baru (create).
                  */
                 MbMaster::updateOrCreate(
-                    ['fulfillment_sku' => $data[3]], // Key unik
                     [
-                        'brand_code'          => $data[0],
+                        'brand_code'      => $data[0],
+                        'fulfillment_sku' => $data[3]
+                    ], // Key unik
+                    [
                         'brand_name'          => $data[1],
                         'manufacture_barcode' => $data[2],
                         'seller_sku'          => $data[4] ?? null,
