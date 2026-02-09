@@ -27,69 +27,75 @@ class MbCheckerController extends Controller
             return str_replace(['`', ' '], '', trim($item));
         })->filter()->values()->toArray();
 
+        $finalResults = collect();
+
         if ($type === 'manufacture_barcode') {
             /**
-             * SKENARIO A: Pencarian berdasarkan Barcode (Ambil dari Master)
+             * SKENARIO A: Murni Cek Data Master (Tanpa Staging)
              */
-            // 1. Cari data di Master dulu
             $masterData = MbMaster::whereIn('manufacture_barcode', $cleanQueries)
                         ->where('is_disabled', 0)
                         ->get();
 
-            $allTargetBarcodes = $masterData->pluck('manufacture_barcode')->unique()->toArray();
-            $masterDataGrouped = $masterData->groupBy(fn($m) => str_replace('`', '', $m->manufacture_barcode));
+            foreach ($masterData as $brand) {
+                $newRow = new \stdClass(); // Buat objek kosong agar struktur sama dengan model staging
+                $newRow->manufacture_barcode = $brand->manufacture_barcode;
+                $newRow->brand_name          = $brand->brand_name;
+                $newRow->brand_code          = $brand->brand_code;
+                $newRow->seller_sku          = $brand->seller_sku;
+                $newRow->fulfillment_sku     = $brand->fulfillment_sku;
+                $newRow->is_disabled         = $brand->is_disabled;
+                $newRow->is_multi_brand      = $masterData->where('manufacture_barcode', $brand->manufacture_barcode)->count() > 1;
 
-            // 2. Cari order terkait di Staging berdasarkan barcode yang ditemukan
-            $stagingData = MbOrderStaging::whereIn('manufacture_barcode', $allTargetBarcodes)
-                        ->get(['manufacture_barcode', 'transaction_number', 'external_order_no', 'waybill_no']);
+                // Set null untuk kolom order staging karena tidak dicari
+                $newRow->transaction_number  = '-';
+                $newRow->external_order_no   = '-';
+                $newRow->waybill_no          = '-';
+
+                $finalResults->push($newRow);
+            }
         } else {
             /**
-             * SKENARIO B: Pencarian berdasarkan Order Info (Waybill, Trans No, dll)
+             * SKENARIO B: Pencarian Berdasarkan Info Order (Tetap Pakai Staging)
              */
-            // 1. Ambil data dari Staging sesuai kriteria (Waybill/Trans No/dll)
-            $stagingData = MbOrderStaging::whereIn($type, $cleanQueries)->get(['manufacture_barcode', 'transaction_number', 'external_order_no', 'waybill_no']);
+            $stagingData = MbOrderStaging::whereIn($type, $cleanQueries)
+                        ->get(['manufacture_barcode', 'transaction_number', 'external_order_no', 'waybill_no']);
 
-            // 2. Ambil barcode unik untuk dicarikan infonya di Master
             $allTargetBarcodes = $stagingData->map(fn($s) => str_replace('`', '', $s->manufacture_barcode))->unique()->toArray();
 
-            // 3. Cari Info Brand di Master
             $masterDataGrouped = MbMaster::whereIn('manufacture_barcode', $allTargetBarcodes)
                         ->where('is_disabled', 0)
                         ->get()
                         ->groupBy(fn($m) => str_replace('`', '', $m->manufacture_barcode));
-        }
 
-        // 3. MAPPING: Hubungkan Staging dengan SEMUA Brand terkait
-        $finalResults = collect();
+            foreach ($stagingData as $order) {
+                $cleanStagingBC = str_replace('`', '', $order->manufacture_barcode);
+                $relatedBrands = $masterDataGrouped->get($cleanStagingBC);
 
-        foreach ($stagingData as $order) {
-            $cleanStagingBC = str_replace('`', '', $order->manufacture_barcode);
-            $relatedBrands = $masterDataGrouped->get($cleanStagingBC);
-
-            if ($relatedBrands && $relatedBrands->count() > 0) {
-                foreach ($relatedBrands as $brand) {
-                    $newRow = clone $order;
-                    $newRow->brand_name = $brand->brand_name;
-                    $newRow->brand_code = $brand->brand_code;
-                    $newRow->seller_sku = $brand->seller_sku;
-                    $newRow->fulfillment_sku = $brand->fulfillment_sku;
-                    $newRow->is_disabled = $brand->is_disabled;
-                    $newRow->is_multi_brand = $relatedBrands->count() > 1;
-                    $finalResults->push($newRow);
+                if ($relatedBrands && $relatedBrands->count() > 0) {
+                    foreach ($relatedBrands as $brand) {
+                        $newRow = clone $order;
+                        $newRow->brand_name      = $brand->brand_name;
+                        $newRow->brand_code      = $brand->brand_code;
+                        $newRow->seller_sku      = $brand->seller_sku;
+                        $newRow->fulfillment_sku = $brand->fulfillment_sku;
+                        $newRow->is_disabled     = $brand->is_disabled;
+                        $newRow->is_multi_brand  = $relatedBrands->count() > 1;
+                        $finalResults->push($newRow);
+                    }
+                } else {
+                    $order->brand_name = 'NOT FOUND';
+                    $order->brand_code = '-';
+                    $order->seller_sku = 'N/A';
+                    $order->fulfillment_sku = 'N/A';
+                    $order->is_disabled = 1;
+                    $order->is_multi_brand = false;
+                    $finalResults->push($order);
                 }
-            } else {
-                // Jika barcode ada di Staging tapi tidak ada di Master
-                $order->brand_name = 'NOT FOUND';
-                $order->brand_code = '-';
-                $order->seller_sku = 'N/A';
-                $order->fulfillment_sku = 'N/A';
-                $order->is_disabled = 1;
-                $order->is_multi_brand = false;
-                $finalResults->push($order);
             }
         }
 
-        // Grouping berdasarkan Barcode untuk tampilan tabel
+        // Grouping berdasarkan Barcode agar tampilan tabel tetap konsisten
         $groupedResults = $finalResults->groupBy(fn($item) => str_replace('`', '', $item->manufacture_barcode));
 
         return view('mb_master.checker', [
