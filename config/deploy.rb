@@ -77,7 +77,7 @@ namespace :deploy do
         on roles(:app) do
             execute "systemctl reload nginx"
             # Penting: Restart PHP-FPM untuk membersihkan Opcache rilis lama
-            execute "systemctl restart php8.2-fpm"
+            execute "systemctl restart php8.4-fpm"
         end
     end
 
