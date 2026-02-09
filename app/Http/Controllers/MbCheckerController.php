@@ -27,31 +27,39 @@ class MbCheckerController extends Controller
             return str_replace(['`', ' '], '', trim($item));
         })->filter()->values()->toArray();
 
-        // 1. Ambil data dari Staging
-        $stagingQuery = MbOrderStaging::query();
         if ($type === 'manufacture_barcode') {
-            $stagingQuery->where(function($q) use ($cleanQueries) {
-                foreach($cleanQueries as $query) {
-                    $q->orWhereRaw("REPLACE(manufacture_barcode, '`', '') = ?", [$query]);
-                }
-            });
+            /**
+             * SKENARIO A: Pencarian berdasarkan Barcode (Ambil dari Master)
+             */
+            // 1. Cari data di Master dulu
+            $masterData = MbMaster::whereIn('manufacture_barcode', $cleanQueries)
+                        ->where('is_disabled', 0)
+                        ->get();
+
+            $allTargetBarcodes = $masterData->pluck('manufacture_barcode')->unique()->toArray();
+            $masterDataGrouped = $masterData->groupBy(fn($m) => str_replace('`', '', $m->manufacture_barcode));
+
+            // 2. Cari order terkait di Staging berdasarkan barcode yang ditemukan
+            $stagingData = MbOrderStaging::whereIn('manufacture_barcode', $allTargetBarcodes)
+                        ->get(['manufacture_barcode', 'transaction_number', 'external_order_no', 'waybill_no']);
         } else {
-            $stagingQuery->whereIn($type, $cleanQueries);
+            /**
+             * SKENARIO B: Pencarian berdasarkan Order Info (Waybill, Trans No, dll)
+             */
+            // 1. Ambil data dari Staging sesuai kriteria (Waybill/Trans No/dll)
+            $stagingData = MbOrderStaging::whereIn($type, $cleanQueries)->get(['manufacture_barcode', 'transaction_number', 'external_order_no', 'waybill_no']);
+
+            // 2. Ambil barcode unik untuk dicarikan infonya di Master
+            $allTargetBarcodes = $stagingData->map(fn($s) => str_replace('`', '', $s->manufacture_barcode))->unique()->toArray();
+
+            // 3. Cari Info Brand di Master
+            $masterDataGrouped = MbMaster::whereIn('manufacture_barcode', $allTargetBarcodes)
+                        ->where('is_disabled', 0)
+                        ->get()
+                        ->groupBy(fn($m) => str_replace('`', '', $m->manufacture_barcode));
         }
 
-        $stagingData = $stagingQuery->get(['manufacture_barcode', 'transaction_number', 'external_order_no', 'waybill_no']);
-
-        // 2. Ambil barcode unik
-        $barcodesFromStaging = $stagingData->map(fn($s) => str_replace('`', '', $s->manufacture_barcode))->toArray();
-        $allTargetBarcodes = array_unique($barcodesFromStaging);
-
-        // 3. Cari SEMUA Brand di Master yang memiliki barcode tersebut (Gunakan groupBy, bukan keyBy)
-        $masterDataGrouped = MbMaster::whereIn('manufacture_barcode', $allTargetBarcodes)
-                    ->where('is_disabled', 0)
-                    ->get()
-                    ->groupBy(fn($m) => str_replace('`', '', $m->manufacture_barcode));
-
-        // 4. MAPPING: Hubungkan Staging dengan SEMUA Brand terkait
+        // 3. MAPPING: Hubungkan Staging dengan SEMUA Brand terkait
         $finalResults = collect();
 
         foreach ($stagingData as $order) {
@@ -60,19 +68,17 @@ class MbCheckerController extends Controller
 
             if ($relatedBrands && $relatedBrands->count() > 0) {
                 foreach ($relatedBrands as $brand) {
-                    // Buat clone order agar setiap brand memiliki barisnya sendiri namun dengan info order yang sama
                     $newRow = clone $order;
                     $newRow->brand_name = $brand->brand_name;
                     $newRow->brand_code = $brand->brand_code;
                     $newRow->seller_sku = $brand->seller_sku;
                     $newRow->fulfillment_sku = $brand->fulfillment_sku;
                     $newRow->is_disabled = $brand->is_disabled;
-                    $newRow->is_multi_brand = $relatedBrands->count() > 1; // Flag untuk UI
-
+                    $newRow->is_multi_brand = $relatedBrands->count() > 1;
                     $finalResults->push($newRow);
                 }
             } else {
-                // Jika barcode tidak ada di Master
+                // Jika barcode ada di Staging tapi tidak ada di Master
                 $order->brand_name = 'NOT FOUND';
                 $order->brand_code = '-';
                 $order->seller_sku = 'N/A';
