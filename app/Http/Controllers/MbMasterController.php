@@ -206,7 +206,7 @@ class MbMasterController extends Controller
         $isDeactivated = ($action === 'DEACTIVATED');
         $headerEmoji = $isDeactivated ? '🚫' : '✅';
 
-        $recapMessage = "{$headerEmoji} *MB MULTI-BRAND UPDATE*\n";
+        $recapMessage = "{$headerEmoji} *HANDTOO MB MULTI-BRAND UPDATE*\n";
         $recapMessage .= "------------------------------------------\n";
         $recapMessage .= "📢 Action: *{$action}*\n";
         $recapMessage .= "📅 Date  : `{$timeNow}`\n";
