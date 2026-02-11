@@ -64,7 +64,7 @@ class HandoverCancellationController extends Controller
                     $handoverWaybill->is_cancelled = true;
                     $handoverWaybill->save();
                     DB::commit();
-                    return $this->buildApiResponse($request, true, 'cancelled', '0', $requestId);
+                    return $this->buildApiResponse($request, true, 'Cancelled', '0', $requestId);
                 }
             }
 
@@ -75,7 +75,7 @@ class HandoverCancellationController extends Controller
             ]);
 
             DB::commit();
-            return $this->buildApiResponse($request, true, 'cancelled', '0', $requestId);
+            return $this->buildApiResponse($request, true, 'Cancelled', '0', $requestId);
 
         } catch (\Exception $e) {
             DB::rollBack();
