@@ -77,56 +77,36 @@ class ProcessMbOrderImport implements ShouldQueue
 
     private function processOrderManagement($row, $fullPayload)
     {
-        // 1. Validasi awal: Pastikan Package No tersedia (Index 3)
         $packageNo = $row[3] ?? null;
-        if (!$packageNo) {
-            return;
-        }
+        if (!$packageNo) return;
 
-        /**
-         * 2. Logika Deteksi Kolom Transaction Number (AM vs AN)
-         * Kita prioritaskan kolom 38, namun jika kosong atau berisi data yang salah (misal status),
-         * kita ambil kolom 39 sebagai fallback.
-         */
-        $transactionNumber = $row[38] ?? null;
-
-        // Cek apakah kolom 38 kosong ATAU kolom 39 terlihat lebih valid sebagai nomor transaksi
-        // (Opsional: tambahkan pengecekan format spesifik jika ada, misal str_contains($row[39], 'TRX'))
-        if (empty($transactionNumber) && !empty($row[39])) {
-            $transactionNumber = $row[39];
-        }
-
-        // 3. Siapkan Array Data agar tidak menulis ulang di Update & Create (DRY Principle)
-        $commonData = [
-            'order_code'         => $row[0] ?? null,
-            'external_order_no'  => $row[1] ?? null,
-            'waybill_no'         => $row[2] ?? null,
-            'order_status'       => $row[21] ?? null,
-            'transaction_number' => $transactionNumber, // Hasil deteksi cerdas
-            'source_format'      => 'order_management',
-            'full_payload'       => json_encode($fullPayload),
-            'batch_id'           => $this->batchId,
-        ];
-
-        // 4. Cek Keberadaan Data di Staging
         $existingRecords = MbOrderStaging::where('package_no', $packageNo)->get();
 
         if ($existingRecords->isNotEmpty()) {
-            /**
-             * Update SEMUA baris yang memiliki package_no ini.
-             * Ini penting untuk skenario Multi-Brand agar semua item dalam satu paket
-             * mendapatkan update info transaksi/status yang sama.
-             */
-            MbOrderStaging::where('package_no', $packageNo)->update($commonData);
+            // Update SEMUA baris yang memiliki package_no ini (multi-brand support)
+            MbOrderStaging::where('package_no', $packageNo)->update([
+                'order_code'         => $row[0] ?? null,
+                'external_order_no'  => $row[1] ?? null,
+                'waybill_no'         => $row[2] ?? null,
+                'order_status'       => $row[21] ?? null,
+                'transaction_number' => $row[39] ?? null,
+                'source_format'      => 'order_management',
+                'full_payload'       => json_encode($fullPayload),
+                'batch_id'           => $this->batchId,
+            ]);
         } else {
-            /**
-             * Insert data baru jika belum ada.
-             * manufacture_barcode di-set null karena akan diisi oleh proses mapping terpisah.
-             */
-            MbOrderStaging::create(array_merge($commonData, [
-                'package_no'          => $packageNo,
+            MbOrderStaging::create([
+                'package_no'         => $packageNo,
+                'order_code'         => $row[0] ?? null,
+                'external_order_no'  => $row[1] ?? null,
+                'waybill_no'         => $row[2] ?? null,
+                'order_status'       => $row[21] ?? null,
+                'transaction_number' => $row[39] ?? null,
+                'source_format'      => 'order_management',
+                'full_payload'       => json_encode($fullPayload),
+                'batch_id'           => $this->batchId,
                 'manufacture_barcode' => null,
-            ]));
+            ]);
         }
     }
 

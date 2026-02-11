@@ -16,31 +16,35 @@ class HandoverCancellationController extends Controller
 {
     public function cancel(Request $request)
     {
-        // 1. Inisialisasi biz_time tepat saat ini dengan format UTC (Z)
-        $bizTime = now()->utc()->format('Y-m-d\TH:i:s.000\Z');
+        // Menggunakan biz_time atau request_id (untuk simulasi request_id)
+        $requestId = now()->format('ymdHis') . bin2hex(random_bytes(4));
 
         $validator = Validator::make($request->all(), [
-            'cancel_reason' => 'required|string|max:255', // Menggunakan cancel_reason sebagai tracking number (awb)
+            'cancel_reason' => 'required|string|max:255',
         ]);
 
         if ($validator->fails()) {
-            return $this->formatCustomResponse(false, 'Validation failed', $bizTime, 400);
+            return $this->buildApiResponse($request, false, 'Validation failed', 'INVALID_PARAMS', $requestId);
         }
 
         $client = ClientApi::where('app_key', $request['app_key'])->first();
         if (empty($client)) {
-            return $this->formatCustomResponse(false, 'UNAUTHORIZED', $bizTime, 401);
+            return $this->buildApiResponse($request, false, 'UNAUTHORIZED', 'AUTH_ERROR', $requestId);
         }
 
         DB::beginTransaction();
         try {
             $awb = $request['cancel_reason'];
             $cancelRequest = CancellationRequest::where('tracking_number', $awb)->first();
-            // Mengambil detail handover beserta item/details untuk kebutuhan response
-            $handoverWaybill = HandoverDetail::with('details')->where('airwaybill', $awb)->first();
+            $handoverWaybill = HandoverDetail::where('airwaybill', $awb)->first();
 
-            // 1. Kondisi: Sudah terdaftar di Handover
-            if (!$cancelRequest && $handoverWaybill) {
+            // 1. Kondisi: Duplicate Request
+            if ($cancelRequest) {
+                return $this->buildApiResponse($request, false, 'Duplicate Tracking Number', 'DUPLICATE_ERROR', $requestId);
+            }
+
+            // 2. Kondisi: Sudah terdaftar di Handover
+            if ($handoverWaybill) {
                 $handover = HandoverBatch::where('handover_id', $handoverWaybill->handover_id)->first();
 
                 if ($handover && $handover->status === 'completed') {
@@ -50,7 +54,7 @@ class HandoverCancellationController extends Controller
                         'reason' => 'Package already handed over to 3PL'
                     ]);
                     DB::commit();
-                    return $this->formatCustomResponse(false, 'handover_to_3pl', $bizTime, 400, $handoverWaybill);
+                    return $this->buildApiResponse($request, false, 'Package already handed over to 3PL', 'HANDOVER_TO_3PL', $requestId);
                 } else {
                     CancellationRequest::create([
                         'tracking_number' => $awb,
@@ -60,89 +64,82 @@ class HandoverCancellationController extends Controller
                     $handoverWaybill->is_cancelled = true;
                     $handoverWaybill->save();
                     DB::commit();
-                    return $this->formatCustomResponse(true, 'cancelled', $bizTime, 200, $handoverWaybill);
+                    return $this->buildApiResponse($request, true, 'cancelled', '0', $requestId);
                 }
             }
 
-            // 2. Kondisi: Duplicate Request
-            if ($cancelRequest) {
-                return $this->formatCustomResponse(false, 'Duplicate Tracking Number', $bizTime, 400);
-            }
-
             // 3. Kondisi: Baru (Belum discan sama sekali)
-            if (!$cancelRequest && !$handoverWaybill) {
-                CancellationRequest::create([
-                    'tracking_number' => $awb,
-                    'status' => 'Approved'
-                ]);
-                DB::commit();
-                return $this->formatCustomResponse(true, 'cancelled', $bizTime, 200);
-            }
+            CancellationRequest::create([
+                'tracking_number' => $awb,
+                'status' => 'Approved'
+            ]);
 
             DB::commit();
+            return $this->buildApiResponse($request, true, 'cancelled', '0', $requestId);
+
         } catch (\Exception $e) {
             DB::rollBack();
-            return $this->formatCustomResponse(false, 'Error: ' . $e->getMessage(), $bizTime, 500);
+            return $this->buildApiResponse($request, false, $e->getMessage(), 'INTERNAL_SERVER_ERROR', $requestId);
         }
     }
 
     /**
      * Helper untuk memformat response sesuai permintaan khusus Anda
      */
-    private function formatCustomResponse($success, $status, $bizTime, $httpCode, $data = null)
+    // private function formatCustomResponse($success, $status, $bizTime, $httpCode, $data = null)
+    // {
+    //     // Mengumpulkan items jika ada data handover detail
+    //     $items = [];
+    //     if ($data && $data->details) {
+    //         // Grouping by SKU untuk menggabungkan quantity sesuai instruksi
+    //         $groupedItems = $data->details->groupBy('fulfillment_sku_id');
+    //         foreach ($groupedItems as $skuId => $details) {
+    //             $items[] = [
+    //                 "quantity" => $details->sum('quantity'), // Aggregation qty
+    //                 "fulfillment_sku_id" => (string)$skuId,
+    //                 "owner_id" => $data->owner_id ?? "2214728602664",
+    //                 "unit_price" => $details->first()->unit_price ?? "0",
+    //                 "platform_item_id" => ($data->sales_order_number ?? "Bagus") . "-" . $skuId . "-0",
+    //                 "seller_id" => $data->seller_id ?? "400599399044",
+    //                 "status" => $status
+    //             ];
+    //         }
+    //     }
+
+    //     $response = [
+    //         "headers" => [
+    //             "content-type" => "application/json;charset=UTF-8"
+    //         ],
+    //         "body" => [
+    //             "sales_order_number" => $data->sales_order_number ?? "BagusCancel",
+    //             "platform_order_id" => $data->platform_order_id ?? "BagusCancel",
+    //             "owner_id" => $data->owner_id ?? "2214728602664",
+    //             "platform_name" => $data->platform_name ?? "TEST_ID",
+    //             "biz_time" => $bizTime,
+    //             "items" => $items,
+    //             "seller_id" => $data->seller_id ?? "400599399044"
+    //         ]
+    //     ];
+
+    //     return response()->json($response, $httpCode);
+    // }
+
+    private function buildApiResponse($request, $isSuccess, $message, $errorCode, $requestId, $type = 'CANCEL_API')
     {
-        // Mengumpulkan items jika ada data handover detail
-        $items = [];
-        if ($data && $data->details) {
-            // Grouping by SKU untuk menggabungkan quantity sesuai instruksi
-            $groupedItems = $data->details->groupBy('fulfillment_sku_id');
-            foreach ($groupedItems as $skuId => $details) {
-                $items[] = [
-                    "quantity" => $details->sum('quantity'), // Aggregation qty
-                    "fulfillment_sku_id" => (string)$skuId,
-                    "owner_id" => $data->owner_id ?? "2214728602664",
-                    "unit_price" => $details->first()->unit_price ?? "0",
-                    "platform_item_id" => ($data->sales_order_number ?? "Bagus") . "-" . $skuId . "-0",
-                    "seller_id" => $data->seller_id ?? "400599399044",
-                    "status" => $status
-                ];
-            }
-        }
-
-        $response = [
-            "headers" => [
-                "content-type" => "application/json;charset=UTF-8"
-            ],
-            "body" => [
-                "sales_order_number" => $data->sales_order_number ?? "BagusCancel",
-                "platform_order_id" => $data->platform_order_id ?? "BagusCancel",
-                "owner_id" => $data->owner_id ?? "2214728602664",
-                "platform_name" => $data->platform_name ?? "TEST_ID",
-                "biz_time" => $bizTime,
-                "items" => $items,
-                "seller_id" => $data->seller_id ?? "400599399044"
-            ]
+        $responseData = [
+            'success'       => $isSuccess ? "TRUE" : "FALSE",
+            'code'          => $isSuccess ? "0" : $errorCode,
+            'error_message' => $isSuccess ? "" : $message,
+            'error_code'    => $isSuccess ? "0" : $errorCode,
+            'request_id'    => $requestId,
         ];
 
-        return response()->json($response, $httpCode);
-    }
+        $statusCode = $isSuccess ? 200 : 400;
 
-    private function buildApiResponse($success, $errorCode, $dataOrMessage, $status, $request, $type) {
-        $responseContent = [
-            'success' => $success,
-            'code'    => $status,
-            'data'    => $success ? $dataOrMessage : null,
-            'error'   => !$success ? [
-                'type'    => $errorCode,
-                'message' => $dataOrMessage
-            ] : null
-        ];
+        // Tambahkan pencatatan log sebelum return
+        $this->logApi($request, $responseData, $statusCode, $type);
 
-        // Simpan Log
-        $this->logApi($request, $responseContent, $status, $type);
-
-        return response()->json($responseContent, $status)
-                        ->header('Content-Type', 'application/json');
+        return response()->json($responseData, $statusCode);
     }
 
     // Helper untuk log agar code lebih bersih
