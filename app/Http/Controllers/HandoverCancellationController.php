@@ -24,12 +24,12 @@ class HandoverCancellationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return $this->buildApiResponse($request, false, 'Validation failed', 'INVALID_PARAMS', $requestId);
+            return $this->buildApiResponse($request, false, 'Missing cancel_reason', 'INVALID_PARAMS', $requestId);
         }
 
         $client = ClientApi::where('app_key', $request['app_key'])->first();
         if (empty($client)) {
-            return $this->buildApiResponse($request, false, 'UNAUTHORIZED', 'AUTH_ERROR', $requestId);
+            return $this->buildApiResponse($request, false, 'Missing app_key / app_key not registered', 'AUTH_ERROR', $requestId);
         }
 
         DB::beginTransaction();
