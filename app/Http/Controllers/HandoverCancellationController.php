@@ -40,7 +40,7 @@ class HandoverCancellationController extends Controller
 
             // 1. Kondisi: Duplicate Request
             if ($cancelRequest) {
-                return $this->buildApiResponse($request, false, 'Duplicate Tracking Number', 'DUPLICATE_ERROR', $requestId);
+                return $this->buildApiResponse($request, false, 'Duplicate tracking number', 'DUPLICATE_ERROR', $requestId);
             }
 
             // 2. Kondisi: Sudah terdaftar di Handover
