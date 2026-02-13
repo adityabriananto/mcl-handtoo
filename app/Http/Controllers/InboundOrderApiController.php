@@ -245,11 +245,19 @@ class InboundOrderApiController extends Controller
 
     protected function buildApiResponse($success, $message, $data, $status, $request, $type)
     {
-        $response = [
-            "code"       => $success ? "0" : (string) $status,
-            "data"       => $data, // Ini akan berisi hasil dari InboundResourceDetail
-            "request_id" => (string) \Str::uuid()
-        ];
+        if($type == "CreateInboundOrder") {
+            $response = [
+                "code"             => $success ? "0" : (string) $status,
+                "inbound_order_no" => $data, // Ini akan berisi hasil dari InboundResourceDetail
+                "request_id"       => (string) \Str::uuid()
+            ];
+        } else {
+            $response = [
+                "code"       => $success ? "0" : (string) $status,
+                "data"       => $data, // Ini akan berisi hasil dari InboundResourceDetail
+                "request_id" => (string) \Str::uuid()
+            ];
+        }
 
         // Jika terjadi error, kita bisa selipkan message di dalam data atau level atas
         if (!$success) {
