@@ -378,6 +378,21 @@ class HandoverController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            ApiLog::create([
+                'client_name' => isset($clientApi) ? $clientApi->client_name : "SYSTEM_ERROR",
+                'api_type'    => 'HandoverWebhook_Error',
+                'endpoint'    => $url ?? request()->fullUrl(),
+                'method'      => 'POST',
+                // Jika $data tidak ada, ambil semua input request sebagai payload
+                'payload'     => json_encode($data ?? request()->all()),
+                // Simpan pesan error sebagai response agar mudah di-debug
+                'response'    => json_encode([
+                    'error_message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ]),
+                'status_code' => 500
+            ]);
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
