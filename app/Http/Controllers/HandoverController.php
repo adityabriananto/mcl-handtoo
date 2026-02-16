@@ -315,7 +315,7 @@ class HandoverController extends Controller
                         'platform_order_id'  => null,
                         'owner_id'           => $dataDetails->owner_code,
                         'platform_name'      => $dataDetails->platform_name,
-                        'biz_time' => Carbon::parse($awb->scanned_at, 'Asia/Jakarta')->setTimezone('UTC')->format('Y-m-d\TH:i:s.000\Z'),
+                        'biz_time' => Carbon::parse($awb->scanned_at, 'Asia/Jakarta')->setTimezone('America/Los_Angeles')->format('Y-m-d\TH:i:s.000\Z'),
                         'items' => [
                             [
                                 'quantity'           => $dataDetails->qty,
