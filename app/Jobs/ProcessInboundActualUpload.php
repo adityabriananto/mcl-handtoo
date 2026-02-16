@@ -35,7 +35,7 @@ class ProcessInboundActualUpload implements ShouldQueue
                 // Ambil semua inbound yang relevan dalam satu query (Eager Load Details)
                 $inbounds = InboundRequest::with('details')
                     ->whereIn('fulfillment_order_no', $orderCodes)
-                    ->whereNotIn('status', ['Completed', 'Partial Completed', 'Cancelled'])
+                    ->whereNotIn('status', ['Completely', 'Partially', 'Cancelled'])
                     ->get()
                     ->keyBy('fulfillment_order_no');
 
@@ -107,11 +107,11 @@ class ProcessInboundActualUpload implements ShouldQueue
         // --- STEP B: UPDATE STATUS PARENT ---
         $childrenStatus = $parent->children()->pluck('status')->toArray();
 
-        if (in_array('Partial Completed', $childrenStatus)) {
-            $newParentStatus = 'Partial Completed';
+        if (in_array('Partially', $childrenStatus)) {
+            $newParentStatus = 'Partially';
         } else {
-            $allCompleted = $parent->children()->count() === $parent->children()->where('status', 'Completed')->count();
-            $newParentStatus = $allCompleted ? 'Completed' : 'Processing';
+            $allCompleted = $parent->children()->count() === $parent->children()->where('status', 'Completely')->count();
+            $newParentStatus = $allCompleted ? 'Completely' : 'Processing';
         }
 
         $parent->update(['status' => $newParentStatus]);
@@ -124,8 +124,8 @@ class ProcessInboundActualUpload implements ShouldQueue
 
         if ($totalRequested <= 0) return $inbound->status;
 
-        if ($totalReceived >= $totalRequested) return 'Completed';
-        if ($totalReceived > 0) return 'Partial Completed';
+        if ($totalReceived >= $totalRequested) return 'Completely';
+        if ($totalReceived > 0) return 'Partially';
 
         return 'Processing';
     }

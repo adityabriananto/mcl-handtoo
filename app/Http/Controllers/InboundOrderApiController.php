@@ -172,7 +172,7 @@ class InboundOrderApiController extends Controller
             return $this->buildApiResponse(false, 'ALREADY_CANCELLED', 'Inbound is already cancelled.', 400, $request, $type);
         }
 
-        if ($inbound->status === 'Completed') {
+        if ($inbound->status === 'Completely' || $inbound->status === 'Partially') {
             return $this->buildApiResponse(false, 'FORBIDDEN', 'Cannot cancel a completed inbound.', 400, $request, $type);
         }
 
@@ -181,7 +181,10 @@ class InboundOrderApiController extends Controller
                 // Jika Parent: Cancel bapak dan anak-anak yang belum completed
                 if (!$inbound->parent_id && $inbound->children->count() > 0) {
                     $inbound->update(['status' => 'Cancelled']);
-                    $inbound->children()->where('status', '!=', 'Completed')->update(['status' => 'Cancelled']);
+                    $inbound->children()
+                    ->where('status', '!=', 'Completely')
+                    ->where('status', '!=', 'Partially')
+                    ->update(['status' => 'Cancelled']);
                 }
                 // Jika Child atau Single: Cancel diri sendiri dan sync bapaknya
                 else {
@@ -221,7 +224,7 @@ class InboundOrderApiController extends Controller
 
         // Hitung distribusi status anak-anaknya
         $cancelledCount = count(array_filter($childrenStatuses, fn($s) => $s === 'Cancelled'));
-        $completedCount = count(array_filter($childrenStatuses, fn($s) => $s === 'Completed'));
+        $completedCount = count(array_filter($childrenStatuses, fn($s) => $s === 'Completely'));
 
         /**
          * LOGIKA KEPUTUSAN STATUS PARENT:
