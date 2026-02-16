@@ -20,8 +20,8 @@
     $statusColors = [
         'Pending'           => 'bg-yellow-50 text-yellow-700 border-yellow-200',
         'Processing'        => 'bg-blue-50 text-blue-700 border-blue-200',
-        'Partial Completed' => 'bg-orange-50 text-orange-700 border-orange-200',
-        'Completed'         => 'bg-green-50 text-green-700 border-green-200',
+        'Partially'         => 'bg-orange-50 text-orange-700 border-orange-200',
+        'Completely'        => 'bg-green-50 text-green-700 border-green-200',
         'Cancelled'         => 'bg-red-50 text-red-700 border-red-200',
     ];
     $summary = $stats;
@@ -100,8 +100,8 @@
             <option value="">All Status</option>
             <option value="Pending">Pending</option>
             <option value="Processing">Processing</option>
-            <option value="Partial Completed">Partial Completed</option>
-            <option value="Completed">Completed</option>
+            <option value="Partially">Partially</option>
+            <option value="Completely">Completely</option>
         </select>
         <input x-model="filterDate" type="date" class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] px-2 py-2 dark:text-white">
         <button @click="search=''; filterIo=''; filterStatus=''; filterDate=''; filterWh=''; filterClient=''" class="text-[10px] font-black text-red-600 bg-red-50 rounded-xl px-2 py-2 uppercase border border-red-100">Clear</button>
