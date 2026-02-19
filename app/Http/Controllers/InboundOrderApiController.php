@@ -56,7 +56,7 @@ class InboundOrderApiController extends Controller
         $inboundOrder->seller_warehouse_code = $request->seller_warehouse_code;
         $inboundOrder->estimate_time         = Carbon::parse($request->estimate_time)->toDateTimeString();
         $inboundOrder->comment               = $request->comment;
-        $inboundOrder->status                = 'Pending';
+        $inboundOrder->status                = 'Created';
         $inboundOrder->save();
 
         // 4. Proses SKU

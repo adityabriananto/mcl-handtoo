@@ -68,8 +68,8 @@ class InboundOrderController extends Controller
 
         $stats = (object)[
             'total'        => $operationalUnits->count(),
-            'pending'      => $operationalUnits->where('status', 'Pending')->count(),
-            'processing'   => $operationalUnits->where('status', 'Processing')->count(),
+            'pending'      => $operationalUnits->where('status', 'Created')->count(),
+            'processing'   => $operationalUnits->where('status', 'Inbound in Process')->count(),
             'cancelled'    => $operationalUnits->where('status', 'Cancelled by Seller')->count(),
             'completed'    => $operationalUnits->where('status', 'Completely')->count(),
             'partially'    => $operationalUnits->where('status', 'Partially')->count(),
@@ -474,8 +474,8 @@ class InboundOrderController extends Controller
 
         $stats = (object)[
             'total'        => $operationalUnits->count(),
-            'pending'      => $operationalUnits->where('status', 'Pending')->count(),
-            'processing'   => $operationalUnits->where('status', 'Processing')->count(),
+            'pending'      => $operationalUnits->where('status', 'Created')->count(),
+            'processing'   => $operationalUnits->where('status', 'Inbound in Process')->count(),
             'completed'    => 0, // Set 0 karena menu ini khusus In-Progress
         ];
 

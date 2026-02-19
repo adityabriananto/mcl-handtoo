@@ -62,7 +62,7 @@ class ProcessInboundUpload implements ShouldQueue
                         'estimated_inbound_time' => $this->formatDate($data[4]),
                         'inbound_warehouse'      => $data[9],
                         'delivery_type'          => $data[11],
-                        'status'                 => 'Processing',
+                        'status'                 => 'Inbound in Process',
                         'io_status'              => $data[13]
                     ], fn($value) => !is_null($value)); // Proteksi: Jangan timpa data lama dengan NULL
 
