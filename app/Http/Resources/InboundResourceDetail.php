@@ -27,43 +27,43 @@ class InboundResourceDetail extends JsonResource
                     "item_inbounded_damaged" => (string) ($detail->received_damaged ?? 0),
                     "requested_quantity"     => (string) $detail->requested_quantity,
                     "serial_number_flag"     => "false",
-                    "fulfillment_sku"        => $detail->fulfillment_sku ?? null, // Sesuaikan jika ada field fulfillment_sku
+                    "fulfillment_sku"        => $detail->fulfillment_sku ?? "", // Sesuaikan jika ada field fulfillment_sku
                     "seller_sku"             => [
                         $detail->seller_sku
                     ],
                     "item_inbounded_expired" => "0",
                     "item_inbounded_good"    => (string) ($detail->received_good ?? 0),
                     "sku_status"             => $this->status,
-                    "fulfillment_sku_name"   => $detail->product_name ?? null,
+                    "fulfillment_sku_name"   => $detail->product_name ?? "",
                     "barcodes"               => [
                         $detail->barcode ?? $detail->seller_sku
                     ]
                 ];
             }),
             // Format waktu UTC ISO8601
-            "inbound_time"             => $this->created_at ? $this->created_at->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
+            "inbound_time"             => $this->created_at ? $this->created_at->setTimezone('America/Los_Angeles')->format('Y-m-d\TH:i:s\Z') : null,
             "inbound_warehouse_code"   => $this->warehouse_code,
-            "created_at"               => $this->created_at ? $this->created_at->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
-            "seller_mobile"            => null, // Sesuaikan field jika ada
-            "seller_country"           => null,
+            "created_at"               => $this->created_at ? $this->created_at->setTimezone('America/Los_Angeles')->format('Y-m-d\TH:i:s\Z') : null,
+            "seller_mobile"            => "", // Sesuaikan field jika ada
+            "seller_country"           => "",
             "fulfillment_order_number" => $this->inbound_order_no,
             "need_reservation"         => "false",
-            "seller_postcode"          => null,
+            "seller_postcode"          => "",
             "seller_warehouse_name"    => $this->inbound_warehouse,
-            "updated_at"               => $this->updated_at ? $this->updated_at->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
-            "estimate_time"            => $this->estimate_time ? \Illuminate\Support\Carbon::parse($this->estimate_time)->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
+            "updated_at"               => $this->updated_at ? $this->updated_at->setTimezone('America/Los_Angeles')->format('Y-m-d\TH:i:s\Z') : null,
+            "estimate_time"            => $this->estimate_time ? \Illuminate\Support\Carbon::parse($this->estimate_time)->setTimezone('America/Los_Angeles')->format('Y-m-d\TH:i:s\Z') : null,
             "delivery_type"            => "Dropoff",
-            "seller_contact"           => null,
+            "seller_contact"           => "",
             "io_status"                => $this->status,
             "comments"                 => $this->comment,
             "marketplace"              => "LAZADA_ID",
-            "warehouse_address"        => null,
-            "reservation_order"        => null,
-            "shop_name"                => null,
+            "warehouse_address"        => "",
+            "reservation_order"        => "",
+            "shop_name"                => "",
             "reference_number"         => $this->reference_number,
-            "seller_address"           => null,
-            "seller_city"              => null,
-            "reservation_status"       => null,
+            "seller_address"           => "",
+            "seller_city"              => "",
+            "reservation_status"       => "",
             "warehouse_name"           => $warehouseName,
             "io_type"                  => "normal",
             "io_number"                => $this->inbound_order_no
