@@ -250,6 +250,7 @@ class InboundOrderApiController extends Controller
     {
         if($type == "CreateInboundOrder") {
             $response = [
+                "status"           => $success ? True : False,
                 "code"             => $success ? "0" : (string) $status,
                 "inbound_order_no" => $data, // Ini akan berisi hasil dari InboundResourceDetail
                 "request_id"       => (string) \Str::uuid()
@@ -263,6 +264,7 @@ class InboundOrderApiController extends Controller
         }
         else {
             $response = [
+                "status"     => $success ? True : False,
                 "code"       => $success ? "0" : (string) $status,
                 "data"       => $data, // Ini akan berisi hasil dari InboundResourceDetail
                 "request_id" => (string) \Str::uuid()
@@ -272,6 +274,7 @@ class InboundOrderApiController extends Controller
         // Jika terjadi error, kita bisa selipkan message di dalam data atau level atas
         if (!$success) {
             $response["data"] = [
+                "status"     => $success ? True : False,
                 "error_type" => $message,
                 "message"    => $data // Jika data berisi pesan error string
             ];
