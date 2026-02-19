@@ -71,16 +71,18 @@
             </div>
             <div class="flex gap-6 border-l pl-6 border-gray-100 dark:border-gray-800">
                 <div>
-                    <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Active</p>
+                    <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Total</p>
                     <p class="text-xl font-black leading-none text-blue-600 text-center">{{ number_format($summary->total) }}</p>
                 </div>
                 {{-- Hanya tampilkan stats Completed jika user login --}}
-                @auth
                 <div>
                     <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Completed</p>
                     <p class="text-xl font-black leading-none text-blue-600 text-center">{{ number_format($summary->completed) }}</p>
                 </div>
-                @endauth
+                <div>
+                    <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Cancel</p>
+                    <p class="text-xl font-black leading-none text-blue-600 text-center">{{ number_format($summary->cancelled) }}</p>
+                </div>
                 <div>
                     <p class="text-[9px] font-bold text-amber-500 uppercase tracking-widest text-center">Processing</p>
                     <p class="text-xl font-black leading-none text-gray-800 dark:text-white text-center">{{ number_format($summary->processing) }}</p>

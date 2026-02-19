@@ -67,17 +67,26 @@
                 <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">Compact View v3.0</p>
             </div>
             <div class="flex gap-4 border-l pl-6 border-gray-100 dark:border-gray-800 overflow-x-auto custom-scrollbar">
-                <div class="text-center min-w-[60px]">
-                    <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Total</p>
-                    <p class="text-lg font-black leading-none text-blue-600">{{ number_format($summary->total) }}</p>
+                <div>
+                    <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Total</p>
+                    <p class="text-xl font-black leading-none text-blue-600 text-center">{{ number_format($summary->total) }}</p>
                 </div>
-                <div class="text-center min-w-[60px]">
-                    <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Done</p>
-                    <p class="text-lg font-black leading-none text-green-600">{{ number_format($summary->completed) }}</p>
+                {{-- Hanya tampilkan stats Completed jika user login --}}
+                <div>
+                    <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Completed</p>
+                    <p class="text-xl font-black leading-none text-blue-600 text-center">{{ number_format($summary->completed) }}</p>
                 </div>
-                <div class="text-center min-w-[60px]">
-                    <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Process</p>
-                    <p class="text-lg font-black leading-none text-amber-500">{{ number_format($summary->processing) }}</p>
+                <div>
+                    <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Cancel</p>
+                    <p class="text-xl font-black leading-none text-blue-600 text-center">{{ number_format($summary->cancelled) }}</p>
+                </div>
+                <div>
+                    <p class="text-[9px] font-bold text-amber-500 uppercase tracking-widest text-center">Processing</p>
+                    <p class="text-xl font-black leading-none text-gray-800 dark:text-white text-center">{{ number_format($summary->processing) }}</p>
+                </div>
+                <div>
+                    <p class="text-[9px] font-bold text-amber-500 uppercase tracking-widest text-center">Pending</p>
+                    <p class="text-xl font-black leading-none text-gray-800 dark:text-white text-center">{{ number_format($summary->pending) }}</p>
                 </div>
             </div>
         </div>
