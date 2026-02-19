@@ -237,12 +237,12 @@ class InboundOrderApiController extends Controller
         // 2. Jika ada anak yang sudah Completed (berhasil masuk) tapi ada juga yang Cancelled,
         //    maka Parent dianggap "Partial Completed" karena tidak semua barang masuk.
         elseif ($completedCount > 0) {
-            $parent->update(['status' => 'Partial Completed']);
+            $parent->update(['status' => 'Partially']);
         }
         // 3. Jika ada yang Cancelled tapi sisanya masih "Processing" (belum di-apa-apakan),
         //    maka Parent tetap menjadi "Partial Completed" sebagai tanda ada pembatalan di tengah jalan.
         elseif ($cancelledCount > 0 && $cancelledCount < $totalChildren) {
-            $parent->update(['status' => 'Partial Completed']);
+            $parent->update(['status' => 'Partially']);
         }
     }
 

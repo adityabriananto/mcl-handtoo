@@ -367,8 +367,8 @@ class InboundOrderController extends Controller
 
             if ($request->type === 'batch') {
                 // 1. Update Induk & Semua Anak menjadi Completed
-                $inbound->update(['status' => 'Completed']);
-                $inbound->children()->update(['status' => 'Completed']);
+                $inbound->update(['status' => 'Completely']);
+                $inbound->children()->update(['status' => 'Completely']);
 
                 // 2. Update Quantity untuk Semua (Induk & Anak) secara masif
                 $allIds = $inbound->children->pluck('id')->push($inbound->id);
@@ -383,7 +383,7 @@ class InboundOrderController extends Controller
                 $message = "Main IO and all Sub-IOs marked as Completed with quantities synced.";
             } else {
                 // 1. Update Status IO/Sub-IO yang dipilih
-                $inbound->update(['status' => 'Completed']);
+                $inbound->update(['status' => 'Completely']);
 
                 // 2. Sync Quantity: received_good = requested_quantity pada item yang diklik
                 foreach ($inbound->details as $detail) {
@@ -459,13 +459,13 @@ class InboundOrderController extends Controller
         $query = InboundRequest::with(['details', 'children.details'])
             ->filter($filters)
             ->whereNull('parent_id')
-            ->where('status', '!=', 'Completed'); // Hard exclusion untuk keamanan ops publik
+            ->where('status', '!=', 'Completely'); // Hard exclusion untuk keamanan ops publik
 
         // 4. Hitung Statistik (Tanpa 'Completed')
         $allData = InboundRequest::select('id', 'parent_id', 'status')
             ->with('children:id,parent_id,status')
             ->filter($filters)
-            ->where('status', '!=', 'Completed')
+            ->where('status', '!=', 'Completely')
             ->get();
 
         $operationalUnits = $allData->filter(function($item) {
@@ -569,15 +569,15 @@ class InboundOrderController extends Controller
 
         // Check jika ada progress (selain Pending)
         $hasProgress = ($statusCounts['Processing'] ?? 0) > 0 ||
-                    ($statusCounts['Partial Completed'] ?? 0) > 0 ||
+                    ($statusCounts['Partially'] ?? 0) > 0 ||
                     ($completedCount > 0);
 
         // Logic Penentuan Status
         if ($completedCount === $totalChildren && $totalChildren > 0) {
-            $newStatus = 'Completed';
+            $newStatus = 'Completely';
         } elseif ($hasProgress) {
             // Jika ada satu saja child yang sudah Completed atau sedang Processing
-            $newStatus = 'Partial Completed';
+            $newStatus = 'Partially';
         } else {
             $newStatus = 'Processing';
         }
