@@ -459,13 +459,12 @@ class InboundOrderController extends Controller
         $query = InboundRequest::with(['details', 'children.details'])
             ->filter($filters)
             ->whereNull('parent_id')
-            ->where('status', '!=', 'Completely'); // Hard exclusion untuk keamanan ops publik
+            ;
 
         // 4. Hitung Statistik (Tanpa 'Completed')
         $allData = InboundRequest::select('id', 'parent_id', 'status')
             ->with('children:id,parent_id,status')
             ->filter($filters)
-            ->where('status', '!=', 'Completely')
             ->get();
 
         $operationalUnits = $allData->filter(function($item) {
