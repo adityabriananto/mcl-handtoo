@@ -110,8 +110,8 @@
         </select>
         <select x-model="filterStatus" class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] px-2 py-2 dark:text-white font-bold">
             <option value="">All Status</option>
-            <option value="Pending">Pending</option>
-            <option value="Processing">Processing</option>
+            <option value="Created">Created</option>
+            <option value="Inbound in Process">Inbound in Process</option>
             <option value="Cancelled by Seller">Cancelled by Seller</option>
             <option value="Partially">Partially</option>
             <option value="Completely">Completely</option>
