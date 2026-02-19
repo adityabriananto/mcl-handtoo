@@ -18,11 +18,11 @@
 
 @php
     $statusColors = [
-        'Pending'           => 'bg-yellow-50 text-yellow-700 border-yellow-200',
-        'Processing'        => 'bg-blue-50 text-blue-700 border-blue-200',
-        'Partial Completed' => 'bg-orange-50 text-orange-700 border-orange-200',
-        'Completed'         => 'bg-green-50 text-green-700 border-green-200',
-        'Cancelled'         => 'bg-red-50 text-red-700 border-red-200',
+        'Pending'             => 'bg-yellow-50 text-yellow-700 border-yellow-200',
+        'Processing'          => 'bg-blue-50 text-blue-700 border-blue-200',
+        'Partially'           => 'bg-orange-50 text-orange-700 border-orange-200',
+        'Completely'          => 'bg-green-50 text-green-700 border-green-200',
+        'Cancelled by Seller' => 'bg-red-50 text-red-700 border-red-200',
     ];
 
     $summary = $stats;
@@ -112,6 +112,9 @@
             <option value="">All Status</option>
             <option value="Pending">Pending</option>
             <option value="Processing">Processing</option>
+            <option value="Cancelled by Seller">Cancelled by Seller</option>
+            <option value="Partially">Partially</option>
+            <option value="Completely">Completely</option>
             {{-- Guest/Ops tidak login tidak bisa filter Completed jika data disembunyikan --}}
             @auth <option value="Completed">Completed</option> @endauth
         </select>
