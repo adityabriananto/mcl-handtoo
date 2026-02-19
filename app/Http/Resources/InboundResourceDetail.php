@@ -47,7 +47,7 @@ class InboundResourceDetail extends JsonResource
             "seller_mobile"            => "", // Sesuaikan field jika ada
             "seller_country"           => "",
             "fulfillment_order_number" => $this->inbound_order_no,
-            "need_reservation"         => "false",
+            "need_reservation"         => false,
             "seller_postcode"          => "",
             "seller_warehouse_name"    => $this->inbound_warehouse,
             "updated_at"               => $this->updated_at ? $this->updated_at->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
