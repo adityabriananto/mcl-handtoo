@@ -477,7 +477,8 @@ class InboundOrderController extends Controller
             'pending'      => $operationalUnits->where('status', 'Created')->count(),
             'processing'   => $operationalUnits->where('status', 'Inbound in Process')->count(),
             'cancelled'    => $operationalUnits->where('status', 'Cancelled by Seller')->count(),
-            'completed'    => 0, // Set 0 karena menu ini khusus In-Progress
+            'completed'    => $operationalUnits->where('status', 'Completely')->count(),
+            'partially'    => $operationalUnits->where('status', 'Partially')->count(),
         ];
 
         // 5. Final Query untuk Table
