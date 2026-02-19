@@ -41,17 +41,17 @@ class InboundResourceDetail extends JsonResource
                 ];
             }),
             // Format waktu UTC ISO8601
-            "inbound_time"             => $this->created_at ? $this->created_at->setTimezone('America/Los_Angeles')->format('Y-m-d\TH:i:s\Z') : null,
+            "inbound_time"             => $this->created_at ? $this->created_at->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
             "inbound_warehouse_code"   => $this->warehouse_code,
-            "created_at"               => $this->created_at ? $this->created_at->setTimezone('America/Los_Angeles')->format('Y-m-d\TH:i:s\Z') : null,
+            "created_at"               => $this->created_at ? $this->created_at->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
             "seller_mobile"            => "", // Sesuaikan field jika ada
             "seller_country"           => "",
             "fulfillment_order_number" => $this->inbound_order_no,
             "need_reservation"         => "false",
             "seller_postcode"          => "",
             "seller_warehouse_name"    => $this->inbound_warehouse,
-            "updated_at"               => $this->updated_at ? $this->updated_at->setTimezone('America/Los_Angeles')->format('Y-m-d\TH:i:s\Z') : null,
-            "estimate_time"            => $this->estimate_time ? \Illuminate\Support\Carbon::parse($this->estimate_time)->setTimezone('America/Los_Angeles')->format('Y-m-d\TH:i:s\Z') : null,
+            "updated_at"               => $this->updated_at ? $this->updated_at->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
+            "estimate_time"            => $this->estimate_time ? \Illuminate\Support\Carbon::parse($this->estimate_time)->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
             "delivery_type"            => "Dropoff",
             "seller_contact"           => "",
             "io_status"                => $this->status,

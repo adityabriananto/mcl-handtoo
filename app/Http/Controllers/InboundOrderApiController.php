@@ -199,7 +199,7 @@ class InboundOrderApiController extends Controller
             $dataResponse = [
                 "reference_number" => $inbound->reference_number,
                 "status"           => "Cancelled",
-                "updated_at"       => now()->setTimezone('America/Los_Angeles')->format('Y-m-d\TH:i:s\Z')
+                "updated_at"       => now()->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z')
             ];
 
             return $this->buildApiResponse(true, null, $dataResponse, 200, $request, $type);
