@@ -254,7 +254,14 @@ class InboundOrderApiController extends Controller
                 "inbound_order_no" => $data, // Ini akan berisi hasil dari InboundResourceDetail
                 "request_id"       => (string) \Str::uuid()
             ];
-        } else {
+        } else if ($type == "CancelInboundOrder") {
+            $response = [
+                "status"           => $success ? True : False,
+                "code"             => $success ? "0" : (string) $status,
+                "request_id"       => (string) \Str::uuid()
+            ];
+        }
+        else {
             $response = [
                 "code"       => $success ? "0" : (string) $status,
                 "data"       => $data, // Ini akan berisi hasil dari InboundResourceDetail
