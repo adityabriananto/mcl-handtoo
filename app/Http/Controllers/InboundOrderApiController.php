@@ -168,7 +168,7 @@ class InboundOrderApiController extends Controller
         $inbound = InboundRequest::where('reference_number', $request->inbound_order_no)->first();
 
         // 3. Validasi State (Status)
-        if ($inbound->status === 'Cancelled') {
+        if ($inbound->status === 'Cancelled by Seller') {
             return $this->buildApiResponse(false, 'ALREADY_CANCELLED', 'Inbound is already cancelled.', 400, $request, $type);
         }
 
@@ -180,15 +180,15 @@ class InboundOrderApiController extends Controller
             \DB::transaction(function () use ($inbound) {
                 // Jika Parent: Cancel bapak dan anak-anak yang belum completed
                 if (!$inbound->parent_id && $inbound->children->count() > 0) {
-                    $inbound->update(['status' => 'Cancelled']);
+                    $inbound->update(['status' => 'Cancelled by Seller']);
                     $inbound->children()
                     ->where('status', '!=', 'Completely')
                     ->where('status', '!=', 'Partially')
-                    ->update(['status' => 'Cancelled']);
+                    ->update(['status' => 'Cancelled by Seller']);
                 }
                 // Jika Child atau Single: Cancel diri sendiri dan sync bapaknya
                 else {
-                    $inbound->update(['status' => 'Cancelled']);
+                    $inbound->update(['status' => 'Cancelled by Seller']);
                     if ($inbound->parent_id) {
                         $this->updateParentStatusAfterChildCancel($inbound->parent_id);
                     }
@@ -198,7 +198,7 @@ class InboundOrderApiController extends Controller
             // 4. Response Berhasil
             $dataResponse = [
                 "reference_number" => $inbound->reference_number,
-                "status"           => "Cancelled",
+                "status"           => "Cancelled by Seller",
                 "updated_at"       => now()->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z')
             ];
 
@@ -223,7 +223,7 @@ class InboundOrderApiController extends Controller
         $totalChildren    = count($childrenStatuses);
 
         // Hitung distribusi status anak-anaknya
-        $cancelledCount = count(array_filter($childrenStatuses, fn($s) => $s === 'Cancelled'));
+        $cancelledCount = count(array_filter($childrenStatuses, fn($s) => $s === 'Cancelled by Seller'));
         $completedCount = count(array_filter($childrenStatuses, fn($s) => $s === 'Completely'));
 
         /**
@@ -232,7 +232,7 @@ class InboundOrderApiController extends Controller
 
         // 1. Jika SEMUA anak sudah Cancelled, maka Parent otomatis Cancelled.
         if ($cancelledCount === $totalChildren) {
-            $parent->update(['status' => 'Cancelled']);
+            $parent->update(['status' => 'Cancelled by Seller']);
         }
         // 2. Jika ada anak yang sudah Completed (berhasil masuk) tapi ada juga yang Cancelled,
         //    maka Parent dianggap "Partial Completed" karena tidak semua barang masuk.

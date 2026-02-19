@@ -70,7 +70,7 @@ class InboundOrderController extends Controller
             'total'        => $operationalUnits->count(),
             'pending'      => $operationalUnits->where('status', 'Pending')->count(),
             'processing'   => $operationalUnits->where('status', 'Processing')->count(),
-            'cancelled'    => $operationalUnits->where('status', 'Cancelled')->count(),
+            'cancelled'    => $operationalUnits->where('status', 'Cancelled by Seller')->count(),
             'completed'    => $operationalUnits->where('status', 'Completely')->count(),
             'partially'    => $operationalUnits->where('status', 'Partially')->count(),
         ];
