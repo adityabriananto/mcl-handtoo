@@ -107,11 +107,18 @@ class ProcessInboundActualUpload implements ShouldQueue
         // --- STEP B: UPDATE STATUS PARENT ---
         $childrenStatus = $parent->children()->pluck('status')->toArray();
 
-        if (in_array('Partially', $childrenStatus)) {
+        if (in_array('Inbound in Process', $childrenStatus)) {
+            $newParentStatus = 'Inbound in Process';
+        } elseif (in_array('Partially', $childrenStatus)) {
             $newParentStatus = 'Partially';
         } else {
-            $allCompleted = $parent->children()->count() === $parent->children()->where('status', 'Completely')->count();
-            $newParentStatus = $allCompleted ? 'Completely' : 'Processing';
+            // Cek apakah semua child berstatus Completely
+            $totalChildren = $parent->children()->count();
+            $totalCompleted = $parent->children()->where('status', 'Completely')->count();
+
+            $newParentStatus = ($totalChildren > 0 && $totalChildren === $totalCompleted)
+                ? 'Completely'
+                : 'Inbound in Process';
         }
 
         $parent->update(['status' => $newParentStatus]);
@@ -127,6 +134,6 @@ class ProcessInboundActualUpload implements ShouldQueue
         if ($totalReceived >= $totalRequested) return 'Completely';
         if ($totalReceived > 0) return 'Partially';
 
-        return 'Processing';
+        return 'Inbound in Process';
     }
 }
