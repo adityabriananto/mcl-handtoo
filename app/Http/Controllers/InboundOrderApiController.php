@@ -272,13 +272,7 @@ class InboundOrderApiController extends Controller
         }
 
         // Jika terjadi error, kita bisa selipkan message di dalam data atau level atas
-        if (!$success && $type != "CancelInboundOrder") {
-            $response["data"] = [
-                "status"     => $success ? True : False,
-                "error_type" => $message,
-                "message"    => $data // Jika data berisi pesan error string
-            ];
-        } else {
+        if (!$success) {
             $response = [
                 "error_message"    => $data,
                 "error_code"       => $message,
