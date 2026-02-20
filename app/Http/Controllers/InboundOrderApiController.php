@@ -280,6 +280,8 @@ class InboundOrderApiController extends Controller
             ];
         } else {
             $response = [
+                "error_message"    => $data,
+                "error_code"       => $message,
                 "status"           => $success ? True : False,
                 "code"             => $success ? "0" : (string) $status,
                 "request_id"       => (string) \Str::uuid()
