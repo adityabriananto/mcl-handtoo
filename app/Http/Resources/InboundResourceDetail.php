@@ -22,16 +22,16 @@ class InboundResourceDetail extends JsonResource
             "inbound_warehouse"        => $warehouseName,
             "skus" => $this->details->map(function($detail) {
                 return [
-                    "shelf_life_flag"        => "false",
+                    "shelf_life_flag"        => false,
                     "comments"               => $this->comment ?? "",
                     "item_inbounded_damaged" => (string) ($detail->received_damaged ?? 0),
                     "requested_quantity"     => (string) $detail->requested_quantity,
-                    "serial_number_flag"     => "false",
+                    "serial_number_flag"     => false,
                     "fulfillment_sku"        => $detail->fulfillment_sku ?? "", // Sesuaikan jika ada field fulfillment_sku
                     "seller_sku"             => [
                         $detail->seller_sku
                     ],
-                    "item_inbounded_expired" => "0",
+                    "item_inbounded_expired" => 0,
                     "item_inbounded_good"    => (string) ($detail->received_good ?? 0),
                     "sku_status"             => $this->status,
                     "fulfillment_sku_name"   => $detail->product_name ?? "",
@@ -47,7 +47,7 @@ class InboundResourceDetail extends JsonResource
             "seller_mobile"            => "", // Sesuaikan field jika ada
             "seller_country"           => "",
             "fulfillment_order_number" => $this->inbound_order_no,
-            "need_reservation"         => false,
+            "need_reservation"         => true,
             "seller_postcode"          => "",
             "seller_warehouse_name"    => $this->inbound_warehouse,
             "updated_at"               => $this->updated_at ? $this->updated_at->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
