@@ -39,40 +39,109 @@ class InboundOrderApiController extends Controller
         }
 
         // 2. Ambil token dari Header atau dari Body (berdasarkan log Anda ada di body juga)
-        $client = ClientApi::where('app_key', $request['app_key'])->first();
+        // 3. Cache Client API (Gunakan Cache untuk menaikkan RPS)
+        $client = \Cache::remember("client_api_{$request->app_key}", 3600, function() use ($request) {
+            return ClientApi::where('app_key', $request['app_key'])->first();
+        });
+        // $client = ClientApi::where('app_key', $request['app_key'])->first();
 
         if (empty($client)) {
             return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, 'CreateInboundOrder');
         }
 
         // 3. Simpan atau Update Inbound Request
-        $inboundOrder = InboundRequest::firstOrNew([
-            'client_name'      => $client->client_name,
-            'reference_number' => $request->reference_number
-        ]);
+        // $inboundOrder = InboundRequest::firstOrNew([
+        //     'client_name'      => $client->client_name,
+        //     'reference_number' => $request->reference_number
+        // ]);
 
-        $inboundOrder->warehouse_code        = $request->warehouse_code;
-        $inboundOrder->delivery_type         = $request->delivery_type;
-        $inboundOrder->seller_warehouse_code = $request->seller_warehouse_code;
-        $inboundOrder->estimate_time         = Carbon::parse($request->estimate_time)->toDateTimeString();
-        $inboundOrder->comment               = $request->comment;
-        $inboundOrder->status                = 'Created';
-        $inboundOrder->save();
+        // $inboundOrder->warehouse_code        = $request->warehouse_code;
+        // $inboundOrder->delivery_type         = $request->delivery_type;
+        // $inboundOrder->seller_warehouse_code = $request->seller_warehouse_code;
+        // $inboundOrder->estimate_time         = Carbon::parse($request->estimate_time)->toDateTimeString();
+        // $inboundOrder->comment               = $request->comment;
+        // $inboundOrder->status                = 'Created';
+        // $inboundOrder->save();
 
-        // 4. Proses SKU
-        foreach ($request->skus as $sku) {
-            $inboundOrderDetail = InboundRequestDetail::firstOrNew([
-                'inbound_order_id' => $inboundOrder->id,
-                'seller_sku'       => $sku['seller_sku'],
-                'fulfillment_sku'  => $sku['fulfillment_sku'] ?? null,
-            ]);
+        // // 4. Proses SKU
+        // foreach ($request->skus as $sku) {
+        //     $inboundOrderDetail = InboundRequestDetail::firstOrNew([
+        //         'inbound_order_id' => $inboundOrder->id,
+        //         'seller_sku'       => $sku['seller_sku'],
+        //         'fulfillment_sku'  => $sku['fulfillment_sku'] ?? null,
+        //     ]);
 
-            // Akumulasi quantity jika item yang sama dikirim dua kali
-            $inboundOrderDetail->requested_quantity += (int) $sku['requested_quantity'];
-            $inboundOrderDetail->save();
+        //     // Akumulasi quantity jika item yang sama dikirim dua kali
+        //     $inboundOrderDetail->requested_quantity += (int) $sku['requested_quantity'];
+        //     $inboundOrderDetail->save();
+        // }
+
+        // return $this->buildApiResponse(true, null, $inboundOrder->reference_number, 200, $request, 'CreateInboundOrder');
+        try {
+            // Gunakan Transaction agar data Parent & Detail konsisten
+            return \DB::transaction(function () use ($request, $client) {
+
+                // 4. Update atau Create Inbound Parent
+                $inboundOrder = InboundRequest::updateOrCreate(
+                    [
+                        'client_name'      => $client->client_name,
+                        'reference_number' => $request->reference_number
+                    ],
+                    [
+                        'warehouse_code'        => $request->warehouse_code,
+                        'delivery_type'         => $request->delivery_type,
+                        'seller_warehouse_code' => $request->seller_warehouse_code,
+                        'estimate_time'         => Carbon::parse($request->estimate_time)->toDateTimeString(),
+                        'comment'               => $request->comment,
+                        'status'                => 'Created',
+                    ]
+                );
+
+                // 5. Tarik semua detail yang ada ke memori (Hanya 1 Query SELECT)
+                // Ini kunci agar loop di bawah tidak lambat (No N+1 Query)
+                $existingDetails = InboundRequestDetail::where('inbound_order_id', $inboundOrder->id)
+                    ->get()
+                    ->keyBy(function($item) {
+                        return $item->seller_sku . '|' . ($item->fulfillment_sku ?? '');
+                    });
+
+                // 6. Gabungkan SKU duplikat dari input request (Agregasi Memori)
+                $inputSkus = [];
+                foreach ($request->skus as $sku) {
+                    $key = $sku['seller_sku'] . '|' . ($sku['fulfillment_sku'] ?? '');
+                    if (isset($inputSkus[$key])) {
+                        $inputSkus[$key]['requested_quantity'] += (int) $sku['requested_quantity'];
+                    } else {
+                        $inputSkus[$key] = $sku;
+                    }
+                }
+
+                // 7. Proses Simpan/Update Detail
+                foreach ($inputSkus as $key => $sku) {
+                    if ($existingDetails->has($key)) {
+                        // Update Record yang sudah ada di database
+                        $detail = $existingDetails->get($key);
+                        $detail->update([
+                            'requested_quantity' => $detail->requested_quantity + (int) $sku['requested_quantity']
+                        ]);
+                    } else {
+                        // Buat Record Baru
+                        InboundRequestDetail::create([
+                            'inbound_order_id'   => $inboundOrder->id,
+                            'seller_sku'         => $sku['seller_sku'],
+                            'fulfillment_sku'    => $sku['fulfillment_sku'] ?? null,
+                            'requested_quantity' => (int) $sku['requested_quantity'],
+                        ]);
+                    }
+                }
+
+                return $this->buildApiResponse(true, null, $inboundOrder->reference_number, 200, $request, 'CreateInboundOrder');
+            });
+
+        } catch (\Exception $e) {
+            \Log::error("Error Create Inbound: " . $e->getMessage());
+            return $this->buildApiResponse(false, 'SERVER_ERROR', 'Terjadi kesalahan internal.', 500, $request, 'CreateInboundOrder');
         }
-
-        return $this->buildApiResponse(true, null, $inboundOrder->reference_number, 200, $request, 'CreateInboundOrder');
     }
 
 
