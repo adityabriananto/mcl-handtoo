@@ -380,7 +380,7 @@ class HandoverController extends Controller
             DB::rollBack();
             ApiLog::create([
                 'client_name' => isset($clientApi) ? $clientApi->client_name : "SYSTEM_ERROR",
-                'api_type'    => 'HandoverWebhook_Error',
+                'api_type'    => 'HandoverWebhook',
                 'endpoint'    => $url ?? request()->fullUrl(),
                 'method'      => 'POST',
                 // Jika $data tidak ada, ambil semua input request sebagai payload

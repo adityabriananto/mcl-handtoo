@@ -168,20 +168,8 @@ class InboundOrderApiController extends Controller
 
         // 3. Response handling
         if ($inbound->isEmpty()) {
-            $statusCode = 200;
-            $responseContent = [
-                'success' => true,
-                'message' => 'No references found',
-                'data'    => []
-            ];
             return $this->buildApiResponse(true, null, [], 200, $request, 'GetInboundOrders');
         } else {
-            $statusCode = 200;
-            $responseContent = [
-                'success' => true,
-                'message' => 'Success fetch inbound references',
-                'data'    => $inbound
-            ];
             return $this->buildApiResponse(true, null, $inbound, 200, $request, 'GetInboundOrders');
         }
     }
