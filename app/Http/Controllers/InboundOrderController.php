@@ -585,4 +585,105 @@ class InboundOrderController extends Controller
 
         $parent->update(['status' => $newStatus]);
     }
+
+    /**
+     * Method untuk melakukan pembatalan Inbound Order (Parent atau Child)
+     */
+    public function cancelIO($id)
+    {
+        try {
+            DB::beginTransaction();
+
+            // 1. Ambil data Inbound beserta ID Child-nya saja agar ringan
+            $inbound = InboundRequest::select('id', 'parent_id')->with('children:id,parent_id')->findOrFail($id);
+
+            // 2. Kumpulkan semua ID yang terlibat
+            $idsToCancel = collect([$inbound->id]);
+
+            if ($inbound->children->isNotEmpty()) {
+                // Jika yang di-klik adalah Parent, kumpulkan semua ID Child-nya
+                $idsToCancel = $idsToCancel->merge($inbound->children->pluck('id'));
+            }
+
+            // 3. Update Status secara Massal (Bulk)
+            InboundRequest::whereIn('id', $idsToCancel)->update([
+                'status' => 'Cancelled by Lazada',
+                'updated_at' => now()
+            ]);
+
+            // 4. Reset Quantity di tabel detail secara Massal
+            DB::table('inbound_order_details')
+                ->whereIn('inbound_order_id', $idsToCancel)
+                ->update([
+                    'received_good' => 0,
+                    'updated_at' => now()
+                ]);
+
+            // 5. Sinkronisasi Final
+            // Jika yang di-cancel adalah Child (punya parent_id), sync Parent-nya.
+            // Jika yang di-cancel adalah Parent, jalankan sync untuk dirinya sendiri (untuk update qty detail).
+            $targetSyncId = $inbound->parent_id ?: $inbound->id;
+            $this->syncParentDataAfterCancel($targetSyncId);
+
+            DB::commit();
+            return back()->with('success', 'Inbound Order dan semua Child terkait berhasil dibatalkan.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Method khusus sinkronisasi setelah cancel untuk memastikan
+     * kuantitas dan status parent tetap akurat.
+     */
+    private function syncParentDataAfterCancel($parentId)
+    {
+        $parent = InboundRequest::with(['children.details', 'details'])->find($parentId);
+        if (!$parent) return;
+
+        $hasChildren = $parent->children->isNotEmpty();
+
+        // --- STEP 1: Update Quantity Parent (Hanya jika punya anak) ---
+        if ($hasChildren) {
+            foreach ($parent->details as $parentDetail) {
+                $totalReceived = InboundRequestDetail::whereIn('inbound_order_id', $parent->children->pluck('id'))
+                    ->where('fulfillment_sku', $parentDetail->fulfillment_sku)
+                    ->sum('received_good');
+
+                $parentDetail->update(['received_good' => $totalReceived]);
+            }
+        }
+
+        // --- STEP 2: Update Status Parent (Hirarki) ---
+        // Jika Single IO (tidak punya anak) dan statusnya sudah 'Cancelled by Lazada', jangan ditimpa lagi.
+        if (!$hasChildren) {
+            // Jika status saat ini bukan Cancelled, baru kita tentukan statusnya (biasanya default)
+            // Tapi dalam konteks cancelIO, statusnya sudah diupdate di method utama.
+            return;
+        }
+
+        $childrenStatus = $parent->children()->pluck('status')->unique()->toArray();
+
+        if (in_array('Inbound in Process', $childrenStatus)) {
+            $newStatus = 'Inbound in Process';
+        } elseif (in_array('Partially', $childrenStatus)) {
+            $newStatus = 'Partially';
+        } else {
+            $totalChildren  = $parent->children()->count();
+            $totalCompleted = $parent->children()->where('status', 'Completely')->count();
+            $totalCancelled = $parent->children()->where('status', 'Cancelled by Lazada')->count();
+
+            // Logika untuk Parent yang semua anaknya sudah selesai/batal
+            if ($totalChildren > 0 && ($totalCompleted + $totalCancelled) === $totalChildren) {
+                $newStatus = ($totalCompleted > 0) ? 'Completely' : 'Cancelled by Lazada';
+            } else {
+                // Jika ada status lain yang tidak tercover (misal: Pending)
+                $newStatus = 'Inbound in Process';
+            }
+        }
+
+        $parent->update(['status' => $newStatus]);
+    }
 }

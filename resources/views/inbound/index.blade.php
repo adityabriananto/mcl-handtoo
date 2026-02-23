@@ -23,6 +23,7 @@
         'Partially'           => 'bg-orange-50 text-orange-700 border-orange-200',
         'Completely'          => 'bg-green-50 text-green-700 border-green-200',
         'Cancelled by Seller' => 'bg-red-50 text-red-700 border-red-200',
+        'Cancelled by Lazada' => 'bg-red-50 text-red-700 border-red-200',
     ];
     $summary = $stats;
     $warehouses = $requests->pluck('warehouse_code')->unique()->filter()->sort();
@@ -183,6 +184,18 @@
 
                             <td class="px-4 py-3 text-right">
                                 <div class="flex justify-end gap-2">
+                                    {{-- Tombol CANCEL --}}
+                                    @if($item->status !== 'Completely' && $item->status !== 'Partially' && $item->status !== "Cancelled by Seller" && $item->status !== "Cancelled by Lazada" && $item->status !== "Inbound in Process")
+                                        <form action="{{ route('inbound.cancel', $item->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan IO ini?')">
+                                            @csrf
+                                            <button type="submit" class="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition border border-red-200 shadow-sm" title="Cancel IO">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    @endif
+
                                     {{-- RESET (If Locked) --}}
                                     @if($isLocked || $item->status === 'Partial Completed')
                                         <form action="{{ route('inbound.reset_status', $item->id) }}" method="POST" onsubmit="return confirm('Unlock data ini?')">
@@ -255,6 +268,17 @@
 
                                     <td class="px-4 py-3 text-right">
                                         <div class="flex justify-end gap-2">
+                                            {{-- CHILD CANCEL --}}
+                                            @if($child->status !== 'Cancelled by Lazada' && $child->status !== 'Completely' && $child->status !== 'Partially' && $child->status !== "Cancelled by Seller" && $child->status !== "Cancelled by Lazada" && $child->status !== "Inbound in Process")
+                                                <form action="{{ route('inbound.cancel', $child->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan Child IO ini? Kuantitas item ini akan di-reset menjadi 0.')">
+                                                    @csrf
+                                                    <button type="submit" class="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition border border-red-200 shadow-sm" title="Cancel Child">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                        </svg>
+                                                    </button>
+                                                </form>
+                                            @endif
                                             {{-- CHILD RESET --}}
                                             @if($isChildLocked)
                                                 <form action="{{ route('inbound.reset_status', $child->id) }}" method="POST">

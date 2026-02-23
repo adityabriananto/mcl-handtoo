@@ -111,6 +111,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/template', [InboundOrderController::class, 'downloadTemplate'])->name('template');
         Route::post('/upload', [InboundOrderController::class, 'uploadIoNumber'])->name('upload');
         Route::post('/status-complete/{id}', [InboundOrderController::class, 'updateStatus'])->name('complete');
+        Route::post('/status-cancel/{id}', [InboundOrderController::class, 'cancelIO'])->name('cancel');
 
         // Resource-like routes
         Route::get('/create', [InboundOrderController::class, 'create'])->name('create');
