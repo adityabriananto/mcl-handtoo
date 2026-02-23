@@ -27,7 +27,7 @@ class DataHandoverUploadController extends Controller
             // Simpan file ke folder temp di storage/app/uploads
             $fileName = 'handover_' . time() . '.' . $file->getClientOriginalExtension();
             $path = $file->storeAs('uploads', $fileName);
-            $fullPath = storage_path('app/' . $path);
+            $fullPath = \Storage::disk('local')->path($path);
 
             // Lempar ke Background Job
             HandoverUploadJob::dispatch($fullPath)->onQueue('handover-upload');;
