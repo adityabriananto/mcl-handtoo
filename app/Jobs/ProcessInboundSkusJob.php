@@ -48,7 +48,7 @@ class ProcessInboundSkusJob implements ShouldQueue
         foreach ($chunks as $chunk) {
             DB::transaction(function () use ($chunk) {
                 foreach ($chunk as $item) {
-                    DB::table('inbound_request_details')->updateOrInsert(
+                    DB::table('inbound_order_details')->updateOrInsert(
                         [
                             'inbound_order_id' => $this->inboundOrderId,
                             'seller_sku'       => $item['seller_sku'],
