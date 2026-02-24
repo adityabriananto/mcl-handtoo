@@ -27,41 +27,35 @@ class ProcessInboundSkusJob implements ShouldQueue
 
     public function handle()
     {
-        // 1. Kelompokkan SKU yang sama di memori
         $processed = [];
         foreach ($this->skus as $sku) {
             $key = $sku['seller_sku'] . '|' . ($sku['fulfillment_sku'] ?? '');
+
             if (isset($processed[$key])) {
-                $processed[$key]['qty'] += (int)$sku['requested_quantity'];
+                $processed[$key]['requested_quantity'] += (int)$sku['requested_quantity'];
             } else {
                 $processed[$key] = [
-                    'seller_sku' => $sku['seller_sku'],
-                    'fulfillment_sku' => $sku['fulfillment_sku'] ?? null,
-                    'qty' => (int)$sku['requested_quantity']
+                    'inbound_order_id'   => $this->inboundOrderId,
+                    'seller_sku'         => $sku['seller_sku'],
+                    'fulfillment_sku'    => $sku['fulfillment_sku'] ?? null,
+                    'requested_quantity' => (int)$sku['requested_quantity'],
+                    'created_at'         => now(), // Isi eksplisit untuk insert
+                    'updated_at'         => now(),
                 ];
             }
         }
 
-        // 2. Proses per batch (1000 SKU per batch) agar RAM tidak meledak
         $chunks = array_chunk(array_values($processed), 1000);
 
         foreach ($chunks as $chunk) {
-            DB::transaction(function () use ($chunk) {
-                foreach ($chunk as $item) {
-                    DB::table('inbound_order_details')->updateOrInsert(
-                        [
-                            'inbound_order_id' => $this->inboundOrderId,
-                            'seller_sku'       => $item['seller_sku'],
-                            'fulfillment_sku'  => $item['fulfillment_sku'],
-                        ],
-                        [
-                            'requested_quantity' => DB::raw("requested_quantity + " . $item['qty']),
-                            'updated_at'         => now(),
-                        ]
-                    );
-                }
-            });
-            unset($chunk); // Paksa hapus dari RAM
+            // UPSERT jauh lebih efisien dan menangani created_at dengan benar
+            DB::table('inbound_order_details')->upsert(
+                $chunk,
+                ['inbound_order_id', 'seller_sku', 'fulfillment_sku'], // Unique key
+                ['requested_quantity', 'updated_at'] // Kolom yang diupdate jika sudah ada
+            );
+
+            unset($chunk);
         }
     }
 }
