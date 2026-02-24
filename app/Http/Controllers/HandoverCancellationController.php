@@ -124,7 +124,7 @@ class HandoverCancellationController extends Controller
     //     return response()->json($response, $httpCode);
     // }
 
-    private function buildApiResponse($request, $isSuccess, $message, $errorCode, $requestId, $type = 'CANCEL_API')
+    private function buildApiResponse($request, $isSuccess, $message, $errorCode, $requestId, $type = 'HandoverCancellation')
     {
         $responseData = [
             'success'       => $isSuccess ? "TRUE" : "FALSE",
