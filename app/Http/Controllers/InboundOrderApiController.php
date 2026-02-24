@@ -49,34 +49,6 @@ class InboundOrderApiController extends Controller
             return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, 'CreateInboundOrder');
         }
 
-        // 3. Simpan atau Update Inbound Request
-        // $inboundOrder = InboundRequest::firstOrNew([
-        //     'client_name'      => $client->client_name,
-        //     'reference_number' => $request->reference_number
-        // ]);
-
-        // $inboundOrder->warehouse_code        = $request->warehouse_code;
-        // $inboundOrder->delivery_type         = $request->delivery_type;
-        // $inboundOrder->seller_warehouse_code = $request->seller_warehouse_code;
-        // $inboundOrder->estimate_time         = Carbon::parse($request->estimate_time)->toDateTimeString();
-        // $inboundOrder->comment               = $request->comment;
-        // $inboundOrder->status                = 'Created';
-        // $inboundOrder->save();
-
-        // // 4. Proses SKU
-        // foreach ($request->skus as $sku) {
-        //     $inboundOrderDetail = InboundRequestDetail::firstOrNew([
-        //         'inbound_order_id' => $inboundOrder->id,
-        //         'seller_sku'       => $sku['seller_sku'],
-        //         'fulfillment_sku'  => $sku['fulfillment_sku'] ?? null,
-        //     ]);
-
-        //     // Akumulasi quantity jika item yang sama dikirim dua kali
-        //     $inboundOrderDetail->requested_quantity += (int) $sku['requested_quantity'];
-        //     $inboundOrderDetail->save();
-        // }
-
-        // return $this->buildApiResponse(true, null, $inboundOrder->reference_number, 200, $request, 'CreateInboundOrder');
         try {
             // Gunakan Transaction agar data Parent & Detail konsisten
             return \DB::transaction(function () use ($request, $client) {
