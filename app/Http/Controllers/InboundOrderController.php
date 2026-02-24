@@ -47,7 +47,7 @@ class InboundOrderController extends Controller
     $requests = InboundRequest::with(['details', 'children.details'])
                 ->filter($filters)
                 ->whereNull('parent_id')
-                ->orderByRaw("CASE WHEN status = 'Pending' THEN 0 ELSE 1 END")
+                ->orderByRaw("CASE WHEN status = 'Created' THEN 0 ELSE 1 END")
                 ->orderBy('created_at', 'desc')
                 ->paginate(50);
 
@@ -87,8 +87,7 @@ class InboundOrderController extends Controller
             ])
             ->filter($filters)
             ->whereNull('parent_id')
-            // Optimasi Sort: Pending di atas (menggunakan index status jika ada)
-            ->orderByRaw("CASE WHEN status = 'Pending' THEN 0 ELSE 1 END")
+            ->orderByRaw("CASE WHEN status = 'Created' THEN 0 ELSE 1 END")
             ->orderBy('created_at', 'asc')
             ->paginate(50);
 
@@ -174,7 +173,7 @@ class InboundOrderController extends Controller
                 $existingChildCount = InboundRequest::where('parent_id', $parentId)->count();
                 $childIO->reference_number = $original->reference_number . "-S" . str_pad($existingChildCount + 1, 2, '0', STR_PAD_LEFT);
 
-                $childIO->status = 'Pending';
+                $childIO->status = 'Created';
                 $childIO->save();
 
                 // 3. Masukkan baris SKU yang sudah di-chunk ke child IO ini
@@ -481,7 +480,7 @@ class InboundOrderController extends Controller
         ];
 
         // 5. Final Query untuk Table
-        $requests = $query->orderByRaw("CASE WHEN status = 'Pending' THEN 0 ELSE 1 END")
+        $requests = $query->orderByRaw("CASE WHEN status = 'Created' THEN 0 ELSE 1 END")
             ->orderBy('created_at', 'asc')
             ->paginate(50);
 
@@ -568,7 +567,6 @@ class InboundOrderController extends Controller
         $totalChildren = array_sum($statusCounts);
         $completedCount = $statusCounts['Completed'] ?? 0;
 
-        // Check jika ada progress (selain Pending)
         $hasProgress = ($statusCounts['Processing'] ?? 0) > 0 ||
                     ($statusCounts['Partially'] ?? 0) > 0 ||
                     ($completedCount > 0);
@@ -679,7 +677,6 @@ class InboundOrderController extends Controller
             if ($totalChildren > 0 && ($totalCompleted + $totalCancelled) === $totalChildren) {
                 $newStatus = ($totalCompleted > 0) ? 'Completely' : 'Cancelled by Lazada';
             } else {
-                // Jika ada status lain yang tidak tercover (misal: Pending)
                 $newStatus = 'Inbound in Process';
             }
         }
