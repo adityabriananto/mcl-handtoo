@@ -40,7 +40,9 @@
 
                 {{-- Barcode (Asumsi milon/barcode terinstal) --}}
                 <div class="barcode">
-                    <img src="data:image/png;base64,{!! DNS1D::getBarcodePNG($batch->handover_id, 'C39', 1.5, 50) !!}" alt="barcode" style="width: 100%; height: 50px;" />
+                    @if(!empty($batch->handover_id))
+                        <img src="data:image/png;base64,{!! DNS1D::getBarcodePNG($batch->handover_id ?? '', 'C128', 1.5, 50) !!}" alt="barcode" style="width: 100%; height: 50px;" />
+                    @endif
                 </div>
             </div>
 
