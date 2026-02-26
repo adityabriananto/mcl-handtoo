@@ -272,10 +272,15 @@ class InboundOrderController extends Controller
         // Fungsi pembantu untuk memetakan data sesuai header template
         $mapRow = function($model, $sku, $qty) use ($warehouseMap) {
             $warehouseName = $warehouseMap[$model->warehouse_code] ?? $model->warehouse_code;
+            if($model->parent_id) {
+                $parent = InboundRequest::with(['details', 'children.details'])->findOrFail($model->parent_id);
+            } else {
+                $parent = null;
+            }
             return [
                 'Delivery Type(required)(must be "Dropoff")' => 'Dropoff',
                 'Inbound warehouse name(required)' => $warehouseName,
-                'Reference Order No.' => $model->reference_number,
+                'Reference Order No.' => $parent ? $parent->reference_number : $model->reference_number,
                 'Estimated Date(required)(yyyy-mm-dd)' => $model->estimate_time ? date('Y-m-d', strtotime($model->estimate_time)) : date('Y-m-d'),
                 'Estimated Hour(required)(hh)' => $model->estimate_time ? date('H', strtotime($model->estimate_time)) : '00',
                 'Seller SKU(required)' => $sku,

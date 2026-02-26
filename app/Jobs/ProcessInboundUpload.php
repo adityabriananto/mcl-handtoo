@@ -32,28 +32,41 @@ class ProcessInboundUpload implements ShouldQueue
             $spreadsheet = IOFactory::load($this->filePath);
             $rows = $spreadsheet->getActiveSheet()->toArray();
 
+            // Koleksi untuk menampung data parent agar tidak query berulang
+            $cachedParents = [];
+            $parentIdsToSync = [];
+
             foreach ($rows as $index => $rawData) {
-                if ($index === 0) continue; // Skip header
+                if ($index === 0) continue;
 
-                // --- 1. PEMBERSIHAN GLOBAL ---
-                // Mengubah string kosong atau spasi menjadi NULL agar tidak merusak DB
-                $data = array_map(function($value) {
-                    $trimmed = trim($value);
-                    return ($trimmed === "" || $trimmed === null) ? null : $trimmed;
-                }, $rawData);
-
-                $ioNum  = $data[0];   // IO Number
-                $refNum = $data[15];  // Reference Order No.
-                $sku    = $data[7];   // Seller SKU
+                $data = array_map(fn($v) => (trim($v) === "") ? null : trim($v), $rawData);
+                $ioNum  = $data[0];
+                $refNum = $data[15];
+                $sku    = $data[7];
 
                 if (empty($refNum)) continue;
 
-                // --- 2. UPDATE HEADER (InboundRequest) ---
-                $inbound = InboundRequest::where('reference_number', $refNum)->first();
+                // Optimasi: Cek di cache memori dulu sebelum query ke DB
+                if (!isset($cachedParents[$refNum])) {
+                    $cachedParents[$refNum] = InboundRequest::with(['children.details'])
+                        ->where('reference_number', $refNum)
+                        ->first();
+                }
 
-                if ($inbound) {
-                    // Hanya update kolom yang benar-benar ada di file
-                    // dd($data);
+                $parentInbound = $cachedParents[$refNum];
+
+                if ($parentInbound) {
+                    $targetInbound = $parentInbound;
+
+                    // Logika Target (Jika IO Split)
+                    if ($parentInbound->children->isNotEmpty()) {
+                        $foundInChild = $parentInbound->children->first(function ($child) use ($sku) {
+                            return $child->details->contains('seller_sku', $sku);
+                        });
+                        if ($foundInChild) $targetInbound = $foundInChild;
+                    }
+
+                    // Update Header
                     $headerData = array_filter([
                         'inbound_order_no'       => $ioNum,
                         'fulfillment_order_no'   => $data[1],
@@ -64,38 +77,43 @@ class ProcessInboundUpload implements ShouldQueue
                         'delivery_type'          => $data[11],
                         'status'                 => 'Inbound in Process',
                         'io_status'              => $data[13]
-                    ], fn($value) => !is_null($value)); // Proteksi: Jangan timpa data lama dengan NULL
+                    ], fn($value) => !is_null($value));
 
-                    $inbound->update($headerData);
+                    $targetInbound->update($headerData);
 
-                    // --- 3. UPDATE DETAIL (InboundOrderDetail) ---
+                    // Update Detail
                     if (!empty($sku)) {
-                        $detailData = [
-                            'fulfillment_sku'    => $data[6],
-                            'product_name'       => $data[8],
-                            'sku_status'         => $data[12],
-                            'requested_quantity' => (int)($data[16] ?? 0),
-                            'received_good'      => (int)($data[17] ?? 0),
-                            'received_damaged'   => (int)($data[26] ?? 0),
-                            'received_expired'   => (int)($data[27] ?? 0),
-                            'cogs'               => $data[28],
-                            'cogs_currency'      => $data[29],
-                            'seller_comment'     => $data[30],
-                            'temperature'        => $data[38],
-                            'product_type'       => $data[39],
-                        ];
-
-                        // Gunakan updateOrCreate agar SKU unik per Reference Number
                         InboundRequestDetail::updateOrCreate(
+                            ['inbound_order_id' => $targetInbound->id, 'seller_sku' => $sku],
                             [
-                                'inbound_order_id' => $inbound->id,
-                                'seller_sku'       => $sku
-                            ],
-                            $detailData
+                                'fulfillment_sku'    => $data[6],
+                                'product_name'       => $data[8],
+                                'requested_quantity' => (int)($data[16] ?? 0),
+                                'received_good'      => (int)($data[17] ?? 0),
+                                'received_damaged'   => (int)($data[26] ?? 0),
+                                'received_expired'   => (int)($data[27] ?? 0),
+                                'cogs'               => $data[28],
+                                'cogs_currency'      => $data[29],
+                                'seller_comment'     => $data[30],
+                                'temperature'        => $data[38],
+                                'product_type'       => $data[39],
+                            ]
                         );
                     }
+
+                    // Simpan ID untuk sync status nanti
+                    $parentIdsToSync[] = $parentInbound->id;
                 }
             }
+
+            // --- SYNC STATUS SEMUA PARENT YANG TERLIBAT ---
+            foreach (array_unique($parentIdsToSync) as $parentId) {
+                $p = InboundRequest::with('children')->find($parentId);
+                if ($p && $p->children->isNotEmpty()) {
+                    $p->update(['status' => 'Inbound in Process']);
+                }
+            }
+
         } catch (\Exception $e) {
             Log::error("Upload Error: " . $e->getMessage());
         } finally {
