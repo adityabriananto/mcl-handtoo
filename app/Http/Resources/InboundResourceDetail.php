@@ -24,15 +24,15 @@ class InboundResourceDetail extends JsonResource
                 return [
                     "shelf_life_flag"        => false,
                     "comments"               => $this->comment ?? "",
-                    "item_inbounded_damaged" => (string) ($detail->received_damaged ?? 0),
-                    "requested_quantity"     => (string) $detail->requested_quantity,
+                    "item_inbounded_damaged" => ($detail->received_damaged ?? 0),
+                    "requested_quantity"     => $detail->requested_quantity,
                     "serial_number_flag"     => false,
                     "fulfillment_sku"        => $detail->fulfillment_sku ?? "", // Sesuaikan jika ada field fulfillment_sku
                     "seller_sku"             => [
                         $detail->seller_sku
                     ],
                     "item_inbounded_expired" => 0,
-                    "item_inbounded_good"    => (string) ($detail->received_good ?? 0),
+                    "item_inbounded_good"    => ($detail->received_good ?? 0),
                     "sku_status"             => $this->status,
                     "fulfillment_sku_name"   => $detail->product_name ?? "",
                     "barcodes"               => [
