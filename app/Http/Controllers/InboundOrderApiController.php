@@ -281,21 +281,21 @@ class InboundOrderApiController extends Controller
     {
         if($type == "CreateInboundOrder") {
             $response = [
-                "status"           => $success ? True : False,
+                "success"           => $success ? True : False,
                 "code"             => $success ? "0" : (string) $status,
                 "inbound_order_no" => $data, // Ini akan berisi hasil dari InboundResourceDetail
                 "request_id"       => (string) \Str::uuid()
             ];
         } else if ($type == "CancelInboundOrder") {
             $response = [
-                "status"           => $success ? True : False,
+                "success"           => $success ? True : False,
                 "code"             => $success ? "0" : (string) $status,
                 "request_id"       => (string) \Str::uuid()
             ];
         }
         else {
             $response = [
-                "status"     => $success ? True : False,
+                "success"     => $success ? True : False,
                 "code"       => $success ? "0" : (string) $status,
                 "data"       => $data, // Ini akan berisi hasil dari InboundResourceDetail
                 "request_id" => (string) \Str::uuid()
@@ -307,7 +307,7 @@ class InboundOrderApiController extends Controller
             $response = [
                 "error_message"    => $data,
                 "error_code"       => $message,
-                "status"           => $success ? True : False,
+                "success"          => $success ? True : False,
                 "code"             => $success ? "0" : (string) $status,
                 "request_id"       => (string) \Str::uuid()
             ];
