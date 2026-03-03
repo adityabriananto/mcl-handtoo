@@ -300,7 +300,7 @@
                                             @endif
 
                                             {{-- CHILD COMPLETE MANUAL --}}
-                                            @if(!$isChildLocked && $child->status !== 'Cancelled by Lazada' && $child->status !== "Cancelled by Seller")
+                                            @if($child->status !== 'Cancelled by Lazada' && $child->status !== 'Completely' && $child->status !== 'Partially' && $child->status !== "Cancelled by Seller" && $child->status !== "Cancelled by Lazada")
                                                 <form action="{{ route('inbound.complete', $child->id) }}" method="POST" @submit="statusLoading = true">
                                                     @csrf
                                                     <button type="submit" :disabled="statusLoading" class="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition active:scale-90 shadow-md shadow-blue-900/20" title="Complete Child">
