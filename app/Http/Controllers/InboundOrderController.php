@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\ProcessInboundUpload;
 use App\Models\ApiLog;
 use App\Models\InboundRequest;
+use App\Models\MbMaster;
 use App\Models\InboundRequestDetail;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -277,20 +278,26 @@ class InboundOrderController extends Controller
             } else {
                 $parent = null;
             }
+
+            $mbMaster = MBMaster::where("brand_code",$model->comment)
+            ->where("seller_sku", $sku)
+            ->first();
             return [
-                'Delivery Type(required)(must be "Dropoff")' => 'Dropoff',
-                'Inbound warehouse name(required)' => $warehouseName,
-                'Reference Order No.' => $parent ? $parent->reference_number : $model->reference_number,
-                'Estimated Date(required)(yyyy-mm-dd)' => $model->estimate_time ? date('Y-m-d', strtotime($model->estimate_time)) : date('Y-m-d'),
-                'Estimated Hour(required)(hh)' => $model->estimate_time ? date('H', strtotime($model->estimate_time)) : '00',
-                'Seller SKU(required)' => $sku,
-                'Request Quantity(required)' => $qty,
-                'VAS Needed("Y"/Null)' => '',
-                'Repacking("Y"/Null)' => '',
-                'Labeling("Y"/Null)' => '',
-                'Bundling("Y"/Null)' => '',
-                'No. of items to be bundled(2~9 integer)' => '',
-                'VAS instruction(If \'VAS Needed\' is \'Y\', this field is required)(no more than 256 characters)' => ''
+                // 'Delivery Type(required)(must be "Dropoff")' => 'Dropoff',
+                // 'Inbound warehouse name(required)' => $warehouseName,
+                // 'Reference Order No.' => $parent ? $parent->reference_number : $model->reference_number,
+                // 'Estimated Date(required)(yyyy-mm-dd)' => $model->estimate_time ? date('Y-m-d', strtotime($model->estimate_time)) : date('Y-m-d'),
+                // 'Estimated Hour(required)(hh)' => $model->estimate_time ? date('H', strtotime($model->estimate_time)) : '00',
+                // 'Seller SKU(required)' => $sku,
+                // 'Request Quantity(required)' => $qty,
+                // 'VAS Needed("Y"/Null)' => '',
+                // 'Repacking("Y"/Null)' => '',
+                // 'Labeling("Y"/Null)' => '',
+                // 'Bundling("Y"/Null)' => '',
+                // 'No. of items to be bundled(2~9 integer)' => '',
+                // 'VAS instruction(If \'VAS Needed\' is \'Y\', this field is required)(no more than 256 characters)' => ''
+                'Fulfillment SKU ID' => $mbMaster->fulfillment_sku ?? "-",
+                'Request Quantity' => $qty,
             ];
         };
 

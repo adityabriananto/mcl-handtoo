@@ -65,7 +65,7 @@
         <div class="flex items-center gap-6">
             <div>
                 <h1 class="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Inbound <span class="text-blue-600">Portal</span></h1>
-                <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">Compact View v3.0</p>
+                <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">Compact View v4.0</p>
             </div>
             <div class="flex gap-4 border-l pl-6 border-gray-100 dark:border-gray-800 overflow-x-auto custom-scrollbar">
                 <div>
@@ -128,6 +128,8 @@
                         <th class="px-4 py-4 text-left">Inbound Info</th>
                         <th class="px-4 py-4 text-left">Timeline</th>
                         <th class="px-4 py-4 text-center">WH</th>
+                        <th class="px-4 py-4 text-center">Seller</th>
+                        <th class="px-4 py-4 text-center">Comment / Brand</th>
                         <th class="px-4 py-4 text-center">Status</th>
                         <th class="px-4 py-4 text-right">Actions</th>
                     </tr>
@@ -175,6 +177,8 @@
                             </td>
 
                             <td class="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">{{ $item->warehouse_code }}</td>
+                            <td class="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">{{ $item->client_name }}</td>
+                            <td class="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">{{ $item->comment }}</td>
 
                             <td class="px-4 py-3 text-center">
                                 <span class="status-badge px-3 py-1 rounded-full text-[9px] font-black uppercase border {{ $statusColors[$item->status] ?? 'bg-gray-100' }}">
@@ -258,6 +262,12 @@
 
                                     <td class="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase">
                                         {{ $child->warehouse_code }}
+                                    </td>
+                                    <td class="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase">
+                                        {{ $child->client_name }}
+                                    </td>
+                                    <td class="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase">
+                                        {{ $child->comment }}
                                     </td>
 
                                     <td class="px-4 py-3 text-center">
