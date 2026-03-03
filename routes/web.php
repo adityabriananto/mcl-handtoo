@@ -85,7 +85,7 @@ Route::prefix('mb-master')->name('mb-master.')->group(function () {
     // PERBAIKAN DI SINI: Hilangkan prefix berlebih dan sesuaikan parameter
     Route::patch('/{mbMaster}', [MbMasterController::class, 'update'])->name('update');
 
-    Route::delete('/{id}', [MbMasterController::class, 'destroy'])->name('destroy');
+    Route::delete('/{mbMaster}', [MbMasterController::class, 'destroy'])->name('destroy');
 });
 
 /*
