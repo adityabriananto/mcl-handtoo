@@ -55,6 +55,8 @@ class ProcessInboundActualUpload implements ShouldQueue
                         ->where('fulfillment_sku', $productBarcode)
                         ->update(['received_good' => $actualQty]);
 
+                    $inbound->refresh();
+
                     $impactedInboundIds[] = $inbound->id;
                 }
 
@@ -90,35 +92,42 @@ class ProcessInboundActualUpload implements ShouldQueue
      */
     private function syncParentData($parentId)
     {
-        // Load Parent dengan Child dan semua Detailnya
-        $parent = InboundRequest::with(['children.details', 'details'])->find($parentId);
+        // 1. Ambil Parent beserta ID anak-anaknya
+        $parent = InboundRequest::with('children:id,parent_id')->find($parentId);
         if (!$parent) return;
 
-        // --- STEP A: AKUMULASI QUANTITY KE PARENT ---
-        // Kita looping detail milik parent untuk diupdate angkanya dari total child
-        foreach ($parent->details as $parentDetail) {
-            $totalReceivedFromChildren = InboundRequestDetail::whereIn('inbound_order_id', $parent->children->pluck('id'))
-                ->where('fulfillment_sku', $parentDetail->fulfillment_sku)
-                ->sum('received_good');
+        $childIds = $parent->children->pluck('id');
 
-            $parentDetail->update(['received_good' => $totalReceivedFromChildren]);
+        // --- STEP A: AKUMULASI QUANTITY KE PARENT ---
+        // Gunakan DB Raw untuk performa atau kumpulkan total per SKU dari semua child
+        $totalsPerSku = InboundRequestDetail::whereIn('inbound_order_id', $childIds)
+            ->select('fulfillment_sku', DB::raw('SUM(received_good) as total_received'))
+            ->groupBy('fulfillment_sku')
+            ->get()
+            ->keyBy('fulfillment_sku');
+
+        foreach ($totalsPerSku as $sku => $data) {
+            // Update baris SKU yang sesuai di level Parent
+            InboundRequestDetail::where('inbound_order_id', $parent->id)
+                ->where('fulfillment_sku', $sku)
+                ->update(['received_good' => $data->total_received]);
         }
 
         // --- STEP B: UPDATE STATUS PARENT ---
-        $childrenStatus = $parent->children()->pluck('status')->toArray();
+        // Ambil status terbaru dari database, jangan pakai yang ada di memori
+        $childrenStatuses = InboundRequest::where('parent_id', $parent->id)
+            ->pluck('status')
+            ->toArray();
 
-        if (in_array('Inbound in Process', $childrenStatus)) {
-            $newParentStatus = 'Inbound in Process';
-        } elseif (in_array('Partially', $childrenStatus)) {
+        $newParentStatus = 'Inbound in Process'; // Default
+
+        if (empty($childrenStatuses)) {
+            $newParentStatus = $parent->status;
+        } elseif (collect($childrenStatuses)->every(fn($s) => $s === 'Completely')) {
+            $newParentStatus = 'Completely';
+        } elseif (collect($childrenStatuses)->contains('Partially') || collect($childrenStatuses)->contains('Completely')) {
+            // Jika ada yang sudah mulai diterima, parent jadi Partially
             $newParentStatus = 'Partially';
-        } else {
-            // Cek apakah semua child berstatus Completely
-            $totalChildren = $parent->children()->count();
-            $totalCompleted = $parent->children()->where('status', 'Completely')->count();
-
-            $newParentStatus = ($totalChildren > 0 && $totalChildren === $totalCompleted)
-                ? 'Completely'
-                : 'Inbound in Process';
         }
 
         $parent->update(['status' => $newParentStatus]);

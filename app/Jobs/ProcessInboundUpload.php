@@ -32,7 +32,6 @@ class ProcessInboundUpload implements ShouldQueue
             $spreadsheet = IOFactory::load($this->filePath);
             $rows = $spreadsheet->getActiveSheet()->toArray();
 
-            // Koleksi untuk menampung data parent agar tidak query berulang
             $cachedParents = [];
             $parentIdsToSync = [];
 
@@ -46,7 +45,6 @@ class ProcessInboundUpload implements ShouldQueue
 
                 if (empty($refNum)) continue;
 
-                // Optimasi: Cek di cache memori dulu sebelum query ke DB
                 if (!isset($cachedParents[$refNum])) {
                     $cachedParents[$refNum] = InboundRequest::with(['children.details'])
                         ->where('reference_number', $refNum)
@@ -57,16 +55,21 @@ class ProcessInboundUpload implements ShouldQueue
 
                 if ($parentInbound) {
                     $targetInbound = $parentInbound;
+                    $isSplit = false;
 
-                    // Logika Target (Jika IO Split)
+                    // 1. Logika Cari Target (Cek apakah SKU ada di Child)
                     if ($parentInbound->children->isNotEmpty()) {
                         $foundInChild = $parentInbound->children->first(function ($child) use ($sku) {
                             return $child->details->contains('seller_sku', $sku);
                         });
-                        if ($foundInChild) $targetInbound = $foundInChild;
+
+                        if ($foundInChild) {
+                            $targetInbound = $foundInChild;
+                            $isSplit = true; // Tandai bahwa ini adalah data child
+                        }
                     }
 
-                    // Update Header
+                    // 2. Update Header Target (Parent atau Child)
                     $headerData = array_filter([
                         'inbound_order_no'       => $ioNum,
                         'fulfillment_order_no'   => $data[1],
@@ -81,35 +84,51 @@ class ProcessInboundUpload implements ShouldQueue
 
                     $targetInbound->update($headerData);
 
-                    // Update Detail
+                    // 3. Update Detail SKU
                     if (!empty($sku)) {
+                        $detailData = [
+                            'fulfillment_sku'    => $data[6],
+                            'product_name'       => $data[8],
+                            'sku_status'         => $data[12],
+                            'received_good'      => (int)($data[17] ?? 0),
+                            'received_damaged'   => (int)($data[26] ?? 0),
+                            'received_expired'   => (int)($data[27] ?? 0),
+                            'cogs'               => $data[28],
+                            'cogs_currency'      => $data[29],
+                            'seller_comment'     => $data[30],
+                            'temperature'        => $data[38],
+                            'product_type'       => $data[39],
+                        ];
+
+                        // UPDATE TARGET (Bisa Child atau Parent)
                         InboundRequestDetail::updateOrCreate(
                             ['inbound_order_id' => $targetInbound->id, 'seller_sku' => $sku],
-                            [
-                                'fulfillment_sku'    => $data[6],
-                                'product_name'       => $data[8],
-                                'requested_quantity' => (int)($data[16] ?? 0),
-                                'received_good'      => (int)($data[17] ?? 0),
-                                'received_damaged'   => (int)($data[26] ?? 0),
-                                'received_expired'   => (int)($data[27] ?? 0),
-                                'cogs'               => $data[28],
-                                'cogs_currency'      => $data[29],
-                                'seller_comment'     => $data[30],
-                                'temperature'        => $data[38],
-                                'product_type'       => $data[39],
-                            ]
+                            $detailData
                         );
+
+                        // SINKRONISASI KE PARENT (Hanya jika target tadi adalah Child)
+                        if ($isSplit) {
+                            // Update informasi yang sama di level Parent agar data sinkron
+                            // Note: Header parent biasanya tidak diupdate dengan data child
+                            // agar tetap bersih, tapi detail SKU wajib sinkron untuk reporting.
+                            InboundRequestDetail::updateOrCreate(
+                                ['inbound_order_id' => $parentInbound->id, 'seller_sku' => $sku],
+                                $detailData
+                            );
+
+                            // Opsional: Jika ingin header Parent juga terupdate informasi dasar
+                            $parentInbound->update($headerData);
+                        }
                     }
 
-                    // Simpan ID untuk sync status nanti
                     $parentIdsToSync[] = $parentInbound->id;
                 }
             }
 
-            // --- SYNC STATUS SEMUA PARENT YANG TERLIBAT ---
+            // --- SYNC STATUS AKHIR ---
             foreach (array_unique($parentIdsToSync) as $parentId) {
                 $p = InboundRequest::with('children')->find($parentId);
-                if ($p && $p->children->isNotEmpty()) {
+                if ($p) {
                     $p->update(['status' => 'Inbound in Process']);
                 }
             }

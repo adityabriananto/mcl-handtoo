@@ -17,6 +17,16 @@ class InboundResourceDetail extends JsonResource
         // Menggunakan pemetaan warehouse dari config yang kita buat sebelumnya
         $warehouseMap = config('warehouses.list');
         $warehouseName = $warehouseMap[$this->warehouse_code] ?? $this->inbound_warehouse;
+        // $ioNumber = "";
+        // if($this->children) {
+        //     foreach($this->children as $child) {
+        //         if($ioNumber === "") {
+        //             $ioNumber = $child->inbound_order_no;
+        //         } else {
+        //             $ioNumber .= " / ".$child->inbound_order_no;
+        //         }
+        //     }
+        // }
 
         return [
             "inbound_warehouse"        => $warehouseName,
