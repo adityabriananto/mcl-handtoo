@@ -10,8 +10,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use PhpOffice\PhpSpreadsheet\IOFactory;
 use Illuminate\Support\Facades\Log;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class ProcessInboundUpload implements ShouldQueue
 {
@@ -36,15 +36,18 @@ class ProcessInboundUpload implements ShouldQueue
             $parentIdsToSync = [];
 
             foreach ($rows as $index => $rawData) {
-                if ($index === 0) continue;
+                if ($index === 0) continue; // Skip header
 
+                // 1. Pembersihan Global
                 $data = array_map(fn($v) => (trim($v) === "") ? null : trim($v), $rawData);
-                $ioNum  = $data[0];
-                $refNum = $data[15];
-                $sku    = $data[7];
+
+                $ioNum  = $data[0];   // Inbound Order No
+                $refNum = $data[15];  // Reference Order No
+                $sku    = $data[7];   // Seller SKU (Pastikan index benar sesuai file Anda)
 
                 if (empty($refNum)) continue;
 
+                // Optimasi Query: Cache parent agar tidak query berulang dalam loop
                 if (!isset($cachedParents[$refNum])) {
                     $cachedParents[$refNum] = InboundRequest::with(['children.details'])
                         ->where('reference_number', $refNum)
@@ -57,7 +60,7 @@ class ProcessInboundUpload implements ShouldQueue
                     $targetInbound = $parentInbound;
                     $isSplit = false;
 
-                    // 1. Logika Cari Target (Cek apakah SKU ada di Child)
+                    // --- LOGIKA PENCARIAN TARGET (Parent vs Child) ---
                     if ($parentInbound->children->isNotEmpty()) {
                         $foundInChild = $parentInbound->children->first(function ($child) use ($sku) {
                             return $child->details->contains('seller_sku', $sku);
@@ -65,14 +68,13 @@ class ProcessInboundUpload implements ShouldQueue
 
                         if ($foundInChild) {
                             $targetInbound = $foundInChild;
-                            $isSplit = true; // Tandai bahwa ini adalah data child
+                            $isSplit = true;
                         }
                     }
 
-                    // 2. Update Header Target (Parent atau Child)
-                    $headerData = array_filter([
-                        'inbound_order_no'       => $ioNum,
-                        'fulfillment_order_no'   => $data[1],
+                    // --- 2. PREPARASI DATA HEADER ---
+                    // Header umum (tanpa nomor order) untuk sinkronisasi Parent
+                    $baseHeaderData = array_filter([
                         'shop_name'              => $data[2],
                         'created_time'           => $this->formatDate($data[3]),
                         'estimated_inbound_time' => $this->formatDate($data[4]),
@@ -82,9 +84,16 @@ class ProcessInboundUpload implements ShouldQueue
                         'io_status'              => $data[13]
                     ], fn($value) => !is_null($value));
 
-                    $targetInbound->update($headerData);
+                    // Header lengkap (dengan nomor order) untuk Target (Child atau Single Parent)
+                    $fullHeaderData = array_merge($baseHeaderData, [
+                        'inbound_order_no'     => $ioNum,
+                        'fulfillment_order_no' => $data[1],
+                    ]);
 
-                    // 3. Update Detail SKU
+                    // Update Target Inbound
+                    $targetInbound->update($fullHeaderData);
+
+                    // --- 3. UPDATE DETAIL SKU ---
                     if (!empty($sku)) {
                         $detailData = [
                             'fulfillment_sku'    => $data[6],
@@ -100,24 +109,22 @@ class ProcessInboundUpload implements ShouldQueue
                             'product_type'       => $data[39],
                         ];
 
-                        // UPDATE TARGET (Bisa Child atau Parent)
+                        // Update Target Detail (Child/Single)
                         InboundRequestDetail::updateOrCreate(
                             ['inbound_order_id' => $targetInbound->id, 'seller_sku' => $sku],
                             $detailData
                         );
 
-                        // SINKRONISASI KE PARENT (Hanya jika target tadi adalah Child)
+                        // Sinkronisasi ke Parent jika target adalah Child
                         if ($isSplit) {
-                            // Update informasi yang sama di level Parent agar data sinkron
-                            // Note: Header parent biasanya tidak diupdate dengan data child
-                            // agar tetap bersih, tapi detail SKU wajib sinkron untuk reporting.
+                            // Update Detail di level Parent (Wajib agar angka report sinkron)
                             InboundRequestDetail::updateOrCreate(
                                 ['inbound_order_id' => $parentInbound->id, 'seller_sku' => $sku],
                                 $detailData
                             );
 
-                            // Opsional: Jika ingin header Parent juga terupdate informasi dasar
-                            $parentInbound->update($headerData);
+                            // Update Header Parent: TANPA inbound_order_no dan fulfillment_order_no
+                            $parentInbound->update($baseHeaderData);
                         }
                     }
 
@@ -125,7 +132,7 @@ class ProcessInboundUpload implements ShouldQueue
                 }
             }
 
-            // --- SYNC STATUS AKHIR ---
+            // --- 4. SYNC STATUS AKHIR ---
             foreach (array_unique($parentIdsToSync) as $parentId) {
                 $p = InboundRequest::with('children')->find($parentId);
                 if ($p) {
@@ -134,13 +141,15 @@ class ProcessInboundUpload implements ShouldQueue
             }
 
         } catch (\Exception $e) {
-            Log::error("Upload Error: " . $e->getMessage());
+            Log::error("Upload Inbound Error: " . $e->getMessage());
         } finally {
+            // Hapus file temporary setelah selesai
             if (file_exists($this->filePath)) unlink($this->filePath);
         }
     }
 
-    private function formatDate($value) {
+    private function formatDate($value)
+    {
         if (empty($value)) return null;
         try {
             return Carbon::parse($value)->format('Y-m-d H:i:s');

@@ -101,15 +101,15 @@ class ProcessInboundActualUpload implements ShouldQueue
         // --- STEP A: AKUMULASI QUANTITY KE PARENT ---
         // Gunakan DB Raw untuk performa atau kumpulkan total per SKU dari semua child
         $totalsPerSku = InboundRequestDetail::whereIn('inbound_order_id', $childIds)
-            ->select('fulfillment_sku', DB::raw('SUM(received_good) as total_received'))
-            ->groupBy('fulfillment_sku')
+            ->select('seller_sku', DB::raw('SUM(received_good) as total_received'))
+            ->groupBy('seller_sku')
             ->get()
-            ->keyBy('fulfillment_sku');
+            ->keyBy('seller_sku');
 
         foreach ($totalsPerSku as $sku => $data) {
             // Update baris SKU yang sesuai di level Parent
             InboundRequestDetail::where('inbound_order_id', $parent->id)
-                ->where('fulfillment_sku', $sku)
+                ->where('seller_sku', $sku)
                 ->update(['received_good' => $data->total_received]);
         }
 
