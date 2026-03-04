@@ -26,31 +26,25 @@ class InboundOrderController extends Controller
     {
         // Handle Reset Filter
         if ($request->has('reset')) {
-        session()->forget('inbound_filters');
-        return redirect()->route('inbound.index');
-    }
+            session()->forget('inbound_filters');
+            return redirect()->route('inbound.index');
+        }
 
-    if ($request->isMethod('post')) {
-        // Ambil data dari request dan simpan ke session
-        session(['inbound_filters' => $request->only([
-            'search',
-            'inbound_order_no', // Pastikan ini ada di sini
-            'client',
-            'warehouse',
-            'status',
-            'date'
-        ])]);
-    }
+        if ($request->isMethod('post')) {
+            session(['inbound_filters' => $request->only([
+                'search', 'inbound_order_no', 'client', 'warehouse', 'status', 'date'
+            ])]);
+        }
 
-    $filters = session('inbound_filters', []);
+        $filters = session('inbound_filters', []);
 
-    // Jalankan Query dengan Filter
-    $requests = InboundRequest::with(['details', 'children.details'])
-                ->filter($filters)
-                ->whereNull('parent_id')
-                ->orderByRaw("CASE WHEN status = 'Created' THEN 0 ELSE 1 END")
-                ->orderBy('created_at', 'desc')
-                ->paginate(50);
+        // Jalankan Query dengan Filter
+        $requests = InboundRequest::with(['details', 'children.details'])
+                    ->filter($filters)
+                    ->whereNull('parent_id')
+                    ->orderByRaw("CASE WHEN status = 'Created' THEN 0 ELSE 1 END")
+                    ->orderBy('created_at', 'desc')
+                    ->paginate(50);
 
         /**
          * 1. Optimasi Statistik Operasional
@@ -100,6 +94,7 @@ class InboundOrderController extends Controller
 
     public function scopeFilter($query, array $filters)
     {
+        dd($query);
         // 1. Search Global (Pencarian Luas)
         $query->when($filters['search'] ?? null, function ($query, $search) {
             $query->where(function ($q) use ($search) {
@@ -127,6 +122,12 @@ class InboundOrderController extends Controller
         // 5. Filter Status
         $query->when($filters['status'] ?? null, function ($query, $status) {
             $query->where('status', $status);
+        });
+
+        // 6. Filter Date (Tambahkan ini)
+        $query->when($filters['date'] ?? null, function ($query, $date) {
+            \Log::info("Filtering by date: " . $date); // Cek storage/logs/laravel.log
+            return $query->whereDate('created_at', $date);
         });
 
         return $query;
@@ -445,7 +446,7 @@ class InboundOrderController extends Controller
         // 1. Handle Reset Filter khusus untuk Ops
         if ($request->has('reset')) {
             session()->forget('ops_inbound_filters');
-            return redirect()->route('inbound.ops_index');
+            return redirect()->route('ops.inbound.index');
         }
 
         // 2. Simpan Filter ke Session (Gunakan key berbeda agar tidak tabrakan dengan Admin)

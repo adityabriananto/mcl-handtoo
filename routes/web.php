@@ -66,9 +66,10 @@ Route::middleware([])->prefix('mb-master/orders')->name('mb-orders.')->group(fun
 
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
 
-Route::get('/ops/inbound', [InboundOrderController::class, 'opsIndex'])->name('ops.inbound.index');
+// Route::get('/ops/inbound', [InboundOrderController::class, 'opsIndex'])->name('ops.inbound.index');
+Route::match(['get', 'post'], '/', [InboundOrderController::class, 'opsIndex'])->name('ops.inbound.index');
 // Route POST untuk handle filter/search di menu Ops
-Route::post('/ops/inbound', [InboundOrderController::class, 'opsIndex'])->name('ops.inbound.filter');
+// Route::post('/ops/inbound', [InboundOrderController::class, 'opsIndex'])->name('ops.inbound.filter');
 
 Route::post('/inbound/upload-actual', [InboundOrderController::class, 'uploadActualQuantity'])->name('inbound.upload_actual');
 

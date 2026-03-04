@@ -103,7 +103,7 @@
     </div>
 
     {{-- 2. Filter Bar (Server-Side Sync) --}}
-    <form action="{{ route('inbound.index') }}" method="POST" class="grid grid-cols-2 md:grid-cols-6 gap-2">
+    <form action="{{ route('ops.inbound.index') }}" method="POST" class="grid grid-cols-2 md:grid-cols-6 gap-2">
         @csrf
         {{-- Search Ref No --}}
         <input name="search" value="{{ $filters['search'] ?? '' }}" type="text" placeholder="Ref No..."
@@ -136,7 +136,7 @@
         {{-- Action Buttons --}}
         <div class="flex gap-1">
             <button type="submit" class="flex-1 text-[10px] font-black text-white bg-blue-600 rounded-xl uppercase border border-blue-700">Filter</button>
-            <a href="{{ route('inbound.index', ['reset' => 1]) }}" class="flex-1 text-center text-[10px] font-black text-red-600 bg-red-50 rounded-xl px-2 py-2 uppercase border border-red-100 flex items-center justify-center">Reset</a>
+            <a href="{{ route('ops.inbound.index', ['reset' => 1]) }}" class="flex-1 text-center text-[10px] font-black text-red-600 bg-red-50 rounded-xl px-2 py-2 uppercase border border-red-100 flex items-center justify-center">Reset</a>
         </div>
     </form>
 
@@ -150,6 +150,8 @@
                         <th class="px-4 py-4 text-left">Inbound Info</th>
                         <th class="px-4 py-4 text-left">Timeline</th>
                         <th class="px-4 py-4 text-center">WH</th>
+                        <th class="px-4 py-4 text-center">Seller</th>
+                        <th class="px-4 py-4 text-center">Comment / Brand</th>
                         <th class="px-4 py-4 text-center">Status</th>
                         <th class="px-4 py-4 text-right">Actions</th>
                     </tr>
@@ -201,6 +203,8 @@
                             </td>
 
                             <td class="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">{{ $item->warehouse_code }}</td>
+                            <td class="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">{{ $item->client_name }}</td>
+                            <td class="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">{{ $item->comment }}</td>
 
                            <td class="px-4 py-3 text-center">
                                 <div class="flex flex-col items-center">
@@ -260,7 +264,15 @@
                                     <td class="px-4 py-3 text-[10px] leading-tight text-slate-600 dark:text-gray-400">
                                         <span class="font-bold">In: {{ $child->created_at->format('d/m H:i') }}</span>
                                     </td>
-                                    <td class="px-4 py-3 text-center text-[10px] font-black text-slate-500 uppercase">{{ $child->warehouse_code }}</td>
+                                    <td class="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase">
+                                        {{ $child->warehouse_code }}
+                                    </td>
+                                    <td class="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase">
+                                        {{ $child->client_name }}
+                                    </td>
+                                    <td class="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase">
+                                        {{ $child->comment }}
+                                    </td>
                                     <td class="px-4 py-3 text-center">
                                         <span class="status-badge px-3 py-1 rounded-full text-[10px] font-black uppercase border shadow-sm {{ $statusColors[$child->status] ?? 'bg-gray-200' }}">
                                             {{ $child->status }}

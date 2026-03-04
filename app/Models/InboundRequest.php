@@ -87,11 +87,12 @@ class InboundRequest extends Model
      */
     public function scopeFilter($query, array $filters)
     {
+        // dd($filters);
         // 1. Filter Pencarian (Search)
-        // Mencari di Parent atau di Child sekaligus
         if (!empty($filters['search'])) {
             $query->where(function($q) use ($filters) {
                 $q->where('reference_number', 'like', '%' . $filters['search'] . '%')
+                ->orWhere('inbound_order_no', 'like', '%' . $filters['search'] . '%') // Tambahkan IO No
                 ->orWhereHas('children', function($childQuery) use ($filters) {
                     $childQuery->where('reference_number', 'like', '%' . $filters['search'] . '%');
                 });
@@ -104,8 +105,6 @@ class InboundRequest extends Model
         }
 
         // 3. Filter Status
-        // Jika memfilter 'Pending', kita tampilkan Parent yang masih Pending
-        // ATAU Parent yang punya Child dengan status Pending
         if (!empty($filters['status'])) {
             $query->where(function($q) use ($filters) {
                 $q->where('status', $filters['status'])
@@ -113,6 +112,31 @@ class InboundRequest extends Model
                     $childQuery->where('status', $filters['status']);
                 });
             });
+        }
+
+        // 4. Filter Date (BARU)
+        // Mencari data berdasarkan tanggal di Parent atau di Child
+        if (!empty($filters['date'])) {
+            $query->where(function($q) use ($filters) {
+                $q->whereDate('created_at', $filters['date']) // Sesuaikan nama kolom jika bukan created_at
+                ->orWhereHas('children', function($childQuery) use ($filters) {
+                    $childQuery->whereDate('created_at', $filters['date']);
+                });
+            });
+        }
+
+        if (!empty($filters['inbound_order_no'])) {
+            $query->where(function($q) use ($filters) {
+                $q->where('inbound_order_no', 'like', '%' . $filters['inbound_order_no'] . '%')
+                ->orWhereHas('children', function($childQuery) use ($filters) {
+                    $childQuery->where('inbound_order_no', 'like', '%' . $filters['inbound_order_no'] . '%');
+                });
+            });
+        }
+
+        // 5. Filter Client (BARU)
+        if (!empty($filters['client'])) {
+            $query->where('client_name', $filters['client']);
         }
 
         return $query;
