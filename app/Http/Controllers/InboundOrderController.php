@@ -494,7 +494,7 @@ class InboundOrderController extends Controller
         // 5. Final Query untuk Table
         $requests = $query->orderByRaw("CASE WHEN status = 'Created' THEN 0 ELSE 1 END")
             ->orderBy('created_at', 'asc')
-            ->paginate(50);
+            ->paginate(20);
 
         $clients = InboundRequest::distinct()->whereNotNull('client_name')->pluck('client_name');
         $warehouses = InboundRequest::distinct()->whereNotNull('warehouse_code')->pluck('warehouse_code');
