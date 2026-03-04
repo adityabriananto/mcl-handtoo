@@ -56,7 +56,7 @@ class InboundResourceDetail extends JsonResource
             "created_at"               => $this->created_at ? $this->created_at->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
             "seller_mobile"            => "", // Sesuaikan field jika ada
             "seller_country"           => "",
-            "fulfillment_order_number" => $this->inbound_order_no ?? $this->reference_number,
+            "fulfillment_order_number" => $this->reference_number,
             "need_reservation"         => true,
             "seller_postcode"          => "",
             "seller_warehouse_name"    => $this->inbound_warehouse,
@@ -76,7 +76,7 @@ class InboundResourceDetail extends JsonResource
             "reservation_status"       => "",
             "warehouse_name"           => $warehouseName,
             "io_type"                  => "normal",
-            "io_number"                => $this->inbound_order_no ?? $this->reference_number
+            "io_number"                => $this->reference_number
         ];
     }
 }
