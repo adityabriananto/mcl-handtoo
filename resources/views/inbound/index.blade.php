@@ -98,25 +98,43 @@
         </button>
     </div>
 
-    {{-- 2. Filter Bar (Tetap Sama) --}}
-    <div class="grid grid-cols-2 md:grid-cols-6 gap-2">
-        <input x-model="search" type="text" placeholder="Ref No..." class="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] focus:ring-2 focus:ring-blue-500 dark:text-white">
-        <input x-model="filterIo" type="text" placeholder="IO No..." class="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] focus:ring-2 focus:ring-blue-500 dark:text-white">
-        <select x-model="filterClient" class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] px-2 py-2 dark:text-white font-bold">
+    {{-- 2. Filter Bar (Server-Side Sync) --}}
+    <form action="{{ route('inbound.index') }}" method="POST" class="grid grid-cols-2 md:grid-cols-6 gap-2">
+        @csrf
+        {{-- Search Ref No --}}
+        <input name="search" value="{{ $filters['search'] ?? '' }}" type="text" placeholder="Ref No..."
+            class="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] focus:ring-2 focus:ring-blue-500 dark:text-white">
+
+        {{-- Search IO No --}}
+        <input name="inbound_order_no" value="{{ $filters['inbound_order_no'] ?? '' }}" type="text" placeholder="IO No..."
+            class="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] focus:ring-2 focus:ring-blue-500 dark:text-white">
+
+        {{-- Client Select --}}
+        <select name="client" onchange="this.form.submit()" class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] px-2 py-2 dark:text-white font-bold">
             <option value="">All Clients</option>
-            @foreach($clients as $client) <option value="{{ $client }}">{{ $client }}</option> @endforeach
+            @foreach($clients as $client)
+                <option value="{{ $client }}" {{ ($filters['client'] ?? '') == $client ? 'selected' : '' }}>{{ $client }}</option>
+            @endforeach
         </select>
-        <select x-model="filterStatus" class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] px-2 py-2 dark:text-white font-bold">
+
+        {{-- Status Select --}}
+        <select name="status" onchange="this.form.submit()" class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] px-2 py-2 dark:text-white font-bold">
             <option value="">All Status</option>
-            <option value="Created">Created</option>
-            <option value="Inbound in Process">Inbound in Process</option>
-            <option value="Cancelled by Seller">Cancelled by Seller</option>
-            <option value="Partially">Partially</option>
-            <option value="Completely">Completely</option>
+            @foreach(['Created', 'Inbound in Process', 'Partially', 'Completely', 'Cancelled by Seller'] as $st)
+                <option value="{{ $st }}" {{ ($filters['status'] ?? '') == $st ? 'selected' : '' }}>{{ $st }}</option>
+            @endforeach
         </select>
-        <input x-model="filterDate" type="date" class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] px-2 py-2 dark:text-white">
-        <button @click="search=''; filterIo=''; filterStatus=''; filterDate=''; filterWh=''; filterClient=''" class="text-[10px] font-black text-red-600 bg-red-50 rounded-xl px-2 py-2 uppercase border border-red-100">Clear</button>
-    </div>
+
+        {{-- Date Filter --}}
+        <input name="date" value="{{ $filters['date'] ?? '' }}" type="date" onchange="this.form.submit()"
+            class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] px-2 py-2 dark:text-white">
+
+        {{-- Action Buttons --}}
+        <div class="flex gap-1">
+            <button type="submit" class="flex-1 text-[10px] font-black text-white bg-blue-600 rounded-xl uppercase border border-blue-700">Filter</button>
+            <a href="{{ route('inbound.index', ['reset' => 1]) }}" class="flex-1 text-center text-[10px] font-black text-red-600 bg-red-50 rounded-xl px-2 py-2 uppercase border border-red-100 flex items-center justify-center">Reset</a>
+        </div>
+    </form>
 
     {{-- 3. Data Table --}}
     <div class="bg-white dark:bg-gray-900 shadow-xl rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800">
@@ -327,6 +345,43 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+        {{-- 4. Pagination Section --}}
+        <div class="mt-4 px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl flex items-center justify-between shadow-sm">
+            <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                Showing {{ $requests->firstItem() ?? 0 }} to {{ $requests->lastItem() ?? 0 }} of {{ number_format($requests->total()) }} Entries
+            </div>
+
+            <div class="flex items-center gap-1">
+                {{-- Tombol Previous --}}
+                @if ($requests->onFirstPage())
+                    <span class="px-3 py-2 bg-gray-50 text-gray-300 rounded-xl text-[10px] font-black border border-gray-100 cursor-not-allowed uppercase">Prev</span>
+                @else
+                    <a href="{{ $requests->previousPageUrl() }}" class="px-3 py-2 bg-white hover:bg-blue-600 hover:text-white text-blue-600 rounded-xl text-[10px] font-black border border-blue-200 transition shadow-sm uppercase">Prev</a>
+                @endif
+
+                {{-- Page Numbers (Hanya tampil di Desktop) --}}
+                <div class="hidden md:flex gap-1 mx-2">
+                    @php
+                        $start = max(1, $requests->currentPage() - 2);
+                        $end = min($requests->lastPage(), $requests->currentPage() + 2);
+                    @endphp
+
+                    @foreach ($requests->getUrlRange($start, $end) as $page => $url)
+                        <a href="{{ $url }}"
+                        class="w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-black transition {{ $page == $requests->currentPage() ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-gray-50 text-gray-500 hover:bg-gray-100' }}">
+                            {{ $page }}
+                        </a>
+                    @endforeach
+                </div>
+
+                {{-- Tombol Next --}}
+                @if ($requests->hasMorePages())
+                    <a href="{{ $requests->nextPageUrl() }}" class="px-3 py-2 bg-white hover:bg-blue-600 hover:text-white text-blue-600 rounded-xl text-[10px] font-black border border-blue-200 transition shadow-sm uppercase">Next</a>
+                @else
+                    <span class="px-3 py-2 bg-gray-50 text-gray-300 rounded-xl text-[10px] font-black border border-gray-100 cursor-not-allowed uppercase">Next</span>
+                @endif
+            </div>
         </div>
     </div>
 

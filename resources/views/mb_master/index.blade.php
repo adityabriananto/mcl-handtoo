@@ -223,6 +223,54 @@
                 @endforelse
             </tbody>
         </table>
+        {{-- 7. MODERN PAGINATION SECTION --}}
+        <div class="mt-4 px-4 py-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] flex items-center justify-between shadow-sm">
+            <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest italic ml-2">
+                Showing {{ $masters->firstItem() ?? 0 }} to {{ $masters->lastItem() ?? 0 }} of {{ number_format($masters->total()) }} Records
+            </div>
+
+            <div class="flex items-center gap-1">
+                {{-- Tombol Previous --}}
+                @if ($masters->onFirstPage())
+                    <span class="px-4 py-2 bg-gray-50 dark:bg-gray-800 text-gray-300 dark:text-gray-600 rounded-xl text-[10px] font-black border border-gray-100 dark:border-gray-700 cursor-not-allowed uppercase italic">Prev</span>
+                @else
+                    <a href="{{ $masters->previousPageUrl() }}" class="px-4 py-2 bg-white dark:bg-gray-900 hover:bg-indigo-600 hover:text-white text-indigo-600 rounded-xl text-[10px] font-black border border-indigo-200 dark:border-indigo-900 transition shadow-sm uppercase italic">Prev</a>
+                @endif
+
+                {{-- Page Numbers (Hanya tampil di Desktop) --}}
+                <div class="hidden md:flex gap-1 mx-2">
+                    @php
+                        // Membatasi tampilan angka agar tidak terlalu panjang jika ada banyak halaman
+                        $start = max(1, $masters->currentPage() - 1);
+                        $end = min($masters->lastPage(), $masters->currentPage() + 1);
+                    @endphp
+
+                    @if($start > 1)
+                        <a href="{{ $masters->url(1) }}" class="w-9 h-9 flex items-center justify-center rounded-xl text-[10px] font-black bg-gray-50 dark:bg-gray-800 text-gray-500">1</a>
+                        <span class="text-gray-400 px-1 text-[10px]">...</span>
+                    @endif
+
+                    @foreach ($masters->getUrlRange($start, $end) as $page => $url)
+                        <a href="{{ $url }}"
+                        class="w-9 h-9 flex items-center justify-center rounded-xl text-[10px] font-black transition-all {{ $page == $masters->currentPage() ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-gray-50 dark:bg-gray-800 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                            {{ $page }}
+                        </a>
+                    @endforeach
+
+                    @if($end < $masters->lastPage())
+                        <span class="text-gray-400 px-1 text-[10px]">...</span>
+                        <a href="{{ $masters->url($masters->lastPage()) }}" class="w-9 h-9 flex items-center justify-center rounded-xl text-[10px] font-black bg-gray-50 dark:bg-gray-800 text-gray-500 uppercase">{{ $masters->lastPage() }}</a>
+                    @endif
+                </div>
+
+                {{-- Tombol Next --}}
+                @if ($masters->hasMorePages())
+                    <a href="{{ $masters->nextPageUrl() }}" class="px-4 py-2 bg-white dark:bg-gray-900 hover:bg-indigo-600 hover:text-white text-indigo-600 rounded-xl text-[10px] font-black border border-indigo-200 dark:border-indigo-900 transition shadow-sm uppercase italic">Next</a>
+                @else
+                    <span class="px-4 py-2 bg-gray-50 dark:bg-gray-800 text-gray-300 dark:text-gray-600 rounded-xl text-[10px] font-black border border-gray-100 dark:border-gray-700 cursor-not-allowed uppercase italic">Next</span>
+                @endif
+            </div>
+        </div>
     </div>
 
     {{-- 4. MODAL ADD NEW --}}

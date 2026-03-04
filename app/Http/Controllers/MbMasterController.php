@@ -51,7 +51,7 @@ class MbMasterController extends Controller
 
             // 2. Gunakan get() jika cursor() masih bermasalah dengan fastexcel di env Anda
             // atau gunakan generator jika data sangat banyak
-            $exportData = $query->get();
+            $exportData = $query->cursor()->getIterator();
 
             // 3. Pastikan return fastexcel langsung dikembalikan
             return (new \Rap2hpoutre\FastExcel\FastExcel($exportData))
@@ -68,7 +68,7 @@ class MbMasterController extends Controller
         }
 
         // 4. Final Query untuk View
-        $masters = $query->latest()->paginate(50)->withQueryString();
+        $masters = $query->latest()->paginate(20)->withQueryString();
 
         return view('mb_master.index', compact('masters', 'filterOptions'));
     }
