@@ -38,15 +38,15 @@ class ProcessInboundActualUpload implements ShouldQueue
                 // Eager load details untuk efisiensi
                 $inbounds = InboundRequest::with('details')
                     ->whereIn('fulfillment_order_no', $orderCodes)
-                    ->whereNotIn('status', ['Completely', 'Partially', 'Cancelled'])
+                    // ->whereNotIn('status', ['Completely', 'Partially', 'Cancelled'])
                     ->get()
                     ->keyBy('fulfillment_order_no');
 
                 $impactedInboundIds = [];
 
                 foreach ($chunk as $row) {
-                    $outOrderCode   = $row['OutOrderCode'] ?? null;
-                    $productBarcode = $row['Product Barcode'] ?? null;
+                    $outOrderCode   = trim($row['OutOrderCode'] ?? '');
+                    $productBarcode = trim($row['Product Barcode'] ?? '');
                     $actualQty      = (int)($row['ActualQuantity'] ?? 0);
 
                     if (!$outOrderCode || !$productBarcode || !isset($inbounds[$outOrderCode])) {
