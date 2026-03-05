@@ -43,7 +43,7 @@ class SyncParent extends Command
                     $totalReceived = InboundRequestDetail::whereHas('inboundRequest', function($q) use ($parent) {
                             $q->where('parent_id', $parent->id);
                         })
-                        ->where('sku_code', $parentDetail->sku_code)
+                        ->where('seller_sku', $parentDetail->seller_sku)
                         ->sum('received_good');
 
                     // 4. Update kolom received_good di Parent Detail
