@@ -142,6 +142,15 @@ class InboundOrderController extends Controller
         return view('inbound.show', compact('inbound','totalQty'));
     }
 
+    public function opsShow($id)
+    {
+        // Mencari InboundRequest beserta detail SKU-nya
+        $inbound = InboundRequest::with('details')->findOrFail($id);
+        $totalQty = $inbound->details()->sum('requested_quantity');
+
+        return view('inbound.ops_show', compact('inbound','totalQty'));
+    }
+
     public function split($id)
     {
         // 1. Ambil data original beserta detail SKU

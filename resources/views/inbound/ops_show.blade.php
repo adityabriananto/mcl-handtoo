@@ -17,7 +17,7 @@
     {{-- 1. Header Section --}}
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div class="flex items-center space-x-5">
-            <a href="{{ route('inbound.index') }}" class="p-3 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 hover:bg-gray-50 transition transform active:scale-95">
+            <a href="{{ route('ops.inbound.index') }}" class="p-3 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 hover:bg-gray-50 transition transform active:scale-95">
                 <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
             </a>
             <div>
@@ -161,7 +161,7 @@
                 {{-- Vertical Scroll Area --}}
                 <div class="max-h-[500px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                     @foreach($inbound->children as $child)
-                        <a href="{{ route('inbound.show', $child->id) }}"
+                        <a href="{{ route('ops.inbound.show', $child->id) }}"
                            class="flex items-center justify-between px-5 py-4 bg-white dark:bg-gray-800 border border-orange-100 dark:border-orange-900/30 rounded-2xl hover:border-orange-500 hover:shadow-md transition-all group overflow-hidden">
                             <div class="flex flex-col min-w-0">
                                 <span class="text-[9px] font-black text-gray-400 uppercase mb-1 leading-none">ORDER REF</span>
