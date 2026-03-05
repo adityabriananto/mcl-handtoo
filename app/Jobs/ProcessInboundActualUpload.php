@@ -25,14 +25,17 @@ class ProcessInboundActualUpload implements ShouldQueue
 
     public function handle()
     {
-        $allRows = (new FastExcel)->import($this->filePath);
+        // Menggunakan import (tanpa ->get()) agar FastExcel bekerja secara generator/streaming
+        // Ini memastikan RAM tidak penuh meskipun file sangat besar
+        (new FastExcel)->import($this->filePath, function ($row) {
+            return $row;
+        })->chunk(100)->each(function ($chunk) {
 
-        // Proses dalam chunk besar untuk efisiensi
-        $allRows->chunk(100)->each(function ($chunk) {
             DB::transaction(function () use ($chunk) {
+                // Ambil semua OutOrderCode unik dari chunk ini saja
                 $orderCodes = $chunk->pluck('OutOrderCode')->filter()->unique();
 
-                // Ambil semua inbound yang relevan dalam satu query (Eager Load Details)
+                // Eager load details untuk efisiensi
                 $inbounds = InboundRequest::with('details')
                     ->whereIn('fulfillment_order_no', $orderCodes)
                     ->whereNotIn('status', ['Completely', 'Partially', 'Cancelled'])
@@ -46,25 +49,28 @@ class ProcessInboundActualUpload implements ShouldQueue
                     $productBarcode = $row['Product Barcode'] ?? null;
                     $actualQty      = (int)($row['ActualQuantity'] ?? 0);
 
-                    if (!$outOrderCode || !$productBarcode || !isset($inbounds[$outOrderCode])) continue;
+                    if (!$outOrderCode || !$productBarcode || !isset($inbounds[$outOrderCode])) {
+                        continue;
+                    }
 
                     $inbound = $inbounds[$outOrderCode];
 
-                    // Update detail Child/Single
-                    InboundRequestDetail::where('inbound_order_id', $inbound->id)
+                    // Update detail baris yang sedang diproses
+                    InboundRequestDetail::where('inbound_request_id', $inbound->id) // Pastikan kolom ini benar
                         ->where('fulfillment_sku', $productBarcode)
                         ->update(['received_good' => $actualQty]);
-
-                    $inbound->refresh();
 
                     $impactedInboundIds[] = $inbound->id;
                 }
 
-                // Jalankan sinkronisasi status dan akumulasi ke Parent
-                $this->syncInboundStatus(array_unique($impactedInboundIds));
+                // Jalankan sinkronisasi status hanya untuk ID yang terpengaruh di chunk ini
+                if (!empty($impactedInboundIds)) {
+                    $this->syncInboundStatus(array_unique($impactedInboundIds));
+                }
             });
         });
 
+        // Hapus file setelah selesai proses
         if (file_exists($this->filePath)) {
             unlink($this->filePath);
         }

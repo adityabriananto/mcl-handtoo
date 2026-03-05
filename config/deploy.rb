@@ -54,6 +54,7 @@ namespace :deploy do
 
                 # 5. Clear & Optimize Cache
                 execute :php, "artisan optimize:clear"
+                execute :php, "artisan route:clear"
                 execute :php, "artisan config:cache"
                 execute :php, "artisan route:cache"
                 execute :php, "artisan view:cache"
