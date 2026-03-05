@@ -25,4 +25,10 @@ class InboundRequestDetail extends Model
         'temperature',
         'product_type',
     ];
+
+    public function inboundRequest()
+    {
+        // Pastikan 'inbound_request_id' adalah nama kolom foreign key di tabel details Anda
+        return $this->belongsTo(InboundRequest::class, 'inbound_order_id');
+    }
 }
