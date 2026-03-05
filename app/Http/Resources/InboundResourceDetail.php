@@ -61,7 +61,7 @@ class InboundResourceDetail extends JsonResource
             "seller_postcode"          => "",
             "seller_warehouse_name"    => $this->inbound_warehouse,
             "updated_at"               => $this->updated_at ? $this->updated_at->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
-            "estimate_time"            => $this->estimate_time ? \Illuminate\Support\Carbon::parse($this->estimate_time)->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z') : null,
+            "estimate_time"            => $this->estimate_time ? \Illuminate\Support\Carbon::parse($this->estimate_time)->format('Y-m-d\TH:i:s\Z') : null,
             "delivery_type"            => "Dropoff",
             "seller_contact"           => "",
             "io_status"                => $this->status,
