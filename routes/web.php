@@ -67,8 +67,8 @@ Route::middleware([])->prefix('mb-master/orders')->name('mb-orders.')->group(fun
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
 
 // Route::get('/ops/inbound', [InboundOrderController::class, 'opsIndex'])->name('ops.inbound.index');
-Route::match(['get', 'post'], '/', [InboundOrderController::class, 'opsIndex'])->name('ops.inbound.index');
-Route::get('/{id}', [InboundOrderController::class, 'opsShow'])->name('ops.inbound.show');
+Route::match(['get', 'post'], '/ops-inbound', [InboundOrderController::class, 'opsIndex'])->name('ops.inbound.index');
+Route::get('/ops-inbound/{id}', [InboundOrderController::class, 'opsShow'])->name('ops.inbound.show');
 
 Route::post('/inbound/upload-actual', [InboundOrderController::class, 'uploadActualQuantity'])->name('inbound.upload_actual');
 
