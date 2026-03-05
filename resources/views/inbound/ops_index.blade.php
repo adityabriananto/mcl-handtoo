@@ -23,6 +23,7 @@
         'Partially'           => 'bg-orange-50 text-orange-700 border-orange-200',
         'Completely'          => 'bg-green-50 text-green-700 border-green-200',
         'Cancelled by Seller' => 'bg-red-50 text-red-700 border-red-200',
+        'Cancelled by Lazada' => 'bg-red-50 text-red-700 border-red-200',
     ];
 
     $summary = $stats;
