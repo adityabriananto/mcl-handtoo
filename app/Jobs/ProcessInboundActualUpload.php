@@ -56,7 +56,7 @@ class ProcessInboundActualUpload implements ShouldQueue
                     $inbound = $inbounds[$outOrderCode];
 
                     // Update detail baris yang sedang diproses
-                    InboundRequestDetail::where('inbound_request_id', $inbound->id) // Pastikan kolom ini benar
+                    InboundRequestDetail::where('inbound_order_id', $inbound->id) // Pastikan kolom ini benar
                         ->where('fulfillment_sku', $productBarcode)
                         ->update(['received_good' => $actualQty]);
 
