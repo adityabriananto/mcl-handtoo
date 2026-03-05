@@ -153,9 +153,6 @@
                         <p class="text-[11px] font-black text-orange-600 uppercase tracking-[0.2em] leading-none mb-1">Child Documents</p>
                         <p class="text-[10px] text-orange-400 font-bold italic leading-none">Associated Split Orders</p>
                     </div>
-                    <a href="{{ route('inbound.export.children', $inbound->id) }}" class="p-2.5 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-all shadow-lg shadow-orange-600/20 active:scale-95" title="Export All Data">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                    </a>
                 </div>
 
                 {{-- Vertical Scroll Area --}}
