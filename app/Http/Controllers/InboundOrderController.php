@@ -289,7 +289,7 @@ class InboundOrderController extends Controller
                 $parent = null;
             }
 
-            $rawComment = $inbound->comment;
+            $rawComment = $model->comment;
             $brandCode = trim(explode('_', $rawComment)[0]);
             $mbMaster = MBMaster::where("brand_code",$brandCode)
             ->where("seller_sku", $sku)
