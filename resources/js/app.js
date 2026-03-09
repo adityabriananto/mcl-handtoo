@@ -41,3 +41,18 @@ const batchStatus = setupForm ? setupForm.querySelector('input[name="handover_id
 if (setupForm && !batchStatus) {
     setupForm.reset();
 }
+
+/* GENERAL FUNCTION */
+$(document).on('click', '.del-iteminfo-button', function(e) {
+    event.preventDefault();
+    $(this).parent().parent().parent().remove();
+});
+$('#add-item').click(function(e) {
+    event.preventDefault();
+    var itemInfo = $('template');
+    $('#item-info-container').append(itemInfo.html());
+});
+$('.ms-auto').click(function(e) {
+    e.preventDefault();
+    $($(this).data('dismiss-target')).remove();
+});
