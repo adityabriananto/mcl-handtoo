@@ -45,17 +45,30 @@ class MbMasterController extends Controller
         }
 
        if ($request->has('export')) {
-            // 1. Bersihkan semua output buffer agar file tidak korup
             if (ob_get_contents()) ob_end_clean();
             ob_start();
 
-            // 2. Gunakan get() jika cursor() masih bermasalah dengan fastexcel di env Anda
-            // atau gunakan generator jika data sangat banyak
+            // 1. Ambil barcode yang memiliki lebih dari satu brand_code YANG AKTIF
+            // Kita tambahkan filter where('is_disabled', 0) atau false
+            $multiBrandBarcodes = MBMaster::query()
+                ->select('manufacture_barcode')
+                ->where('is_disabled', 0) // Hanya hitung brand yang masih aktif
+                ->groupBy('manufacture_barcode')
+                ->havingRaw('COUNT(DISTINCT brand_code) > 1')
+                ->pluck('manufacture_barcode')
+                ->flip();
+
+            // 2. Ambil data dengan cursor
             $exportData = $query->cursor()->getIterator();
 
-            // 3. Pastikan return fastexcel langsung dikembalikan
             return (new \Rap2hpoutre\FastExcel\FastExcel($exportData))
-                ->download('MB_Master_Export_'.date('YmdHis').'.csv', function ($item) {
+                ->download('MB_Master_Export_'.date('YmdHis').'.csv', function ($item) use ($multiBrandBarcodes) {
+
+                    // 3. Logika Flag:
+                    // Jika item tersebut sendiri di-disable, atau brand aktif lainnya cuma sisa 1,
+                    // maka isset() akan mengembalikan false (No).
+                    $isMultiBrand = isset($multiBrandBarcodes[$item->manufacture_barcode]);
+
                     return [
                         'Brand Code'          => $item->brand_code,
                         'Brand Name'          => $item->brand_name,
@@ -63,6 +76,7 @@ class MbMasterController extends Controller
                         'Fulfillment SKU'     => $item->fulfillment_sku,
                         'Seller SKU'          => $item->seller_sku ?? '-',
                         'Status'              => $item->is_disabled ? 'Disabled' : 'Active',
+                        'Multi Brand Flag'    => $isMultiBrand ? 'Yes' : 'No',
                     ];
                 });
         }
