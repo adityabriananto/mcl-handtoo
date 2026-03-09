@@ -30,7 +30,7 @@
 
             @foreach([
                 'FD/CR Cam'       => route('fdcr-receiving.index'),
-                // 'FD/CR Dashboard' => route('fdcr-dashboard.index'),
+                'FD/CR Dashboard' => route('fdcr-dashboard.index'),
             ] as $linkName => $href)
             <a href={{ $href }} class="text-sm/6 font-semibold text-gray-900">{{ $linkName }}</a>
             @endforeach
@@ -64,7 +64,7 @@
                 <!-- 'Product' sub-menu, show/hide based on menu state. -->
                 </div>
                 <a href={{ route('fdcr-receiving.index') }} class="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-900 hover:bg-gray-50">FD/CR CAM</div></a>
-                {{-- <a href={{ route('fdcr-dashboard.index') }} class="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-900 hover:bg-gray-50">FD/CR Dashboard</a> --}}
+                <a href={{ route('fdcr-dashboard.index') }} class="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-900 hover:bg-gray-50">FD/CR Dashboard</a>
             </div>
             <div class="py-6">
                 <a href="https://auth.lazada.com/oauth/authorize?response_type=code&force_auth=true&redirect_uri=&client_id=115721" class="-mx-3 block rounded-lg px-3 py-2.5 text-base/7 font-semibold text-gray-900 hover:bg-gray-50">Create Token</a>

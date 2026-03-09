@@ -93,10 +93,10 @@ Route::get('/fdcr-receiving/trace', [\App\Http\Controllers\FdcrReceivingControll
 Route::post('/fdcr-receiving/video', [\App\Http\Controllers\FdcrReceivingController::class, 'video'])->name('fdcr.video-upload');
 Route::post('/fdcr-receiving/video/download', [\App\Http\Controllers\FdcrReceivingController::class, 'download'])->name('fdcr.video-download');
 Route::resource('fdcr-receiving', \App\Http\Controllers\FdcrReceivingController::class);
-// Route::resource('/fdcr-dashboard', \App\Http\Controllers\FdReceivingDashboardController::class);
-// Route::post('/fdcr-dashboard/export', [\App\Http\Controllers\FdReceivingDashboardController::class, 'export'])->name('fdcr.export');
-// Route::post('/fdcr-dashboard/batch-download', [\App\Http\Controllers\FdReceivingDashboardController::class, 'batchDownloadVideo'])->name('fdcr.batch-video-download');
-// Route::post('/fdcr-dashboard/download', [\App\Http\Controllers\FdReceivingDashboardController::class, 'download'])->name('fdcr-dashboard.video-download');
+Route::resource('/fdcr-dashboard', \App\Http\Controllers\FdReceivingDashboardController::class);
+Route::post('/fdcr-dashboard/export', [\App\Http\Controllers\FdReceivingDashboardController::class, 'export'])->name('fdcr.export');
+Route::post('/fdcr-dashboard/batch-download', [\App\Http\Controllers\FdReceivingDashboardController::class, 'batchDownloadVideo'])->name('fdcr.batch-video-download');
+Route::post('/fdcr-dashboard/download', [\App\Http\Controllers\FdReceivingDashboardController::class, 'download'])->name('fdcr-dashboard.video-download');
 
 /*
 |--------------------------------------------------------------------------
