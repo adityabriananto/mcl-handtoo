@@ -152,14 +152,18 @@
                 </div>
                 <div class="hidden lg:block w-px h-8 bg-gray-100 dark:bg-gray-800 mx-1"></div>
 
-                <div class="flex gap-1 ml-auto">
-                    <button type="button" @click="openUpload = true" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-[9px] font-black uppercase transition shadow-lg shadow-emerald-500/10 active:scale-95">
-                        Import
-                    </button>
-                    <button type="button" @click="openAdd = true" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-[9px] font-black uppercase transition shadow-lg shadow-indigo-500/10 active:scale-95">
-                        Add New
-                    </button>
-                </div>
+                @auth
+                    @if(auth()->user()->role === 'admin')
+                    <div class="flex gap-1 ml-auto">
+                        <button type="button" @click="openUpload = true" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-[9px] font-black uppercase transition shadow-lg shadow-emerald-500/10 active:scale-95">
+                            Import
+                        </button>
+                        <button type="button" @click="openAdd = true" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-[9px] font-black uppercase transition shadow-lg shadow-indigo-500/10 active:scale-95">
+                            Add New
+                        </button>
+                    </div>
+                    @endif
+                @endauth
 
             </div>
         </form>
