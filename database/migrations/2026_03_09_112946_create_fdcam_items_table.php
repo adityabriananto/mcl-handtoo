@@ -19,7 +19,6 @@ return new class extends Migration
             $table->string('quality'); // (Mandatory | Goods or Defective or Reject to 3pl)
             $table->string('recording')->nullable();
             $table->text('notes')->nullable();
-            $table->string('tpl')->nullable();
             $table->string('owner')->nullable();
             $table->timestamps();
         });

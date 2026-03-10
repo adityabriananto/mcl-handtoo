@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('order_number')->nullable();
             $table->string('parcel_type'); // FD or CR
             $table->string('recording')->nullable();
+            $table->string('tpl')->nullable();
             $table->timestamps();
         });
     }
