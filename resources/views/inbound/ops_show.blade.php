@@ -21,11 +21,12 @@
         warehouse: '{{ $inbound->warehouse_code ?? '-' }}',
         client: '{{ $inbound->client_name ?? '-' }}',
         refNumber: '{{ $inbound->reference_number }}',
-        {{-- Mapping data dengan fallback string kosong agar tidak undefined --}}
+        brandCode: '{{ $inbound->comment ?? '-' }}',
         items: {{ $inbound->details->map(function($d) {
             return [
                 'seller_sku' => $d->seller_sku ?? '',
-                'fulfillment_sku' => $d->fulfillment_sku ?? '-',
+                'fulfillment_sku' => $d->fulfillment_sku ?? '',
+                'name' => $d->product_name ?? '-',
                 'good_qty' => (int)$d->received_good,
                 'requested_qty' => (int)$d->requested_quantity,
             ];
@@ -33,12 +34,13 @@
 
         exportToExcel() {
             const timestamp = new Date().toISOString().split('T')[0];
-            const fileName = `Export_Details_${this.refNumber}_${timestamp}.xlsx`;
+            const fileName = `Export_Inbound_${this.refNumber}_${timestamp}.xlsx`;
 
             const dataForExport = this.items.map(item => ({
                 'Warehouse': this.warehouse,
                 'Client Name': this.client,
                 'Reference No': this.refNumber,
+                'Brand Code': this.brandCode,
                 'Seller SKU': item.seller_sku,
                 'Fulfillment SKU': item.fulfillment_sku,
                 'Received Good': item.good_qty,
@@ -56,7 +58,9 @@
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div class="flex items-center space-x-5">
             <a href="{{ route('ops.inbound.index') }}" class="p-3 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 hover:bg-gray-50 transition transform active:scale-95">
-                <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+                <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
+                </svg>
             </a>
             <div>
                 <h1 class="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic leading-tight">
@@ -71,14 +75,31 @@
                 {{ $inbound->status === 'Completed' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-blue-100 text-blue-700 border-blue-200' }}">
                 Status: {{ $inbound->status }}
             </span>
+
+            @if($inbound->children->count() == 0 && $inbound->inbound_order_no)
+                <span class="px-5 py-2.5 bg-indigo-600 text-white rounded-2xl text-[11px] font-black uppercase shadow-xl shadow-indigo-500/30 tracking-widest border border-indigo-400">
+                    IO: {{ $inbound->inbound_order_no }}
+                </span>
+            @elseif($inbound->children->count() > 0)
+                <span class="px-5 py-2.5 bg-orange-50 text-orange-600 border border-orange-200 rounded-2xl text-[11px] font-black uppercase tracking-[0.15em] flex items-center gap-2 italic font-black">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                    </span>
+                    Splitted Parent
+                </span>
+            @endif
         </div>
     </div>
 
     {{-- 2. Summary Cards --}}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="bg-white dark:bg-gray-900 p-7 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-800">
-            <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Warehouse</p>
-            <p class="text-xl font-bold text-gray-800 dark:text-white uppercase leading-none">{{ $inbound->warehouse_code }}</p>
+            <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Warehouse / Brand</p>
+            <div class="flex flex-col">
+                <p class="text-xl font-bold text-gray-800 dark:text-white uppercase leading-none">{{ $inbound->warehouse_code }}</p>
+                <p class="text-xs font-black text-blue-500 mt-1 uppercase tracking-tighter italic">{{ $inbound->comment ?? 'No Brand Code' }}</p>
+            </div>
         </div>
 
         <div class="bg-white dark:bg-gray-900 p-7 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-800">
@@ -99,24 +120,25 @@
     {{-- 3. MAIN CONTENT --}}
     <div class="flex flex-col lg:flex-row gap-8 items-start">
 
-        {{-- KOLOM KIRI: SKU Table --}}
         <div class="w-full {{ $inbound->children->count() > 0 ? 'lg:w-2/3' : 'lg:w-full' }}">
             <div class="bg-white dark:bg-gray-900 shadow-xl rounded-[2.5rem] overflow-hidden border border-gray-100 dark:border-gray-800">
                 <div class="p-7 border-b border-gray-100 dark:border-gray-800 flex flex-col lg:flex-row justify-between items-center gap-4">
                     <h2 class="font-black text-gray-800 dark:text-white uppercase tracking-tighter italic text-l leading-none">Verification SKU List</h2>
 
                     <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-                        {{-- Tombol Export --}}
                         <button @click="exportToExcel()"
                                 class="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition shadow-lg shadow-green-500/20 active:scale-95 w-full sm:w-auto justify-center">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
                             Export Excel
                         </button>
 
-                        {{-- Input Search dengan Proteksi --}}
                         <div class="relative w-full sm:w-80 group">
                             <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-gray-500 group-focus-within:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                <svg class="h-5 w-5 text-gray-500 group-focus-within:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
                             </span>
                             <input type="text"
                                 x-model="searchSKU"
@@ -137,7 +159,6 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
-                            {{-- Logic Filter yang lebih aman --}}
                             <template x-for="item in items.filter(i => {
                                 const term = searchSKU.toLowerCase();
                                 return (i.fulfillment_sku || '').toLowerCase().includes(term) ||
@@ -165,7 +186,6 @@
             </div>
         </div>
 
-        {{-- KOLOM KANAN: Child Documents --}}
         @if($inbound->children->count() > 0)
         <div class="w-full lg:w-1/3 space-y-4 sticky top-4">
             <div class="bg-orange-50/50 dark:bg-orange-950/10 border border-orange-100 dark:border-orange-900/50 rounded-[2.5rem] p-7 shadow-sm">
