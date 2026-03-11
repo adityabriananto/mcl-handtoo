@@ -125,7 +125,7 @@
         {{-- Status Select --}}
         <select name="status" onchange="this.form.submit()" class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] px-2 py-2 dark:text-white font-bold">
             <option value="">All Status</option>
-            @foreach(['Created', 'Inbound in Process', 'Partially', 'Completely', 'Cancelled by Seller'] as $st)
+            @foreach(['Created', 'Inbound in Process', 'Partially', 'Completely', 'Cancelled by Seller','Cancelled by Lazada'] as $st)
                 <option value="{{ $st }}" {{ ($filters['status'] ?? '') == $st ? 'selected' : '' }}>{{ $st }}</option>
             @endforeach
         </select>

@@ -554,7 +554,7 @@ class InboundOrderController extends Controller
             }
 
             // 2. Reset Status ke Processing untuk semua ID terkait
-            InboundRequest::whereIn('id', $idsToReset)->update(['status' => 'Processing']);
+            InboundRequest::whereIn('id', $idsToReset)->update(['status' => 'Inbound in Process']);
 
             // 3. Reset Quantity (received_good) menjadi 0 untuk semua detail terkait
             DB::table('inbound_order_details')
@@ -591,7 +591,7 @@ class InboundOrderController extends Controller
         $totalChildren = array_sum($statusCounts);
         $completedCount = $statusCounts['Completed'] ?? 0;
 
-        $hasProgress = ($statusCounts['Processing'] ?? 0) > 0 ||
+        $hasProgress = ($statusCounts['Inbound in Process'] ?? 0) > 0 ||
                     ($statusCounts['Partially'] ?? 0) > 0 ||
                     ($completedCount > 0);
 
@@ -602,7 +602,7 @@ class InboundOrderController extends Controller
             // Jika ada satu saja child yang sudah Completed atau sedang Processing
             $newStatus = 'Partially';
         } else {
-            $newStatus = 'Processing';
+            $newStatus = 'Inbound in Process';
         }
 
         $parent->update(['status' => $newStatus]);

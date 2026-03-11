@@ -120,7 +120,7 @@
         {{-- Status Select --}}
         <select name="status" onchange="this.form.submit()" class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-[10px] px-2 py-2 dark:text-white font-bold">
             <option value="">All Status</option>
-            @foreach(['Created', 'Inbound in Process', 'Partially', 'Completely', 'Cancelled by Seller'] as $st)
+            @foreach(['Created', 'Inbound in Process', 'Partially', 'Completely', 'Cancelled by Seller', 'Cancelled by Lazada'] as $st)
                 <option value="{{ $st }}" {{ ($filters['status'] ?? '') == $st ? 'selected' : '' }}>{{ $st }}</option>
             @endforeach
         </select>
@@ -240,9 +240,10 @@
                                     @endif
 
                                     {{-- COMPLETE (Parent/Single) --}}
-                                    @if(!$isLocked && !$hasChildren && $skuCount <= 100)
-                                        <form action="{{ route('inbound.complete', $item->id) }}" method="POST" @submit="statusLoading = true">
+                                    @if(!$isLocked && $item->status !== 'Completely' && $item->status !== 'Partially' && $item->status !== "Cancelled by Seller" && $item->status !== "Cancelled by Lazada")
+                                        <form action="{{ route('inbound.complete', [$item->id, 'type' => 'batch']) }}" method="POST" @submit="statusLoading = true">
                                             @csrf
+                                            {{-- <input type="hidden" name="type" value="batch"> --}}
                                             <button type="submit" :disabled="statusLoading" class="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition active:scale-90 shadow-md shadow-blue-900/20">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
                                             </button>
