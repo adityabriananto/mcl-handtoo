@@ -207,6 +207,10 @@ class InboundOrderApiController extends Controller
             return $this->buildApiResponse(false, 'FORBIDDEN', 'Cannot cancel a completed inbound.', 400, $request, $type);
         }
 
+        if ($inbound->is_arrived) {
+            return $this->buildApiResponse(false, 'Package Arrived', 'Package already arrived at wh and on process inbounded.', 400, $request, $type);
+        }
+
         try {
             \DB::transaction(function () use ($inbound) {
                 // Jika Parent: Cancel bapak dan anak-anak yang belum completed

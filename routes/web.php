@@ -69,6 +69,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->midd
 // Route::get('/ops/inbound', [InboundOrderController::class, 'opsIndex'])->name('ops.inbound.index');
 Route::match(['get', 'post'], '/ops-inbound', [InboundOrderController::class, 'opsIndex'])->name('ops.inbound.index');
 Route::get('/ops-inbound/{id}', [InboundOrderController::class, 'opsShow'])->name('ops.inbound.show');
+Route::post('/ops-inbound/{id}/arrived', [InboundOrderController::class, 'markAsArrived'])->name('inbound.arrived');
 
 Route::post('/inbound/upload-actual', [InboundOrderController::class, 'uploadActualQuantity'])->name('inbound.upload_actual');
 

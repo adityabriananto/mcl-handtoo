@@ -707,4 +707,30 @@ class InboundOrderController extends Controller
 
         $parent->update(['status' => $newStatus]);
     }
+
+    public function markAsArrived($id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $inbound = InboundRequest::findOrFail($id);
+
+            // Validasi Status
+            if (in_array($inbound->status, ['Completely', 'Partially', 'Cancelled by Seller', 'Cancelled by Lazada'])) {
+                return redirect()->back()->with('error', 'Cannot mark as arrived for this status.');
+            }
+
+            // 1. Update Parent
+            $inbound->update(['is_arrived' => 1]);
+
+            // 2. Update Semua Child (Jika ada)
+            $inbound->children()->update(['is_arrived' => 1]);
+
+            DB::commit();
+            return redirect()->back()->with('success', "Inbound and all Sub-IOs marked as Arrived.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
+        }
+    }
 }
