@@ -27,32 +27,52 @@ class ProcessInboundSkusJob implements ShouldQueue
 
     public function handle()
     {
+        // 1. Ambil Brand Code dari Inbound (Comment)
+        $inbound = DB::table('inbound_orders')->where('id', $this->inboundOrderId)->first();
+        // Gunakan pembersihan _deffective seperti logic sebelumnya jika perlu
+        $brandCode = $inbound ? trim(explode('_', $inbound->comment)[0]) : null;
+
+        // 2. Kumpulkan semua seller_sku unik untuk mencari fulfillment_sku sekaligus
+        $uniqueSellerSkus = collect($this->skus)->pluck('seller_sku')->unique()->toArray();
+
+        // 3. Ambil data MbMaster dan jadikan Map [seller_sku => fulfillment_sku]
+        $mbMasterMap = DB::table('mb_masters')
+            ->where('brand_code', $brandCode)
+            ->whereIn('seller_sku', $uniqueSellerSkus)
+            ->pluck('fulfillment_sku', 'seller_sku');
+
         $processed = [];
         foreach ($this->skus as $sku) {
-            $key = $sku['seller_sku'] . '|' . ($sku['fulfillment_sku'] ?? '');
+            $sellerSku = $sku['seller_sku'];
+
+            // Cari fulfillment_sku dari map yang sudah kita buat
+            $fulfillmentSku = $mbMasterMap->get($sellerSku) ?? '-';
+
+            // Gunakan fulfillment_sku sebagai bagian dari Unique Key
+            $key = $sellerSku . '|' . $fulfillmentSku;
 
             if (isset($processed[$key])) {
                 $processed[$key]['requested_quantity'] += (int)$sku['requested_quantity'];
             } else {
                 $processed[$key] = [
                     'inbound_order_id'   => $this->inboundOrderId,
-                    'seller_sku'         => $sku['seller_sku'],
-                    'fulfillment_sku'    => $sku['fulfillment_sku'] ?? null,
+                    'seller_sku'         => $sellerSku,
+                    'fulfillment_sku'    => $fulfillmentSku, // Didapat dari MbMaster
                     'requested_quantity' => (int)$sku['requested_quantity'],
-                    'created_at'         => now(), // Isi eksplisit untuk insert
+                    'created_at'         => now(),
                     'updated_at'         => now(),
                 ];
             }
         }
 
+        // 4. Proses Upsert dalam Chunk
         $chunks = array_chunk(array_values($processed), 1000);
 
         foreach ($chunks as $chunk) {
-            // UPSERT jauh lebih efisien dan menangani created_at dengan benar
             DB::table('inbound_order_details')->upsert(
                 $chunk,
-                ['inbound_order_id', 'seller_sku', 'fulfillment_sku'], // Unique key
-                ['requested_quantity', 'updated_at'] // Kolom yang diupdate jika sudah ada
+                ['inbound_order_id', 'seller_sku', 'fulfillment_sku'],
+                ['requested_quantity', 'updated_at']
             );
 
             unset($chunk);

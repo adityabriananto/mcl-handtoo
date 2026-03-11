@@ -7,7 +7,8 @@
     searchSKU: '',
     items: {{ $inbound->details->map(function($d) {
         return [
-            'sku' => $d->seller_sku,
+            'seller_sku' => $d->seller_sku,
+            'fulfillment_sku' => $d->fulfillment_sku,
             'requested_qty' => $d->requested_quantity,
             'good_qty' => $d->received_good,
             'name' => $d->product_name ?? '-'
@@ -119,15 +120,19 @@
                         <thead class="bg-gray-50/50 dark:bg-gray-800/50">
                             <tr>
                                 <th class="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Seller SKU</th>
+                                <th class="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Fulfillment SKU</th>
                                 <th class="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Product Name</th>
                                 <th class="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Qty</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
-                            <template x-for="item in items.filter(i => i.sku.toLowerCase().includes(searchSKU.toLowerCase()))" :key="item.sku">
+                            <template x-for="item in items.filter(i => i.fulfillment_sku.toLowerCase().includes(searchSKU.toLowerCase()))" :key="item.fulfillment_sku">
                                 <tr class="hover:bg-blue-50/30 dark:hover:bg-gray-800/50 transition duration-150">
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="font-bold text-blue-600 dark:text-blue-400" x-text="item.sku"></span>
+                                        <span class="font-bold text-blue-600 dark:text-blue-400" x-text="item.seller_sku"></span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="font-bold text-blue-600 dark:text-blue-400" x-text="item.fulfillment_sku"></span>
                                     </td>
                                     <td class="px-6 py-4 text-[13px] text-gray-600 dark:text-gray-400 uppercase tracking-tight" x-text="item.name"></td>
                                     <td class="px-6 py-4 text-right whitespace-nowrap">

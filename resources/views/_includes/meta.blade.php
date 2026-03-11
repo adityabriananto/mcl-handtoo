@@ -1,3 +1,3 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>M-Push V2</title>
+<title>{{ config('app.name', 'MCL - HandToo') }} | @yield('title', 'FDCR')</title>
