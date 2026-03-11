@@ -3,6 +3,7 @@ lock "~> 3.20.0"
 
 set :application, "handtoo"
 set :repo_url, "git@github.com:adityabriananto/mcl-handtoo.git"
+set :branch, ENV.fetch('BRANCH', 'main')
 
 # Folder yang tetap persisten di antara rilis (Shared Folder)
 set :linked_dirs, %w{
