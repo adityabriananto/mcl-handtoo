@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('fdcam_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(\App\Models\Fdcam::class);
+            $table->foreignId('fdcam_id')->constrained('fdcams');
             $table->string('manufacture_barcode');
             $table->string('sku')->nullable();
             $table->string('quality'); // (Mandatory | Goods or Defective or Reject to 3pl)
