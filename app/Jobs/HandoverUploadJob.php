@@ -41,8 +41,7 @@ class HandoverUploadJob implements ShouldQueue
         $batch = [];
 
         while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
-            // Pastikan data penting (airwaybill) tidak kosong
-            if (empty($data[2])) continue;
+            if (empty($data[39])) continue;
 
             $batch[] = [
                 'airwaybill'    => $data[2],
@@ -81,8 +80,8 @@ class HandoverUploadJob implements ShouldQueue
         // Sangat cepat karena hanya mengirim 1 query untuk 500 baris.
         DataUpload::upsert(
             $data,
-            ['airwaybill'], // Kolom unik penentu
-            ['order_number', 'owner_code', 'owner_name', 'qty', 'platform_name', 'updated_at'] // Kolom yang diupdate
+            ['order_number'], // Kolom unik penentu
+            ['airwaybill', 'owner_code', 'owner_name', 'qty', 'platform_name', 'updated_at'] // Kolom yang diupdate
         );
     }
 }
