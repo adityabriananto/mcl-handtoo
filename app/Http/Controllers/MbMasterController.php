@@ -177,7 +177,7 @@ class MbMasterController extends Controller
     }
 
     private function sendRobotNotification($mbMaster, $action, $activeBrands, $totalRegistered) {
-        $dingtalkEndpoint = env('DINGTALK_ROBO');
+        $dingtalkEndpoint = config('services.dingtalk.robo_endpoint');
         $client = new Client();
         $jsonArray = [
             'msgtype' => 'text',
