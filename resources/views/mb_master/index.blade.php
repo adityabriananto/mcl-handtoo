@@ -122,7 +122,6 @@
                     <input type="text" name="s_sku" value="{{ request('s_sku') }}" placeholder="Seller"
                         class="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border-none rounded-xl text-[10px] font-bold dark:text-white focus:ring-2 focus:ring-indigo-500 transition">
                 </div>
-
                 <div class="w-full lg:w-28">
                     <label class="text-[9px] font-black text-gray-400 uppercase ml-2 mb-1 block tracking-tighter">Status</label>
                     <select name="status" class="w-full px-2 py-2.5 bg-gray-50 dark:bg-gray-800 border-none rounded-xl text-[10px] font-bold dark:text-white focus:ring-2 focus:ring-indigo-500 transition appearance-none cursor-pointer">
@@ -131,7 +130,6 @@
                         <option value="disabled" {{ request('status') == 'disabled' ? 'selected' : '' }}>Disabled</option>
                     </select>
                 </div>
-
                 <div class="flex gap-1">
                     {{-- Button Submit Normal untuk Filter --}}
                     <button type="submit" class="bg-gray-900 dark:bg-indigo-600 text-white px-3 py-2.5 rounded-xl text-[9px] font-black uppercase transition hover:bg-indigo-700 active:scale-95">
@@ -197,16 +195,25 @@
                             <span class="text-[9px] font-bold text-gray-400 italic text-white">S-SKU: {{ $m->seller_sku ?? '-' }}</span>
                         </div>
                     </td>
-                    <td class="px-6 py-4 text-center">
-                        <form action="{{ route('mb-master.update', $m->id) }}" method="POST">
-                            @csrf @method('PATCH')
-                            <input type="hidden" name="is_disabled" value="{{ $m->is_disabled ? 0 : 1 }}">
-                            <button type="submit" class="flex items-center justify-center gap-2 px-3 py-1.5 mx-auto rounded-lg border font-black text-[8px] uppercase tracking-widest transition-all active:scale-90 {{ !$m->is_disabled ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-600 border-red-200' }}">
-                                <span class="w-1.5 h-1.5 rounded-full {{ !$m->is_disabled ? 'bg-green-500' : 'bg-red-500' }}"></span>
-                                {{ !$m->is_disabled ? 'Active' : 'Disabled' }}
-                            </button>
-                        </form>
-                    </td>
+                    @guest
+                        <td class="px-6 py-4 font-mono font-bold text-gray-500 italic">
+                            {{ !$m->is_disabled ? 'Active' : 'Disabled' }}
+                        </td>
+                    @endguest
+                    @auth
+                        @if(auth()->user()->role === 'admin')
+                        <td class="px-6 py-4 text-center">
+                            <form action="{{ route('mb-master.update', $m->id) }}" method="POST">
+                                @csrf @method('PATCH')
+                                <input type="hidden" name="is_disabled" value="{{ $m->is_disabled ? 0 : 1 }}">
+                                <button type="submit" class="flex items-center justify-center gap-2 px-3 py-1.5 mx-auto rounded-lg border font-black text-[8px] uppercase tracking-widest transition-all active:scale-90 {{ !$m->is_disabled ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-600 border-red-200' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ !$m->is_disabled ? 'bg-green-500' : 'bg-red-500' }}"></span>
+                                    {{ !$m->is_disabled ? 'Active' : 'Disabled' }}
+                                </button>
+                            </form>
+                        </td>
+                        @endif
+                    @endauth
                     <td class="px-6 py-4 text-right">
                         <div class="flex justify-end gap-2">
                             <button @click="currentItem = {{ $m->toJson() }}; is_disabled = {{ $m->is_disabled ? 'true' : 'false' }}; openEdit = true"
