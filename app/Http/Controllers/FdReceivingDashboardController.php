@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Fdcam;
-use App\Models\FdcamItem;
+use App\Models\FdCamItem;
 use App\Traits\DocumentTrait;
 use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Excel;
@@ -18,7 +18,7 @@ class FdReceivingDashboardController extends Controller
     use DocumentTrait;
     public function index(Request $request) {
         // dd($request);
-        $fdCamItem = FdcamItem::whereNotNull("manufacture_barcode")
+        $fdCamItem = FdCamItem::whereNotNull("manufacture_barcode")
         ->with('fdCam')
         ->leftJoin('fdcams','fdcams.id','=','fdcam_items.fdcam_id')
         ->whereNotNull('tracking_number')

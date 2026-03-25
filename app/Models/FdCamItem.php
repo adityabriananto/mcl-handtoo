@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\Fdcam;
-class FdcamItem extends Model
+class FdCamItem extends Model
 {
     /**
      * The attributes that should be cast to native types.
