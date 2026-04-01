@@ -100,7 +100,20 @@ class MbMasterController extends Controller
         $data = $request->all();
         $data['is_disabled'] = $request->has('is_disabled') ? 0 : 1;
 
-        MbMaster::create($data);
+        $mbMaster = MbMaster::create($data);
+
+        $relatedBrands = MbMaster::where('manufacture_barcode', $mbMaster->manufacture_barcode)->get();
+        $totalRegistered = $relatedBrands->count();
+
+        /**
+         * KONDISI 1: Adding MB baru dan MB itu merupakan Multi Brand
+         * Jika setelah diinsert, total brand dengan barcode ini > 1, kirim notif.
+         */
+        if ($totalRegistered > 1) {
+            $activeBrands = $relatedBrands->where('is_disabled', 0);
+            $this->sendRobotNotification($mbMaster, 'NEW MULTI-BRAND ADDED', $activeBrands, $totalRegistered);
+        }
+
         return back()->with('success', 'Master Data created successfully.');
     }
 
@@ -141,7 +154,24 @@ class MbMasterController extends Controller
     }
     public function destroy(MbMaster $mbMaster)
     {
+        $barcode = $mbMaster->manufacture_barcode;
+        $allRelatedBefore = MbMaster::where('manufacture_barcode', $barcode)->get();
+        $totalBefore = $allRelatedBefore->count();
+
         $mbMaster->delete();
+
+        if ($totalBefore > 1) {
+            // Ambil data terbaru setelah delete
+            $relatedBrandsAfter = MbMaster::where('manufacture_barcode', $barcode)->get();
+            $activeBrandsAfter = $relatedBrandsAfter->where('is_disabled', 0);
+
+            $this->sendRobotNotification(
+                $mbMaster,
+                'BRAND REMOVED (DELETED)',
+                $activeBrandsAfter,
+                $relatedBrandsAfter->count()
+            );
+        }
         return back()->with('success', 'Master Data removed.');
     }
 
@@ -217,25 +247,31 @@ class MbMasterController extends Controller
     private function messageCreation($mbMaster, $action, $activeBrands, $totalRegistered)
     {
         $timeNow = \Carbon\Carbon::now()->format('d-m-Y H:i:s');
-        $isDeactivated = ($action === 'DEACTIVATED');
-        $headerEmoji = $isDeactivated ? '🚫' : '✅';
 
-        $recapMessage = "{$headerEmoji} *HANDTOO MB MULTI-BRAND UPDATE*\n";
+        // Tentukan Emoji berdasarkan Action
+        $emoji = '📢';
+        if (str_contains($action, 'ADDED')) $emoji = '✨';
+        if (str_contains($action, 'DEACTIVATED')) $emoji = '🚫';
+        if (str_contains($action, 'DELETED')) $emoji = '🗑️';
+        if (str_contains($action, 'REACTIVATED')) $emoji = '✅';
+
+        $recapMessage = "{$emoji} *HANDTOO MB MULTI-BRAND UPDATE*\n";
         $recapMessage .= "------------------------------------------\n";
         $recapMessage .= "📢 Action: *{$action}*\n";
         $recapMessage .= "📅 Date  : `{$timeNow}`\n";
         $recapMessage .= "🔢 Total Registered: {$totalRegistered} Brands\n\n";
 
-        $recapMessage .= "Target Brand:\n";
+        $recapMessage .= "Target Data:\n";
         $recapMessage .= "• Barcode: `{$mbMaster->manufacture_barcode}`\n";
         $recapMessage .= "• Brand  : *{$mbMaster->brand_name}*\n\n";
 
         $recapMessage .= "📍 *Current Active Brands ({$activeBrands->count()}):*\n";
 
         if ($activeBrands->isEmpty()) {
-            $recapMessage .= "_Semua brand untuk barcode ini non-aktif._\n";
+            $recapMessage .= "_Tidak ada brand aktif untuk barcode ini._\n";
         } else {
             foreach ($activeBrands as $brand) {
+                // Untuk aksi delete, target sudah tidak ada di list
                 $isTarget = ($brand->id === $mbMaster->id) ? " 🎯" : "";
                 $recapMessage .= "- {$brand->brand_name}{$isTarget}\n";
             }
