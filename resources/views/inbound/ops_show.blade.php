@@ -19,9 +19,12 @@
     x-data="{
         searchSKU: '',
         warehouse: '{{ $inbound->warehouse_code ?? '-' }}',
+        status: '{{ $inbound->status ?? '-' }}',
         client: '{{ $inbound->client_name ?? '-' }}',
         refNumber: '{{ $inbound->reference_number }}',
         brandCode: '{{ $inbound->comment ?? '-' }}',
+        createdAt: '{{ $inbound->created_at ?? '-' }}',
+        updatedAt: '{{ $inbound->updated_at ?? '-' }}',
         items: {{ $inbound->details->map(function($d) {
             return [
                 'seller_sku' => $d->seller_sku ?? '',
@@ -44,7 +47,9 @@
                 'Seller SKU': item.seller_sku,
                 'Fulfillment SKU': item.fulfillment_sku,
                 'Received Good': item.good_qty,
-                'Requested Qty': item.requested_qty
+                'Requested Qty': item.requested_qty,
+                'Created At':this.createdAt,
+                'Updated At':this.updatedAt
             }));
 
             const ws = XLSX.utils.json_to_sheet(dataForExport);
