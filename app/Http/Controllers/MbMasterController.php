@@ -212,7 +212,7 @@ class MbMasterController extends Controller
         $jsonArray = [
             'msgtype' => 'text',
             'text' => [
-                'title' => 'New Robustness  Test Recap',
+                'title' => 'MB Master Notification',
                 'content'  => $this->messageCreation($mbMaster, $action, $activeBrands, $totalRegistered),
                 'hideAvatar' => '0',
                 'btnOrientation' => '0',
