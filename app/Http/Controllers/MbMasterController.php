@@ -229,6 +229,8 @@ class MbMasterController extends Controller
                     // '+6281382476657', // dimas
                     // '+6281977180180', // dodo
                     // '+62818969365'    // victor
+                    '+6282258692712', // Farhandika
+                    '+6282183548856' // Yuda
                 ],
                 'isAtAll' => false
             ],
