@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'dingtalk' => [
+        'robo_endpoint' => env('DINGTALK_ROBO'),
+    ],
+
 ];

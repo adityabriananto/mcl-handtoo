@@ -223,26 +223,58 @@
                             </td>
 
                             <td class="px-4 py-3 text-right">
-                                <div class="flex justify-end gap-2">
+                                <div class="flex justify-end gap-2" x-data="{ arrivedLoading: false }">
 
-                                    {{-- 1. TOMBOL SPLIT (Hanya untuk Admin/User Login) --}}
-                                    @auth
-                                    @if($skuCount > 100 && !$hasChildren)
-                                        <form action="{{ route('inbound.split', $item->id) }}" method="POST" @submit="splitLoading = true">
+                                    {{-- 1. TOMBOL ARRIVED (KOTAK & IKON MOBIL TEBAL) --}}
+                                    @if(!$item->is_arrived && !in_array($item->status, ['Completely', 'Partially', 'Cancelled by Seller', 'Cancelled by Lazada']))
+                                        <form action="{{ route('inbound.arrived', $item->id) }}" method="POST" @submit="arrivedLoading = true">
                                             @csrf
-                                            <button type="submit" :disabled="splitLoading" class="px-3 py-2 bg-orange-100 text-orange-700 rounded-xl border border-orange-200 hover:bg-orange-600 hover:text-white transition flex items-center gap-2 group shadow-sm shadow-orange-900/10">
-                                                <span x-show="!splitLoading" class="text-[9px] font-black uppercase tracking-widest">Split</span>
-                                                <svg x-show="splitLoading" class="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                            <button type="submit" :disabled="arrivedLoading"
+                                                {{-- rounded-xl dan p-2 membuat kotak identik dengan tombol View --}}
+                                                class="p-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-90 transition shadow-sm flex items-center justify-center"
+                                                title="Mark as Arrived (Includes Sub-IOs)">
+
+                                                <template x-if="!arrivedLoading">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1" />
+                                                    </svg>
+                                                </template>
+
+                                                <svg x-show="arrivedLoading" class="animate-spin h-5 w-5 text-blue-600" viewBox="0 0 24 24" x-cloak>
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
                                             </button>
                                         </form>
+                                    @elseif($item->is_arrived)
+                                        {{-- Status Arrived (Kotak Hijau) --}}
+                                        <div class="p-2 text-green-600 bg-green-50 dark:bg-green-900/30 rounded-xl border border-green-200 dark:border-green-800 shadow-sm flex items-center justify-center" title="Arrived">
+                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
                                     @endif
+
+                                    {{-- 2. TOMBOL SPLIT (Hanya untuk Admin) --}}
+                                    @auth
+                                        @if($skuCount > 200 && !$hasChildren && $item->status !== 'Completely')
+                                            <form action="{{ route('inbound.split', $item->id) }}" method="POST" @submit="splitLoading = true">
+                                                @csrf
+                                                <button type="submit" :disabled="splitLoading" class="px-3 py-2 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-xl border border-orange-100 dark:border-orange-800 hover:bg-orange-600 hover:text-white transition flex items-center gap-2 active:scale-90 shadow-sm">
+                                                    <span x-show="!splitLoading" class="text-[9px] font-black uppercase tracking-widest">Split</span>
+                                                    <svg x-show="splitLoading" class="animate-spin h-3 w-3" viewBox="0 0 24 24" x-cloak><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                </button>
+                                            </form>
+                                        @endif
                                     @endauth
 
-                                    {{-- TOMBOL COMPLETED DIHILANGKAN SESUAI REQUEST --}}
-
-                                    {{-- 3. TOMBOL VIEW --}}
-                                    <a href="{{ route('ops.inbound.show', $item->id) }}" class="p-2 bg-gray-100 dark:bg-gray-800 text-gray-600 rounded-xl border border-gray-200 active:scale-90 transition shadow-sm" title="View Details">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    {{-- 3. TOMBOL VIEW (Referensi utama style) --}}
+                                    <a href="{{ route('ops.inbound.show', $item->id) }}" class="p-2 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-90 transition shadow-sm" title="View Details">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        </svg>
                                     </a>
 
                                 </div>
@@ -281,6 +313,14 @@
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         <div class="flex justify-end gap-2">
+                                            {{-- Indikator Arrived di Child (Hanya Tampil jika Arrived) --}}
+                                            @if($child->is_arrived)
+                                                <div class="p-1.5 text-green-600 bg-white dark:bg-gray-700 rounded-lg border border-green-100 shadow-sm italic text-[9px] font-black uppercase flex items-center gap-1">
+                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                                                    Arrived
+                                                </div>
+                                            @endif
+
                                             {{-- TOMBOL COMPLETED UNTUK CHILD DIHILANGKAN --}}
                                             <a href="{{ route('ops.inbound.show', $child->id) }}" class="p-2 bg-white dark:bg-gray-700 text-blue-600 rounded-xl border active:scale-95 shadow-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></a>
                                         </div>

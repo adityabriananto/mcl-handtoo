@@ -69,6 +69,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->midd
 // Route::get('/ops/inbound', [InboundOrderController::class, 'opsIndex'])->name('ops.inbound.index');
 Route::match(['get', 'post'], '/ops-inbound', [InboundOrderController::class, 'opsIndex'])->name('ops.inbound.index');
 Route::get('/ops-inbound/{id}', [InboundOrderController::class, 'opsShow'])->name('ops.inbound.show');
+Route::post('/ops-inbound/{id}/arrived', [InboundOrderController::class, 'markAsArrived'])->name('inbound.arrived');
 
 Route::post('/inbound/upload-actual', [InboundOrderController::class, 'uploadActualQuantity'])->name('inbound.upload_actual');
 
@@ -87,6 +88,16 @@ Route::prefix('mb-master')->name('mb-master.')->group(function () {
 
     Route::delete('/{mbMaster}', [MbMasterController::class, 'destroy'])->name('destroy');
 });
+
+// FDCR
+Route::get('/fdcr-receiving/trace', [\App\Http\Controllers\FdcrReceivingController::class, 'trace'])->name('fdcr.trace');
+Route::post('/fdcr-receiving/video', [\App\Http\Controllers\FdcrReceivingController::class, 'video'])->name('fdcr.video-upload');
+Route::post('/fdcr-receiving/video/download', [\App\Http\Controllers\FdcrReceivingController::class, 'download'])->name('fdcr.video-download');
+Route::resource('fdcr-receiving', \App\Http\Controllers\FdcrReceivingController::class);
+Route::resource('/fdcr-dashboard', \App\Http\Controllers\FdReceivingDashboardController::class);
+Route::post('/fdcr-dashboard/export', [\App\Http\Controllers\FdReceivingDashboardController::class, 'export'])->name('fdcr.export');
+Route::post('/fdcr-dashboard/batch-download', [\App\Http\Controllers\FdReceivingDashboardController::class, 'batchDownloadVideo'])->name('fdcr.batch-video-download');
+Route::post('/fdcr-dashboard/download', [\App\Http\Controllers\FdReceivingDashboardController::class, 'download'])->name('fdcr-dashboard.video-download');
 
 /*
 |--------------------------------------------------------------------------

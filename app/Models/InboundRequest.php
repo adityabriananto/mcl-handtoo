@@ -19,6 +19,7 @@ class InboundRequest extends Model
         'reference_number',
         'inbound_order_no',
         'status',
+        'is_arrived',
         'parent_id',
 
         // List Baru (Mapping dari Ekspor)

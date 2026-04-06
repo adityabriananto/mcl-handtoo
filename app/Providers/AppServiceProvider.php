@@ -12,6 +12,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         //
+        $this->defineConstants();
+        require app_path('Macros/macros.php');
     }
 
     /**
@@ -20,5 +22,18 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         //
+    }
+
+    private function defineConstants()
+    {
+        $constants = $this->app['config']->get('constants');
+
+        if ( ! is_null($constants)) {
+            foreach ($constants as $key => $value) {
+                if (!defined($key)) {
+                    define($key, $value);
+                }
+            }
+        }
     }
 }
