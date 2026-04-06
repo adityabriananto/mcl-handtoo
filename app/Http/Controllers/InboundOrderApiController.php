@@ -11,6 +11,7 @@ use App\Models\InboundRequestDetail;
 use App\Jobs\ProcessInboundSkusJob;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 
 class InboundOrderApiController extends Controller
@@ -157,24 +158,34 @@ class InboundOrderApiController extends Controller
             return $this->buildApiResponse(false, 'UNAUTHORIZED', 'app_key not found', 401, $request, $type);
         }
 
-        $query = InboundRequest::with(['details', 'children', 'parent'])
+        /** * 1. Query Ringan untuk Validasi & Metadata
+         * Kita hanya ambil kolom yang diperlukan untuk mengecek eksistensi dan waktu update terakhir.
+         */
+        $baseData = InboundRequest::select('id', 'reference_number', 'updated_at', 'comment')
                     ->where('client_name', $client->client_name)
-                    ->where('reference_number', $request['inbound_order_no']);
+                    ->where('reference_number', $request['inbound_order_no'])
+                    ->first();
 
-        if ($request['brand_os']) {
-            $query->where('comment', $request['brand_os']);
-        }
-
-        $inbound = $query->first();
-
-        if (!$inbound) {
+        if (!$baseData) {
             return $this->buildApiResponse(false, 'Data Not Found', 'Inbound Order Number not found.', 400, $request, $type);
         }
 
-        // Mengembalikan data menggunakan Resource yang sudah diformat khusus
-        $resource = new InboundResourceDetail($inbound);
+        /** * 2. Strategi Cache Key Dinamis
+         * Key mengandung timestamp 'updated_at'.
+         * Jika status di database berubah -> updated_at berubah -> Key berubah -> Cache lama dianggap hangus (miss).
+         */
+        $cacheKey = "inbound_v1_{$baseData->reference_number}_{$baseData->updated_at->timestamp}";
 
-        return $this->buildApiResponse(true, null, $resource, 200, $request, $type);
+        // 3. Ambil data dari cache, hangus otomatis dalam 1 hari (60 * 60 * 24 detik)
+        $finalData = Cache::remember($cacheKey, now()->addDay(), function () use ($baseData) {
+            // Query Berat (Eager Loading) hanya jalan jika cache tidak ada/hangus
+            $inbound = InboundRequest::with(['details', 'children', 'parent'])->find($baseData->id);
+
+            // Simpan dalam bentuk array agar cache lebih ringan dan cepat di-load
+            return (new InboundResourceDetail($inbound))->toArray(request());
+        });
+
+        return $this->buildApiResponse(true, null, $finalData, 200, $request, $type);
     }
 
     public function cancel(Request $request)
