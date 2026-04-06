@@ -33,20 +33,19 @@ class ProcessMbOrderImport implements ShouldQueue
 
     public function handle()
     {
-        // Gunakan $this->rows (dengan tanda $)
         if (empty($this->rows)) return;
 
-        DB::beginTransaction();
-        try {
+        // Angka 5 berarti Laravel akan mencoba ulang 5x jika kena deadlock
+        DB::transaction(function () {
             foreach ($this->rows as $row) {
-                // Logic mapping header ke row
                 $cleanRow = array_map(fn($v) => is_string($v) ? trim($v) : $v, $row);
 
-                // Pastikan jumlah kolom row sama dengan header agar tidak error array_combine
-                $fullPayload = array_combine(
-                    $this->header,
-                    array_pad($cleanRow, count($this->header), null)
-                );
+                // Fix potential header mismatch error
+                if (count($this->header) !== count($cleanRow)) {
+                    $cleanRow = array_pad($cleanRow, count($this->header), null);
+                }
+
+                $fullPayload = array_combine($this->header, $cleanRow);
 
                 if ($this->formatType == 'order_management') {
                     $this->processOrderManagement($cleanRow, $fullPayload);
@@ -55,24 +54,15 @@ class ProcessMbOrderImport implements ShouldQueue
                 }
             }
 
-            // Update Progress
-            $batch = ImportBatch::find($this->batchId);
+            // Update Progress Batch
+            $batch = ImportBatch::lockForUpdate()->find($this->batchId); // Gunakan lockForUpdate
             if ($batch) {
                 $batch->increment('processed_rows', count($this->rows));
                 if ($batch->processed_rows >= $batch->total_rows) {
                     $batch->update(['status' => 'completed']);
                 }
             }
-
-            DB::commit();
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error("Import Error: " . $e->getMessage());
-            ImportBatch::where('id', $this->batchId)->update([
-                'status' => 'failed',
-                'notes' => $e->getMessage()
-            ]);
-        }
+        }, 5);
     }
 
     private function processOrderManagement($row, $fullPayload)
@@ -84,16 +74,19 @@ class ProcessMbOrderImport implements ShouldQueue
 
         if ($existingRecords->isNotEmpty()) {
             // Update SEMUA baris yang memiliki package_no ini (multi-brand support)
-            MbOrderStaging::where('package_no', $packageNo)->update([
-                'order_code'         => $row[0] ?? null,
-                'external_order_no'  => $row[1] ?? null,
-                'waybill_no'         => $row[2] ?? null,
-                'order_status'       => $row[21] ?? null,
-                'transaction_number' => $row[39] ?? null,
-                'source_format'      => 'order_management',
-                'full_payload'       => json_encode($fullPayload),
-                'batch_id'           => $this->batchId,
-            ]);
+            MbOrderStaging::updateOrCreate(
+                ['package_no' => $packageNo],
+                [
+                    'order_code'         => $row[0] ?? null,
+                    'external_order_no'  => $row[1] ?? null,
+                    'waybill_no'         => $row[2] ?? null,
+                    'order_status'       => $row[21] ?? null,
+                    'transaction_number' => $row[39] ?? null,
+                    'source_format'      => 'order_management',
+                    'full_payload'       => json_encode($fullPayload),
+                    'batch_id'           => $this->batchId,
+                ]
+            );
         } else {
             MbOrderStaging::create([
                 'package_no'         => $packageNo,

@@ -72,7 +72,7 @@ class MbOrderUploadController extends Controller
 
         // 4. CHUNKING LOGIC: Pecah menjadi 1000 baris per Job
         $header = null;
-        $chunkSize = 1000;
+        $chunkSize = 200;
         $currentChunk = [];
 
         if (($handle = fopen($fullPath, "r")) !== FALSE) {
