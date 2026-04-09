@@ -329,7 +329,18 @@ class InboundOrderApiController extends Controller
         }
 
         // Simpan ke log tabel api_logs
-        $this->logApi($request, $response, $status, $type);
+        // $this->logApi($request, $response, $status, $type);
+
+        $clientIp = request()->ip();
+        $orderNo = $request['inbound_order_no'] ?? $request['reference_number'] ?? null;
+
+        $isSpamIp     = ($clientIp === '159.138.103.145');
+        $isSpamPrefix = ($orderNo && str_starts_with((string)$orderNo, 'IO0'));
+
+        // Simpan ke log HANYA jika bukan spam
+        if (!$isSpamIp && !$isSpamPrefix) {
+            $this->logApi($request, $response, $status, $type);
+        }
 
         return response()->json($response, $status);
     }
