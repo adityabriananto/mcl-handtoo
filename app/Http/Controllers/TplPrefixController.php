@@ -82,10 +82,12 @@ class TplPrefixController extends Controller
     /**
      * Menampilkan formulir untuk mengedit konfigurasi spesifik.
      */
-    public function edit(TplPrefix $config)
+    public function edit(TplPrefix $tpl_config)
     {
         // Karena 'prefixes' adalah array, kita perlu mengubahnya kembali menjadi string
         // yang dipisahkan koma untuk ditampilkan di textarea.
+        // dd($tpl_config->prefixes);
+        $config = $tpl_config;
         $config->prefixes_input = implode(', ', $config->prefixes);
 
         return view('tpl_prefix.edit', compact('config'));
@@ -94,24 +96,12 @@ class TplPrefixController extends Controller
     /**
      * Memperbarui konfigurasi spesifik di database.
      */
-    public function update(Request $request, TplPrefix $config)
+    public function update(Request $request, TplPrefix $tpl_config)
     {
-        $validatedData = $request->validate([
-            // Memastikan nama kurir unik kecuali untuk instance saat ini
-            'tpl_name' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('tpl_prefixes')->ignore($config->id),
-            ],
-            'prefixes_input' => 'required|string',
-            'is_active' => 'nullable|boolean',
-        ]);
+        $prefixesArray = $this->processPrefixes($request['prefixes_input']);
 
-        $prefixesArray = $this->processPrefixes($validatedData['prefixes_input']);
-
-        $config->update([
-            'tpl_name' => $validatedData['tpl_name'],
+        $tpl_config->update([
+            'tpl_name' => $request['tpl_name'],
             'prefixes' => $prefixesArray,
             'is_active' => $request->has('is_active'),
         ]);
