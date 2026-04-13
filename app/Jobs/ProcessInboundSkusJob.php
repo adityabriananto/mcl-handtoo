@@ -27,15 +27,11 @@ class ProcessInboundSkusJob implements ShouldQueue
 
     public function handle()
     {
-        // 1. Ambil Brand Code dari Inbound (Comment)
         $inbound = DB::table('inbound_orders')->where('id', $this->inboundOrderId)->first();
-        // Gunakan pembersihan _deffective seperti logic sebelumnya jika perlu
         $brandCode = $inbound ? trim(explode('_', $inbound->comment)[0]) : null;
 
-        // 2. Kumpulkan semua seller_sku unik untuk mencari fulfillment_sku sekaligus
         $uniqueSellerSkus = collect($this->skus)->pluck('seller_sku')->unique()->toArray();
 
-        // 3. Ambil data MbMaster dan jadikan Map [seller_sku => fulfillment_sku]
         $mbMasterMap = DB::table('mb_masters')
             ->where('brand_code', $brandCode)
             ->whereIn('seller_sku', $uniqueSellerSkus)
@@ -44,12 +40,10 @@ class ProcessInboundSkusJob implements ShouldQueue
         $processed = [];
         foreach ($this->skus as $sku) {
             $sellerSku = $sku['seller_sku'];
-
-            // Cari fulfillment_sku dari map yang sudah kita buat
             $fulfillmentSku = $mbMasterMap->get($sellerSku) ?? '-';
 
-            // Gunakan fulfillment_sku sebagai bagian dari Unique Key
-            $key = $sellerSku . '|' . $fulfillmentSku;
+            // Pastikan key PHP sama persis dengan kombinasi kolom unik di DB
+            $key = $this->inboundOrderId . '|' . $sellerSku . '|' . $fulfillmentSku;
 
             if (isset($processed[$key])) {
                 $processed[$key]['requested_quantity'] += (int)$sku['requested_quantity'];
@@ -57,7 +51,7 @@ class ProcessInboundSkusJob implements ShouldQueue
                 $processed[$key] = [
                     'inbound_order_id'   => $this->inboundOrderId,
                     'seller_sku'         => $sellerSku,
-                    'fulfillment_sku'    => $fulfillmentSku, // Didapat dari MbMaster
+                    'fulfillment_sku'    => $fulfillmentSku,
                     'requested_quantity' => (int)$sku['requested_quantity'],
                     'created_at'         => now(),
                     'updated_at'         => now(),
@@ -65,17 +59,17 @@ class ProcessInboundSkusJob implements ShouldQueue
             }
         }
 
-        // 4. Proses Upsert dalam Chunk
+        // 4. Eksekusi Upsert
+        // PENTING: Pastikan di tabel inbound_order_details ada UNIQUE INDEX
+        // untuk kombinasi (inbound_order_id, seller_sku, fulfillment_sku)
         $chunks = array_chunk(array_values($processed), 1000);
 
         foreach ($chunks as $chunk) {
             DB::table('inbound_order_details')->upsert(
                 $chunk,
-                ['inbound_order_id', 'seller_sku', 'fulfillment_sku'],
-                ['requested_quantity', 'updated_at']
+                ['inbound_order_id', 'seller_sku', 'fulfillment_sku'], // Unique Keys
+                ['requested_quantity', 'updated_at'] // Kolom yang diupdate jika kunci cocok
             );
-
-            unset($chunk);
         }
     }
 }
