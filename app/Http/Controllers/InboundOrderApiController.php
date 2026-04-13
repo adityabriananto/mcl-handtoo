@@ -87,7 +87,6 @@ class InboundOrderApiController extends Controller
                 // Jika ini data baru, set status awal
                 if (!$inboundOrder->exists) {
                     $inboundOrder->status = 'Created';
-                    ProcessInboundSkusJob::dispatch($inboundOrder->id, $request->skus)->onQueue('create-inbound-order');
                 }
 
                 // 3. LOGIKA PENGECEKAN (Pilih perubahan)
@@ -138,6 +137,7 @@ class InboundOrderApiController extends Controller
                 //         ]);
                 //     }
                 // }
+                ProcessInboundSkusJob::dispatch($inboundOrder->id, $request->skus)->onQueue('create-inbound-order');
 
                 return $this->buildApiResponse(true, null, $inboundOrder->reference_number, 200, $request, 'CreateInboundOrder');
             });
