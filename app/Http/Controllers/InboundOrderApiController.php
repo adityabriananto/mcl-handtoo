@@ -55,21 +55,51 @@ class InboundOrderApiController extends Controller
             // Gunakan Transaction agar data Parent & Detail konsisten
             return \DB::transaction(function () use ($request, $client) {
 
-                // 4. Update atau Create Inbound Parent
-                $inboundOrder = InboundRequest::updateOrCreate(
-                    [
-                        'client_name'      => $client->client_name,
-                        'reference_number' => $request->reference_number
-                    ],
-                    [
-                        'warehouse_code'        => $request->warehouse_code,
-                        'delivery_type'         => $request->delivery_type,
-                        'seller_warehouse_code' => $request->seller_warehouse_code,
-                        'estimate_time'         => Carbon::parse($request->estimate_time)->toDateTimeString(),
-                        'comment'               => $request->comment,
-                        'status'                => 'Created',
-                    ]
-                );
+                // // 4. Update atau Create Inbound Parent
+                // $inboundOrder = InboundRequest::firstOrNew(
+                //     [
+                //         'client_name'      => $client->client_name,
+                //         'reference_number' => $request->reference_number
+                //     ],
+                //     [
+                //         'warehouse_code'        => $request->warehouse_code,
+                //         'delivery_type'         => $request->delivery_type,
+                //         'seller_warehouse_code' => $request->seller_warehouse_code,
+                //         'estimate_time'         => Carbon::parse($request->estimate_time)->toDateTimeString(),
+                //         'comment'               => $request->comment,
+                //         'status'                => 'Created',
+                //     ]
+                // );
+
+                // 1. Ambil data lama atau buat instance baru di memori
+                $inboundOrder = InboundRequest::firstOrNew([
+                    'client_name'      => $client->client_name,
+                    'reference_number' => $request->reference_number
+                ]);
+
+                // 2. Isi dengan data baru dari API
+                $inboundOrder->warehouse_code        = $request->warehouse_code;
+                $inboundOrder->delivery_type         = $request->delivery_type;
+                $inboundOrder->seller_warehouse_code = $request->seller_warehouse_code;
+                $inboundOrder->estimate_time         = Carbon::parse($request->estimate_time)->toDateTimeString();
+                $inboundOrder->comment               = $request->comment;
+
+                // Jika ini data baru, set status awal
+                if (!$inboundOrder->exists) {
+                    $inboundOrder->status = 'Created';
+                    ProcessInboundSkusJob::dispatch($inboundOrder->id, $request->skus)->onQueue('create-inbound-order');
+                }
+
+                // 3. LOGIKA PENGECEKAN (Pilih perubahan)
+                // Cek apakah ada kolom tertentu yang berubah sebelum di-save
+                if ($inboundOrder->isDirty('status')) {
+                    // Lakukan sesuatu jika status berubah...
+                }
+
+                if ($inboundOrder->isDirty()) {
+                    // Hanya simpan ke database jika memang ada perubahan (Dirty)
+                    $inboundOrder->save();
+                }
 
                 // 5. Tarik semua detail yang ada ke memori (Hanya 1 Query SELECT)
                 // Ini kunci agar loop di bawah tidak lambat (No N+1 Query)
@@ -108,7 +138,6 @@ class InboundOrderApiController extends Controller
                 //         ]);
                 //     }
                 // }
-                ProcessInboundSkusJob::dispatch($inboundOrder->id, $request->skus)->onQueue('create-inbound-order');
 
                 return $this->buildApiResponse(true, null, $inboundOrder->reference_number, 200, $request, 'CreateInboundOrder');
             });
