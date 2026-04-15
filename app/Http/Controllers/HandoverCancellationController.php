@@ -138,7 +138,9 @@ class HandoverCancellationController extends Controller
         $statusCode = $isSuccess ? 200 : 400;
 
         // Tambahkan pencatatan log sebelum return
-        $this->logApi($request, $responseData, $statusCode, $type);
+        if($request['cancel_reason']) {
+            $this->logApi($request, $responseData, $statusCode, $type);
+        }
 
         return response()->json($responseData, $statusCode);
     }
