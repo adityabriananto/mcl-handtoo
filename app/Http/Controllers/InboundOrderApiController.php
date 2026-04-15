@@ -100,43 +100,6 @@ class InboundOrderApiController extends Controller
                     $inboundOrder->save();
                 }
 
-                // 5. Tarik semua detail yang ada ke memori (Hanya 1 Query SELECT)
-                // Ini kunci agar loop di bawah tidak lambat (No N+1 Query)
-                // $existingDetails = InboundRequestDetail::where('inbound_order_id', $inboundOrder->id)
-                //     ->get()
-                //     ->keyBy(function($item) {
-                //         return $item->seller_sku . '|' . ($item->fulfillment_sku ?? '');
-                //     });
-
-                // // 6. Gabungkan SKU duplikat dari input request (Agregasi Memori)
-                // $inputSkus = [];
-                // foreach ($request->skus as $sku) {
-                //     $key = $sku['seller_sku'] . '|' . ($sku['fulfillment_sku'] ?? '');
-                //     if (isset($inputSkus[$key])) {
-                //         $inputSkus[$key]['requested_quantity'] += (int) $sku['requested_quantity'];
-                //     } else {
-                //         $inputSkus[$key] = $sku;
-                //     }
-                // }
-
-                // // 7. Proses Simpan/Update Detail
-                // foreach ($inputSkus as $key => $sku) {
-                //     if ($existingDetails->has($key)) {
-                //         // Update Record yang sudah ada di database
-                //         $detail = $existingDetails->get($key);
-                //         $detail->update([
-                //             'requested_quantity' => $detail->requested_quantity + (int) $sku['requested_quantity']
-                //         ]);
-                //     } else {
-                //         // Buat Record Baru
-                //         InboundRequestDetail::create([
-                //             'inbound_order_id'   => $inboundOrder->id,
-                //             'seller_sku'         => $sku['seller_sku'],
-                //             'fulfillment_sku'    => $sku['fulfillment_sku'] ?? null,
-                //             'requested_quantity' => (int) $sku['requested_quantity'],
-                //         ]);
-                //     }
-                // }
                 if($inboundOrder->status == 'Created') {
                     ProcessInboundSkusJob::dispatch($inboundOrder->id, $request->skus)->onQueue('create-inbound-order');
                 }
