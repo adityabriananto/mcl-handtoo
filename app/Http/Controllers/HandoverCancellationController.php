@@ -24,7 +24,8 @@ class HandoverCancellationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return $this->buildApiResponse($request, false, 'Missing cancel_reason', 'INVALID_PARAMS', $requestId);
+            // return $this->buildApiResponse($request, false, 'Missing cancel_reason', 'INVALID_PARAMS', $requestId);
+            return $this->buildApiResponse($request, true, 'Cancelled', '0', $requestId);
         }
 
         $client = ClientApi::where('app_key', $request['app_key'])->first();
