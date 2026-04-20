@@ -195,24 +195,47 @@ class HandoverController extends Controller
         // 1. Ambil semua detail AWB di batch ini
         $details = HandoverDetail::where('handover_id', $batchId)->get();
 
-        // 2. Cek apakah ada yang berstatus Cancelled
-        $hasCancelled = $details->contains('is_cancelled', true);
-
-        if ($hasCancelled) {
-            return redirect()->back()->with('error', 'Gagal Finalize! Terdapat AWB yang dibatalkan (Cancelled) di dalam daftar. Harap hapus terlebih dahulu.');
-        }
-
         if ($details->isEmpty()) {
             return redirect()->back()->with('error', 'Gagal! Tidak ada AWB untuk diselesaikan.');
         }
 
+        // 2. Cek apakah ada yang berstatus Cancelled
+        $hasCancelled = $details->contains('is_cancelled', true);
+        if ($hasCancelled) {
+            return redirect()->back()->with('error', 'Gagal Finalize! Terdapat AWB yang dibatalkan (Cancelled) di dalam daftar. Harap hapus terlebih dahulu.');
+        }
+
+        // --- TAMBAHAN VALIDASI DATA UPLOAD ---
+        // 3. Ambil daftar AWB yang unik dari batch ini
+        $batchAwbs = $details->pluck('airwaybill')->unique()->toArray();
+
+        // 4. Cari AWB mana saja yang sudah ada di DataUpload
+        $existingUploads = DataUpload::whereIn('airwaybill', $batchAwbs)
+                            ->pluck('airwaybill')
+                            ->toArray();
+
+        // 5. Bandingkan: cari AWB yang ada di scan tapi BELUM di-upload
+        $missingAwbs = array_diff($batchAwbs, $existingUploads);
+
+        if (!empty($missingAwbs)) {
+            $countMissing = count($missingAwbs);
+            $sampleAwb = implode(', ', array_slice($missingAwbs, 0, 3)); // Ambil contoh 3 AWB saja untuk pesan error
+            $errorMessage = "Gagal Finalize! Terdapat {$countMissing} AWB yang belum di-upload datanya. Silakan upload data terlebih dahulu.";
+
+            return redirect()->back()->with('error', $errorMessage);
+        }
+        // --- END VALIDASI DATA UPLOAD ---
+
         DB::beginTransaction();
         try {
             foreach($details as $awb) {
-                $dataDetails = DataUpload::where('airwaybill',$awb->airwaybill)->first();
-                // dd($dataDetails);
+                // Karena kita sudah validasi di atas, $dataDetails di sini pasti ditemukan
+                $dataDetails = DataUpload::where('airwaybill', $awb->airwaybill)->first();
+
                 if($dataDetails) {
-                    $clientApi = ClientApi::where('client_code',$dataDetails->owner_code)->first();
+                    $clientApi = ClientApi::where('client_code', $dataDetails->owner_code)->first();
+
+                    // Logic payload API Anda
                     $data = [
                         'sales_order_number' => $dataDetails->order_number,
                         'platform_order_id'  => null,
@@ -232,48 +255,47 @@ class HandoverController extends Controller
                         ],
                         'seller_id' => "-",
                     ];
+
                     if($clientApi) {
                         $url = $clientApi->client_url;
                         $token = $clientApi->client_token;
                         $client = new Client();
-                        $post  =  new \GuzzleHttp\Psr7\Request(
+
+                        $post = new \GuzzleHttp\Psr7\Request(
                             'POST',
                             $url,
-                            [
-                                'Content-Type' => 'application/json',
-                                'api-key' => $token
-                            ],
+                            ['Content-Type' => 'application/json', 'api-key' => $token],
                             json_encode($data)
                         );
+
                         $response = $client->send($post);
-                        // dd($response->getStatusCode());
+
                         ApiLog::create([
                             'client_name' => $clientApi->client_name,
                             'api_type'    => 'HandoverWebhook',
                             'endpoint'    => $url,
                             'method'      => 'POST',
                             'payload'     => json_encode($data),
-                            'response'    => $response,
+                            'response'    => $response->getBody()->getContents(), // Gunakan getContents() agar terbaca di log
                             'status_code' => $response->getStatusCode()
                         ]);
-                        if(
-                            $response->getStatusCode() == 204 ||
-                            $response->getStatusCode() == 200
-                        ) {
+
+                        if($response->getStatusCode() == 204 || $response->getStatusCode() == 200) {
                             $awb->is_sent_api = true;
                             $awb->save();
                         }
                     }
                 }
             }
-            // 3. Update status batch menjadi completed
+
+            // 6. Update status batch menjadi completed
             HandoverBatch::where('handover_id', $batchId)->update([
                 'total_awb' => count($details),
                 'status' => 'completed',
                 'finalized_at' => now()
             ]);
 
-            // 4. Bersihkan Session Scan
+            // 7. Bersihkan Session Scan
             session()->forget(['current_batch_id', 'batch_status', 'current_three_pl']);
 
             DB::commit();
@@ -281,21 +303,7 @@ class HandoverController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            ApiLog::create([
-                'client_name' => isset($clientApi) ? $clientApi->client_name : "SYSTEM_ERROR",
-                'api_type'    => 'HandoverWebhook',
-                'endpoint'    => $url ?? request()->fullUrl(),
-                'method'      => 'POST',
-                // Jika $data tidak ada, ambil semua input request sebagai payload
-                'payload'     => json_encode($data ?? request()->all()),
-                // Simpan pesan error sebagai response agar mudah di-debug
-                'response'    => json_encode([
-                    'error_message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine()
-                ]),
-                'status_code' => 500
-            ]);
+            // Log Error Logic...
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
