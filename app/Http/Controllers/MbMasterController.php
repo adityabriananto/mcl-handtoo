@@ -268,6 +268,7 @@ class MbMasterController extends Controller
         $recapMessage .= "Target Data:\n";
         $recapMessage .= "• Barcode: `{$mbMaster->manufacture_barcode}`\n";
         $recapMessage .= "• Brand  : *{$mbMaster->brand_name}*\n\n";
+        $recapMessage .= "• Brand Code : *{$mbMaster->brand_code}*\n\n";
 
         $recapMessage .= "📍 *Current Active Brands ({$activeBrands->count()}):*\n";
 
