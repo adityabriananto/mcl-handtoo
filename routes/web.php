@@ -44,6 +44,7 @@ Route::prefix('handover')->name('handover.')->group(function () {
     Route::post('/finalize', [HandoverController::class, 'finalize'])->name('finalize');
     Route::get('/check-count', [HandoverController::class, 'checkCount'])->name('check-count');
     Route::get('/table-fragment', [HandoverController::class, 'getTableFragment'])->name('table-fragment');
+    Route::get('/resume/{handoverId}', [HandoverController::class, 'resumeBatch'])->name('resume');
 });
 
 // TPL Config

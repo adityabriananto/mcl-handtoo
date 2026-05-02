@@ -206,6 +206,11 @@
                     <span class="px-4 py-1 text-sm rounded-full {{ $statusClass }} flex-shrink-0 ml-4">
                         {!! $displayStatus !!}
                     </span>
+                    @if ($batchStatus === 'staging')
+                        <a href="{{ route('handover.resume', $handoverId) }}" class="ml-4 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded shadow transition duration-150 transform hover:scale-105">
+                            ✏️ RESUME SCAN
+                        </a>
+                    @endif
                     <span>
                         Created : {{$batchData['createdTs'] }}
                     </span>

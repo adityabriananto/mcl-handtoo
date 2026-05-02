@@ -112,6 +112,27 @@ class HandoverController extends Controller
         return redirect()->route('handover.index');
     }
 
+    /**
+     * Melanjutkan batch yang statusnya masih staging dari halaman history.
+     */
+    public function resumeBatch($handoverId)
+    {
+        $batch = HandoverBatch::where('handover_id', $handoverId)
+            ->where('status', 'staging')
+            ->first();
+
+        if (!$batch) {
+            return redirect()->route('history.index')->with('error', 'Batch tidak ditemukan atau sudah diselesaikan.');
+        }
+
+        // Set variabel sesi untuk mengaktifkan kembali batch ini di menu station
+        Session::put('current_batch_id', $batch->handover_id);
+        Session::put('current_three_pl', $batch->three_pl);
+        Session::put('batch_status', 'staged');
+
+        return redirect()->route('handover.index')->with('success', "Batch **$handoverId** berhasil dimuat kembali. Silakan lanjutkan proses scan.");
+    }
+
     // --- LOGIKA SCANNING ---
 
     /**
