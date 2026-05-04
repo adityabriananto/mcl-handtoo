@@ -420,4 +420,65 @@ class HandoverController extends Controller
             'hash' => md5(json_encode($stagedAwbs))
         ]);
     }
+
+    public function repushHandover(Request $request) {
+        // dd($request->tracking_number);
+        $awb = HandoverDetail::where('airwaybill', $request->tracking_number)->first();
+        $dataDetails = DataUpload::where('airwaybill', $request->tracking_number)->first();
+        if($dataDetails) {
+            $clientApi = ClientApi::where('client_code', $dataDetails->owner_code)->first();
+
+            // Logic payload API Anda
+            $data = [
+                'sales_order_number' => $dataDetails->order_number,
+                'platform_order_id'  => null,
+                'owner_id'           => $dataDetails->owner_code,
+                'platform_name'      => $dataDetails->platform_name,
+                'biz_time' => Carbon::parse($awb->scanned_at, 'Asia/Jakarta')->setTimezone('America/Los_Angeles')->format('Y-m-d\TH:i:s.000\Z'),
+                'items' => [
+                    [
+                        'quantity'           => $dataDetails->qty,
+                        'fulfillment_sku_id' => null,
+                        'owner_id'           => $dataDetails->owner_code,
+                        'unit_price'         => null,
+                        'platform_item_id'   => null,
+                        'seller_id'          => null,
+                        'status'             => 'handover_to_3pl'
+                    ]
+                ],
+                'seller_id' => "-",
+            ];
+
+            if($clientApi) {
+                $url = $clientApi->client_url;
+                $token = $clientApi->client_token;
+                $client = new Client();
+
+                $post = new \GuzzleHttp\Psr7\Request(
+                    'POST',
+                    $url,
+                    ['Content-Type' => 'application/json', 'api-key' => $token],
+                    json_encode($data)
+                );
+
+                $response = $client->send($post);
+
+                ApiLog::create([
+                    'client_name' => $clientApi->client_name,
+                    'api_type'    => 'RepushHandoverWebhook',
+                    'endpoint'    => $url,
+                    'method'      => 'POST',
+                    'payload'     => json_encode($data),
+                    'response'    => $response->getBody()->getContents(), // Gunakan getContents() agar terbaca di log
+                    'status_code' => $response->getStatusCode()
+                ]);
+
+                if($response->getStatusCode() == 204 || $response->getStatusCode() == 200) {
+                    $awb->is_sent_api = true;
+                    $awb->save();
+                }
+            }
+        }
+    }
 }
+

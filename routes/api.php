@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\HandoverCancellationController;
 use App\Http\Controllers\DataCruncherController;
+use App\Http\Controllers\HandoverController;
 use App\Http\Controllers\InboundOrderApiController;
 use App\Http\Controllers\InboundOrderController;
 use Illuminate\Http\Request;
@@ -19,4 +20,5 @@ Route::middleware([])->group(function () {
     Route::get('/fbl/inbound_order_detail/get', [InboundOrderApiController::class, 'getInboundOrderDetail']);
     Route::get('/fbl/inbound_orders/get', [InboundOrderApiController::class, 'getInboundOrders']);
     Route::post('/fbl/inbound_order/cancel', [InboundOrderApiController::class, 'cancel']);
+    Route::post('/fbl/handover/repush', [HandoverController::class, 'repushHandover']);
 });
