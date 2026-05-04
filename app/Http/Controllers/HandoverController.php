@@ -424,6 +424,9 @@ class HandoverController extends Controller
     public function repushHandover(Request $request) {
         // dd($request->tracking_number);
         $awb = HandoverDetail::where('airwaybill', $request->tracking_number)->first();
+        if (!$awb) {
+            return $this->buildApiResponse(false, 'Not Found', 'Tracking Number not found/not scanned', 401, $request, 'RepushHandoverWebhook');
+        }
         $dataDetails = DataUpload::where('airwaybill', $request->tracking_number)->first();
         if($dataDetails) {
             $clientApi = ClientApi::where('client_code', $dataDetails->owner_code)->first();
@@ -479,7 +482,7 @@ class HandoverController extends Controller
                 }
             }
         } else {
-            return $this->buildApiResponse(false, 'Not Found', 'Tracking Number not found', 401, $request, 'RepushHandoverWebhook');
+            return $this->buildApiResponse(false, 'Not Found', 'Tracking Number not found/not uploaded', 401, $request, 'RepushHandoverWebhook');
         }
     }
 
