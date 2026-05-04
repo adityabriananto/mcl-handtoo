@@ -449,7 +449,7 @@ class HandoverController extends Controller
                 'seller_id' => "-",
             ];
 
-            if($clientApi) {
+            if ($clientApi) {
                 $url = $clientApi->client_url;
                 $token = $clientApi->client_token;
                 $client = new Client();
@@ -478,6 +478,55 @@ class HandoverController extends Controller
                     $awb->save();
                 }
             }
+        } else {
+            return $this->buildApiResponse(false, 'Not Found', 'Tracking Number not found', 401, $request, 'RepushHandoverWebhook');
+        }
+    }
+
+    protected function buildApiResponse($success, $message, $data, $status, $request, $type)
+    {
+        // Jika terjadi error, kita bisa selipkan message di dalam data atau level atas
+        if (!$success) {
+            $response = [
+                "error_message"    => $data,
+                "error_code"       => $message,
+                "success"          => $success ? True : False,
+                "code"             => $success ? "0" : (string) $status,
+                "request_id"       => (string) \Str::uuid()
+            ];
+        }
+
+        $this->logApi($request, $response, $status, $type);
+
+        return response()->json($response, $status);
+    }
+
+    private function logApi($request, $response, $status, $type) {
+        $client = ClientApi::where('app_key',$request['app_key'])->first();
+        // \Log::info($request->fullUrl());
+        $fullUrl = explode("?",$request->fullUrl());
+        if (empty($client)) {
+            ApiLog::create([
+                'client_name' => "-",
+                'api_type'    => $type,
+                'endpoint'    => $fullUrl[0],
+                'method'      => $request->method(),
+                'payload'     => $request->all(),
+                'response'    => $response,
+                'status_code' => $status,
+                'ip_address'  => $request->ip(),
+            ]);
+        } else {
+            ApiLog::create([
+                'client_name' => $client->client_name,
+                'api_type'    => $type,
+                'endpoint'    => $fullUrl[0],
+                'method'      => $request->method(),
+                'payload'     => $request->all(),
+                'response'    => $response,
+                'status_code' => $status,
+                'ip_address'  => $request->ip(),
+            ]);
         }
     }
 }
