@@ -25,6 +25,7 @@ Route::prefix('history')->name('history.')->group(function () {
     Route::get('/', [HistoryController::class, 'index'])->name('index');
     Route::get('/export', [HistoryController::class, 'exportCsv'])->name('export-csv');
     Route::get('/{handoverId}/download', [HistoryController::class, 'downloadManifest'])->name('download-manifest');
+    Route::get('/proof/{id}/download', [HistoryController::class, 'downloadProofFile'])->name('download-proof');
     Route::post('/{handoverId}/upload', [HistoryController::class, 'uploadManifest'])->name('upload-manifest');
 });
 
@@ -73,6 +74,8 @@ Route::get('/ops-inbound/{id}', [InboundOrderController::class, 'opsShow'])->nam
 Route::post('/ops-inbound/{id}/arrived', [InboundOrderController::class, 'markAsArrived'])->name('inbound.arrived');
 
 Route::post('/inbound/upload-actual', [InboundOrderController::class, 'uploadActualQuantity'])->name('inbound.upload_actual');
+Route::get('/ops-inbound/export-master', [InboundOrderController::class, 'masterExport'])->name('ops.inbound.export_master');
+Route::get('/inbound/import-log', [InboundOrderController::class, 'importLog'])->name('inbound.import-log');
 
 // --- MB Master (Brand Data) ---
 Route::prefix('mb-master')->name('mb-master.')->group(function () {
@@ -120,6 +123,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('inbound')->name('inbound.')->group(function () {
         Route::match(['get', 'post'], '/', [InboundOrderController::class, 'index'])->name('index');
         Route::get('/export/{id}', [InboundOrderController::class, 'export'])->name('export');
+        Route::get('/export-all', [InboundOrderController::class, 'exportAll'])->name('export-all');
         Route::get('/template', [InboundOrderController::class, 'downloadTemplate'])->name('template');
         Route::post('/upload', [InboundOrderController::class, 'uploadIoNumber'])->name('upload');
         Route::post('/status-complete/{id}', [InboundOrderController::class, 'updateStatus'])->name('complete');

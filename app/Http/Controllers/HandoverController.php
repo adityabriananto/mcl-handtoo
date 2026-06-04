@@ -69,6 +69,32 @@ class HandoverController extends Controller
     }
 
     /**
+     * Generate Auto-Numbered Handover ID.
+     * Format: HO-YYYYMMDD-{3PL}-{Sequence}
+     */
+    protected function generateHandoverId(string $threePl): string
+    {
+        $today = Carbon::now('Asia/Jakarta')->format('Ymd');
+        $plSlug = strtoupper(str_replace(' ', '_', $threePl));
+
+        // Cari batch dengan pattern hari ini untuk 3PL ini
+        $pattern = "HO-{$today}-{$plSlug}-%";
+        $lastBatch = HandoverBatch::where('handover_id', 'like', $pattern)
+            ->orderBy('handover_id', 'desc')
+            ->first();
+
+        if ($lastBatch) {
+            $parts = explode('-', $lastBatch->handover_id);
+            $lastSeq = (int) end($parts);
+            $nextSeq = $lastSeq + 1;
+        } else {
+            $nextSeq = 1;
+        }
+
+        return sprintf("HO-%s-%s-%02d", $today, $plSlug, $nextSeq);
+    }
+
+    /**
      * Memulai sesi Handover Batch baru dan membuat entri di DB.
      */
     public function setBatch(Request $request)
@@ -77,11 +103,7 @@ class HandoverController extends Controller
         $validCarriers = $this->getActiveCarriers();
 
         $validator = Validator::make($request->all(), [
-            'handover_id' => 'required|string|max:50|unique:handover_batches,handover_id',
-            // Gunakan implodasi daftar carrier dari DB untuk aturan 'in'
             'three_pl' => 'required|string|in:' . implode(',', $validCarriers),
-        ], [
-            'handover_id.unique' => 'Batch ID ini sudah digunakan. Mohon cek Riwayat.',
         ]);
 
         if ($validator->fails()) {
@@ -90,10 +112,21 @@ class HandoverController extends Controller
                              ->withInput();
         }
 
+        $threePl = $request->three_pl;
+
+        // Auto-generate Handover ID
+        $handoverId = $this->generateHandoverId($threePl);
+
+        // Cek apakah ID sudah ada (race condition)
+        if (HandoverBatch::where('handover_id', $handoverId)->exists()) {
+            return redirect()->route('handover.index')
+                             ->with('error', 'Gagal generate ID. Silakan coba lagi.');
+        }
+
         try {
             HandoverBatch::create([
-                'handover_id' => $request->handover_id,
-                'three_pl' => $request->three_pl,
+                'handover_id' => $handoverId,
+                'three_pl' => $threePl,
                 'user_id' => auth()->id() ?? 1,
                 'status' => 'staging',
             ]);
@@ -102,12 +135,12 @@ class HandoverController extends Controller
              return redirect()->route('handover.index');
         }
 
-        Session::put('current_batch_id', $request->handover_id);
-        Session::put('current_three_pl', $request->three_pl);
+        Session::put('current_batch_id', $handoverId);
+        Session::put('current_three_pl', $threePl);
         Session::put('batch_status', 'staged');
         Session::put('staged_awbs', []);
 
-        Session::flash('success', 'Batch **' . $request->handover_id . '** dimulai untuk 3PL **' . $request->three_pl . '**! Data awal sudah disimpan di DB.');
+        Session::flash('success', 'Batch **' . $handoverId . '** dimulai untuk 3PL **' . $threePl . '**! Data awal sudah disimpan di DB.');
 
         return redirect()->route('handover.index');
     }

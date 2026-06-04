@@ -57,7 +57,7 @@
                         @endif
                     </td>
                     <td class="px-6 py-4 text-right text-[10px] font-bold text-slate-500 uppercase italic">
-                        {{ $log->created_at->format('d M Y, H:i') }}
+                        {{ $log->created_at ? $log->created_at->format('d M Y, H:i') : 'N/A' }}
                     </td>
                 </tr>
                 @endforeach

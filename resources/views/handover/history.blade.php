@@ -142,7 +142,8 @@
     {{-- 2. Summary & Export --}}
     <div class="flex justify-between items-center py-4 border-b border-gray-200 dark:border-gray-700">
         <h3 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            Committed Batches: <span class="text-blue-600 dark:text-blue-400">{{ $groupedHistory->count() }}</span> Found
+            Committed Batches: <span class="text-blue-600 dark:text-blue-400">{{ $historyPaginator->total() }}</span> Found
+            <span class="text-sm text-gray-500 ml-2">(Page {{ $historyPaginator->currentPage() }} of {{ $historyPaginator->lastPage() }})</span>
         </h3>
 
         {{-- Export Button: Mempertahankan semua parameter query filter, termasuk AWB --}}
@@ -232,21 +233,83 @@
                                 Download Manifest (.PDF)
                             </a>
 
-                            @if (!$isSigned)
-                                {{-- Upload Form hanya jika belum signed --}}
-                                <form action="{{ route('history.upload-manifest', $handoverId) }}" method="POST" enctype="multipart/form-data" class="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-3 pt-3 border-t border-gray-200 dark:border-gray-700 mt-3">
+                            @php
+                                $proofFiles = $batchData['batch']->proofFiles ?? collect();
+                            @endphp
+
+                            @php
+                                $uploadKey = 'upload_' . $handoverId;
+                            @endphp
+
+                            {{-- File Upload dengan Dynamic Fields --}}
+                            <div x-data="{ files: [{ id: 1, selected: false, name: '' }] }" class="pt-3 border-t border-gray-200 dark:border-gray-700 mt-3">
+
+                                @if ($proofFiles->isNotEmpty())
+                                    <p class="text-sm font-semibold text-green-700 dark:text-green-300 mb-2">
+                                        ✅ {{ $proofFiles->count() }} Proof file(s) uploaded:
+                                    </p>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+                                        @foreach($proofFiles as $proof)
+                                            <div class="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/30 rounded-lg text-sm text-green-700 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-900/50 transition group">
+                                                <a href="{{ Storage::url($proof->path) }}" target="_blank"
+                                                   class="flex items-center gap-2 flex-1 min-w-0">
+                                                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                                                    </svg>
+                                                    <span class="truncate">{{ $proof->original_name }}</span>
+                                                </a>
+                                                <a href="{{ route('history.download-proof', $proof->id) }}"
+                                                   class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition"
+                                                   title="Download">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+
+                                <form action="{{ route('history.upload-manifest', $handoverId) }}" method="POST" enctype="multipart/form-data" class="space-y-2">
                                     @csrf
-                                    <input type="file" name="signed_file" class="w-full md:w-auto text-sm file-input" required>
-                                    <button type="submit" class="btn-primary bg-green-600 hover:bg-green-700 flex-shrink-0 w-full md:w-auto">
-                                        Upload Signed Proof
-                                    </button>
+
+                                    <template x-for="(file, index) in files" :key="file.id">
+                                        <div class="flex items-center gap-2">
+                                            <div class="flex-1 relative">
+                                                <input type="file"
+                                                       name="signed_files[]"
+                                                       x-on:change="file.selected = true; file.name = $event.target.files[0] ? $event.target.files[0].name : ''"
+                                                       class="w-full text-sm file-input"
+                                                       accept=".jpg,.jpeg,.png,.pdf"
+                                                       :required="index === 0 && {{ $proofFiles->isEmpty() ? 'true' : 'false' }}">
+                                                <p x-show="file.name" x-text="file.name" class="text-xs text-green-600 mt-0.5 truncate"></p>
+                                            </div>
+                                            <button type="button"
+                                                    x-on:click="files.splice(index, 1)"
+                                                    x-show="files.length > 1"
+                                                    class="text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 transition"
+                                                    title="Remove">
+                                                ✕
+                                            </button>
+                                        </div>
+                                    </template>
+
+                                    <div class="flex items-center gap-3 pt-1">
+                                        <button type="button"
+                                                x-on:click="files.push({ id: Date.now(), selected: false, name: '' })"
+                                                class="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1.5 border border-blue-300 rounded-lg hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/30 transition">
+                                            + Tambah File
+                                        </button>
+                                        <button type="submit"
+                                                x-show="files.some(f => f.selected)"
+                                                x-cloak
+                                                class="btn-primary bg-green-600 hover:bg-green-700 text-sm px-4 py-1.5">
+                                            Upload Files
+                                        </button>
+                                    </div>
                                 </form>
-                            @else
-                                {{-- Success Upload Status (jika sudah completed/signed) --}}
-                                <div class="bg-green-50 text-green-700 p-3 rounded-md text-sm dark:bg-green-900 dark:text-green-200">
-                                    ✅ Proof uploaded: <a href="{{ Storage::url('manifests/' . $signedFileName) }}" target="_blank" class="underline hover:text-green-900 dark:hover:text-green-100 font-medium">{{ $signedFileName }}</a>
-                                </div>
-                            @endif
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Allowed: .jpg, .jpeg, .png, .pdf (max 5MB each)</p>
+                            </div>
                         </div>
 
                         {{-- Summary Info --}}
@@ -282,6 +345,13 @@
             </details>
         @endforeach
     </div>
+
+    {{-- Pagination Links --}}
+    @if ($historyPaginator->hasPages())
+        <div class="mt-6">
+            {{ $historyPaginator->links() }}
+        </div>
+    @endif
 </div>
 
 {{-- Style Helper for better readability and consistent Dark Mode input --}}

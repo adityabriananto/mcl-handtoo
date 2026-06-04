@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Storage;
 use App\Models\HandoverBatch;
 use App\Models\HandoverDetail;
+use App\Models\HandoverProofFile;
 use App\Models\TplPrefix;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -34,16 +35,30 @@ class HistoryController extends Controller
     {
         $allCarriers = $this->getActiveCarriers();
 
-        // Menggunakan eager loading 'details'
-        $batchesQuery = HandoverBatch::with('details');
+        // Menggunakan eager loading 'details' dan 'proofFiles' dengan select spesifik
+        $batchesQuery = HandoverBatch::select([
+                'handover_id', 'three_pl', 'status', 'created_at', 'updated_at',
+                'finalized_at', 'signed_at', 'manifest_name_signed', 'manifest_filename',
+                'user_id'
+            ])
+            ->with(['details', 'proofFiles']);
 
-        // --- Statistik Global ---
+        // --- Statistik Global (single query) ---
+        $globalStatsRaw = HandoverBatch::selectRaw("
+            count(*) as total_batches,
+            sum(case when status = 'completed' then 1 else 0 end) as completed_batches,
+            sum(case when status = 'staging' then 1 else 0 end) as staging_batches,
+            sum(case when status = 'completed' and manifest_name_signed is not null then 1 else 0 end) as manifest_signed,
+            sum(case when status = 'completed' and manifest_name_signed is null then 1 else 0 end) as manifest_pending
+        ")
+        ->first();
+
         $globalStats = [
-            'total_batches' => HandoverBatch::count(),
-            'completed_batches' => HandoverBatch::where('status', 'completed')->count(),
-            'staging_batches' => HandoverBatch::where('status', 'staging')->count(),
-            'manifest_signed' => HandoverBatch::where('status', 'completed')->whereNotNull('manifest_name_signed')->count(),
-            'manifest_pending' => HandoverBatch::where('status', 'completed')->whereNull('manifest_name_signed')->count(),
+            'total_batches' => (int) $globalStatsRaw->total_batches,
+            'completed_batches' => (int) $globalStatsRaw->completed_batches,
+            'staging_batches' => (int) $globalStatsRaw->staging_batches,
+            'manifest_signed' => (int) $globalStatsRaw->manifest_signed,
+            'manifest_pending' => (int) $globalStatsRaw->manifest_pending,
         ];
 
         // --- Logika Filter ---
@@ -85,27 +100,30 @@ class HistoryController extends Controller
                             ->whereNotNull('manifest_name_signed');
             }
         }
-        // Jika tidak ada status yang dipilih, semua batch yang relevan (staging/completed) akan ditampilkan.
 
-
-        $history = $batchesQuery->orderBy('updated_at', 'desc')->get();
+        // Pagination: 20 per page
+        $historyPaginator = $batchesQuery->orderBy('updated_at', 'desc')->paginate(20)->withQueryString();
 
         $uploadedManifests = $this->getUploadedManifests();
-        $groupedHistory = $history->map(function ($batch) use ($uploadedManifests) {
-            return [
+
+        // Transform items untuk backward compatibility dengan view
+        $groupedHistory = collect();
+        foreach ($historyPaginator->items() as $batch) {
+            $groupedHistory[$batch->handover_id] = [
                 'handoverId' => $batch->handover_id,
                 'threePlName' => $batch->three_pl,
                 'awbs' => $batch->details,
                 'createdTs' => $batch->created_at,
                 'latestTs' => $batch->finalized_at,
                 'signedTs' => $batch->signed_at,
-                'batch' => $batch, // Kirim objek batch untuk mengakses user_id atau manifest_filename
+                'batch' => $batch,
             ];
-        })->keyBy('handoverId');
+        }
 
         return view('handover.history', [
             'allCarriers' => $allCarriers,
             'groupedHistory' => $groupedHistory,
+            'historyPaginator' => $historyPaginator,
             'uploadedManifests' => $uploadedManifests,
             'globalStats' => $globalStats,
         ]);
@@ -232,12 +250,13 @@ class HistoryController extends Controller
     }
 
     /**
-     * Menangani upload file signed manifest dan mengupdate status di DB.
+     * Menangani upload multiple signed proof files dan mengupdate status di DB.
      */
     public function uploadManifest(Request $request, $handoverId)
     {
         $request->validate([
-            'signed_file' => 'required|file|mimes:pdf,jpg,png|max:5120',
+            'signed_files' => 'required|array',
+            'signed_files.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         $batch = HandoverBatch::where('handover_id', $handoverId)->first();
@@ -246,25 +265,47 @@ class HistoryController extends Controller
             return redirect()->route('history.index')->with('error', 'Batch ID tidak ditemukan.');
         }
 
-        $file = $request->file('signed_file');
-        $extension = $file->getClientOriginalExtension();
-        $fileName = strtoupper($handoverId) . '_signed_manifest.' . $extension;
+        $files = $request->file('signed_files');
+        $uploadedCount = 0;
 
         try {
-            // Simpan File ke Storage
-            $path = $file->storeAs('manifests', $fileName, 'public');
+            foreach ($files as $index => $file) {
+                $extension = $file->getClientOriginalExtension();
+                $originalName = $file->getClientOriginalName();
+                $fileName = strtoupper($handoverId) . '_signed_' . time() . '_' . $index . '.' . $extension;
 
-            // UPDATE STATUS DI DATABASE
+                // Simpan File ke Storage
+                $path = $file->storeAs('manifests', $fileName, 'public');
+
+                // Simpan ke tabel handover_proof_files
+                HandoverProofFile::create([
+                    'handover_id' => $handoverId,
+                    'filename' => $fileName,
+                    'original_name' => $originalName,
+                    'mime_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                    'disk' => 'public',
+                    'path' => $path,
+                ]);
+
+                $uploadedCount++;
+            }
+
+            // UPDATE STATUS DI DATABASE (gunakan file pertama untuk backward compatibility)
+            $firstFile = $files[0];
+            $firstExtension = $firstFile->getClientOriginalExtension();
+            $firstFileName = strtoupper($handoverId) . '_signed_manifest.' . $firstExtension;
+
             $batch->update([
-                'manifest_name_signed' => $fileName, // Asumsi kolom ini ada
+                'manifest_name_signed' => $firstFileName,
                 'status' => 'completed',
                 'signed_at' => Carbon::now()
             ]);
 
-            return redirect()->route('history.index')->with('success', 'Manifest **' . $fileName . '** untuk Batch **' . $handoverId . '** berhasil diupload! Status manifest telah diperbarui.');
+            return redirect()->route('history.index')->with('success', $uploadedCount . ' file(s) berhasil diupload untuk Batch **' . $handoverId . '**! Status manifest telah diperbarui.');
 
         } catch (\Exception $e) {
-            return redirect()->route('history.index')->with('error', 'Gagal upload manifest dan update DB: ' . $e->getMessage());
+            return redirect()->route('history.index')->with('error', 'Gagal upload manifest: ' . $e->getMessage());
         }
     }
 
@@ -294,5 +335,23 @@ class HistoryController extends Controller
         $fileName = strtoupper($handoverId) . '_' . $batch->three_pl . '_MANIFEST.pdf';
 
         return $pdf->download($fileName);
+    }
+
+    /**
+     * Download individual proof file (photo/pdf upload).
+     */
+    public function downloadProofFile($id)
+    {
+        $proof = HandoverProofFile::find($id);
+
+        if (!$proof) {
+            return redirect()->route('history.index')->with('error', 'File tidak ditemukan.');
+        }
+
+        if (!Storage::exists($proof->path)) {
+            return redirect()->route('history.index')->with('error', 'File tidak tersedia di storage.');
+        }
+
+        return Storage::download($proof->path, $proof->original_name);
     }
 }

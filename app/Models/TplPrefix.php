@@ -14,6 +14,8 @@ class TplPrefix extends Model
         'tpl_name',
         'prefixes',
         'is_active',
+        'handover_prefix',
+        'counter',
     ];
 
     // Mengubah kolom 'prefixes' dari JSON ke array/object PHP secara otomatis

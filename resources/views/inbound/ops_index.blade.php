@@ -34,6 +34,7 @@
 <div class="space-y-4" x-data="{
     uploadModal: false,
     exportModal: false,
+    uploadAlert: @if(session('upload_success')) { open: true, type: 'success', message: '{{ addslashes(session('upload_success')['message']) }}' } @elseif(session('upload_error')) { open: true, type: 'error', message: '{{ addslashes(session('upload_error')['message']) }}' } @else { open: false, type: '', message: '' } @endif,
     loading: false,
     splitLoading: false,
     statusLoading: false,
@@ -63,12 +64,43 @@
     }
 }">
 
+    {{-- Upload Alert Modal --}}
+    <div x-show="uploadAlert.open" x-transition.opacity.duration.300ms
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+         x-cloak>
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4 transform transition-all"
+             x-show="uploadAlert.open" x-transition.scale.duration.300ms>
+            <div class="flex items-center gap-3 mb-4">
+                <div x-show="uploadAlert.type === 'success'" class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <div x-show="uploadAlert.type === 'error'" class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </div>
+                <h3 x-text="uploadAlert.type === 'success' ? 'Upload Successful!' : 'Upload Failed!'"
+                    class="text-lg font-black uppercase tracking-tighter"
+                    :class="uploadAlert.type === 'success' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'"></h3>
+            </div>
+            <p x-text="uploadAlert.message" class="text-sm text-gray-600 dark:text-gray-300 mb-6 leading-relaxed"></p>
+            <button @click="uploadAlert.open = false"
+                    class="w-full py-2.5 rounded-xl font-bold uppercase text-sm tracking-wider transition"
+                    :class="uploadAlert.type === 'success' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'">
+                Dismiss
+            </button>
+        </div>
+    </div>
+
     {{-- 1. Header Section --}}
     <div class="flex flex-col lg:flex-row gap-4 items-center justify-between bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
         <div class="flex items-center gap-6">
             <div>
                 <h1 class="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Inbound <span class="text-blue-600">Portal</span></h1>
                 <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic tracking-wider">Operational Portal</p>
+                @if($lastUpdated)
+                <p class="text-[9px] font-bold text-amber-500 uppercase tracking-wider mt-1">
+                    Last Synced: {{ \Carbon\Carbon::parse($lastUpdated)->format('d/m/Y H:i') }}
+                </p>
+                @endif
             </div>
             <div class="flex gap-6 border-l pl-6 border-gray-100 dark:border-gray-800">
                 <div>
@@ -97,10 +129,12 @@
 
         {{-- Perubahan Nama Tombol: Update IO Number -> Update IO --}}
         {{-- Hanya tampil jika user login --}}
-        <button @click="uploadModal = true"
-                class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition shadow-lg shadow-indigo-500/20 active:scale-95">
-            Update IO Result
-        </button>
+        <div class="flex items-center gap-3">
+            <button @click="uploadModal = true"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition shadow-lg shadow-indigo-500/20 active:scale-95">
+                Update IO Result
+            </button>
+        </div>
     </div>
 
     {{-- 2. Filter Bar (Server-Side Sync) --}}
@@ -168,7 +202,7 @@
                             $hasChildren = $item->children->count() > 0;
                             $skuCount = $item->details->count();
                             $fullQty = $hasChildren ? $item->children->flatMap->details->sum('requested_quantity') : $item->details->sum('requested_quantity');
-                            $formattedDate = $item->created_at->format('Y-m-d');
+                            $formattedDate = $item->created_at ? $item->created_at->format('Y-m-d') : 'N/A';
                             $childRefs = $item->children->pluck('reference_number')->join(' ');
                         @endphp
 
@@ -196,10 +230,13 @@
                                 </div>
                             </td>
 
-                            <td class="px-4 py-3 text-[10px] leading-tight text-gray-500">
-                                <div>Created: {{ $item->created_at->format('d/m H:i') }}</div>
+                           <td class="px-4 py-3 text-[10px] leading-tight text-gray-500">
+                                <div>Created: {{ $item->created_at ? $item->created_at->format('d/m H:i') : 'N/A' }}</div>
+                                <div class="text-yellow-400 font-bold mt-1 italic">Updated: {{ $item->updated_at ? $item->updated_at->format('d/m H:i') : 'N/A' }}</div>
                                 @if($item->estimate_time)
                                 <div class="text-amber-600 font-bold mt-1 italic uppercase">Est: {{ \Carbon\Carbon::parse($item->estimate_time)->format('d/m H:i') }}</div>
+                                @else
+                                <div class="text-amber-600/40 font-bold mt-1 italic uppercase">Est: —</div>
                                 @endif
                             </td>
 
@@ -213,12 +250,13 @@
                                         {{ $item->status }}
                                     </span>
 
-                                    {{-- Peringatan jika SKU > 100 --}}
+                                    {{-- Peringatan jika SKU > 200 --}}
                                     @if($skuCount > 200 && !$hasChildren)
                                         <span class="text-[8px] font-black text-red-500 uppercase mt-1 animate-pulse tracking-tighter">
                                             ⚠️ Split Required
                                         </span>
                                     @endif
+
                                 </div>
                             </td>
 
@@ -295,7 +333,7 @@
                                         </div>
                                     </td>
                                     <td class="px-4 py-3 text-[10px] leading-tight text-slate-600 dark:text-gray-400">
-                                        <span class="font-bold">In: {{ $child->created_at->format('d/m H:i') }}</span>
+                                        <span class="font-bold">In: {{ $child->created_at ? $child->created_at->format('d/m H:i') : 'N/A' }}</span>
                                     </td>
                                     <td class="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase">
                                         {{ $child->warehouse_code }}

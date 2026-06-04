@@ -63,6 +63,7 @@ class TplPrefixController extends Controller
             // Memastikan nama kurir unik saat pembuatan
             'tpl_name' => 'required|string|max:255|unique:tpl_prefixes,tpl_name',
             'prefixes_input' => 'required|string',
+            'handover_prefix' => 'required|string',
             'is_active' => 'nullable|boolean',
         ]);
 
@@ -70,6 +71,7 @@ class TplPrefixController extends Controller
 
         TplPrefix::create([
             'tpl_name' => $validatedData['tpl_name'],
+            'handover_prefix' => $validatedData['handover_prefix'],
             'prefixes' => $prefixesArray,
             'is_active' => $request->has('is_active'),
         ]);
@@ -102,6 +104,7 @@ class TplPrefixController extends Controller
 
         $tpl_config->update([
             'tpl_name' => $request['tpl_name'],
+            'handover_prefix' => $request['handover_prefix'],
             'prefixes' => $prefixesArray,
             'is_active' => $request->has('is_active'),
         ]);

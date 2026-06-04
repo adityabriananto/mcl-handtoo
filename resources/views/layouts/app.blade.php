@@ -81,16 +81,25 @@
                             </button>
 
                             <div x-show="open" x-cloak x-transition.opacity.scale.95
-                                class="absolute right-0 mt-2 w-56 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-20">
+                                class="absolute right-0 mt-2 w-56 rounded-xl shadow-xl py-2 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-20 border border-gray-100 dark:border-gray-700">
                                 <a href="{{ route('ops.inbound.index') }}"
-                               class="flex items-center px-3 py-2 rounded-md text-sm font-medium transition duration-150 focus:outline-none
-                                    @if(request()->routeIs('ops.inbound.*'))
-                                        bg-blue-600 text-white
-                                    @else
-                                        text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-500
-                                    @endif">
-                                <span>Inbound Order Data</span>
-                            </a>
+                                   class="group flex items-center px-4 py-2.5 text-sm transition-all
+                                       {{ request()->routeIs('ops.inbound.*')
+                                           ? 'bg-blue-50 text-blue-600 font-bold dark:bg-blue-900/20'
+                                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                       }}">
+                                    <span class="w-1.5 h-1.5 rounded-full mr-2 {{ request()->routeIs('ops.inbound.*') ? 'bg-blue-600' : 'bg-gray-300' }}"></span>
+                                    Inbound Order Data
+                                </a>
+                                <a href="{{ route('inbound.import-log') }}"
+                                   class="group flex items-center px-4 py-2.5 text-sm transition-all
+                                       {{ request()->routeIs('inbound.import-log')
+                                           ? 'bg-blue-50 text-blue-600 font-bold dark:bg-blue-900/20'
+                                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                       }}">
+                                    <span class="w-1.5 h-1.5 rounded-full mr-2 {{ request()->routeIs('inbound.import-log') ? 'bg-blue-600' : 'bg-gray-300' }}"></span>
+                                    WMS Upload Logs
+                                </a>
                             </div>
                         </div>
 

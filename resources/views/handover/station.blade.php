@@ -47,28 +47,28 @@
         <div class="p-6">
             <form id="setup-form" action="{{ route('handover.set-batch') }}" method="POST">
                 @csrf
-                <div class="grid grid-cols-1 md:grid-cols-6 gap-6 items-end">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-                    {{-- Input Handover ID --}}
-                    <div class="md:col-span-3">
-                        <label for="handover_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Batch Handover Document ID</label>
-                        <input type="text"
-                               class="mt-1 block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-lg"
-                               id="handover_id" name="handover_id"
-                               placeholder="Scan Batch ID (misal: HO-20251106-001)" required
-
-                               @if (session('batch_status') == 'staged')
-                                   value="{{ session('current_batch_id') }}"
-                                   disabled
-                               @endif
-                        >
+                    {{-- Auto-Generated Handover ID Display --}}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Batch Handover Document ID</label>
+                        @if (session('batch_status') == 'staged')
+                            <div class="h-[50px] w-full px-4 border border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-md shadow-sm text-lg font-mono font-bold flex items-center">
+                                {{ session('current_batch_id') }}
+                            </div>
+                        @else
+                            <div id="handover-id-preview" class="h-[50px] w-full px-4 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-md shadow-sm text-lg font-mono flex items-center">
+                                <span id="handover-id-text">Select 3PL to preview ID</span>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Auto-generated on Start.</p>
+                        @endif
                     </div>
 
                     {{-- Select Carrier --}}
-                    <div class="md:col-span-2">
-                        <label for="three_pl" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Select 3PL</label>
+                    <div>
+                        <label for="three_pl" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select 3PL</label>
                         <select
-                               class="mt-1 block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-lg"
+                               class="h-[50px] w-full px-4 py-0 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-lg appearance-none"
                                id="three_pl" name="three_pl" required
                                {{ session('batch_status') == 'staged' ? 'disabled' : '' }}
                         >
@@ -86,19 +86,59 @@
                     </div>
 
                     {{-- Tombol Start/Active --}}
-                    <div class="md:col-span-1">
-                        @if (session('batch_status') != 'staged')
-                            <button type="submit" class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150">
-                                Start
-                            </button>
-                        @else
-                            <button type="button" class="w-full py-3 px-4 rounded-md text-lg font-medium text-gray-700 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 cursor-not-allowed">
-                                Active
-                            </button>
-                        @endif
+                    <div>
+                        <label class="block text-sm font-medium text-transparent mb-1 select-none">&nbsp;</label>
+                        <div class="h-[50px] flex">
+                            @if (session('batch_status') != 'staged')
+                                <button type="submit" class="h-full w-full border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 flex items-center justify-center">
+                                    Start
+                                </button>
+                            @else
+                                <button type="button" class="h-full w-full rounded-md text-lg font-medium text-gray-700 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 cursor-not-allowed flex items-center justify-center">
+                                    Active
+                                </button>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </form>
+
+            <script>
+                (function() {
+                    const select = document.getElementById('three_pl');
+                    const previewBox = document.getElementById('handover-id-preview');
+                    const previewText = document.getElementById('handover-id-text');
+
+                    if (select && previewBox && previewText) {
+                        function slugify(str) {
+                            return str.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
+                        }
+
+                        function formatDate() {
+                            const now = new Date();
+                            const y = now.getFullYear();
+                            const m = String(now.getMonth() + 1).padStart(2, '0');
+                            const d = String(now.getDate()).padStart(2, '0');
+                            return y + m + d;
+                        }
+
+                        select.addEventListener('change', function() {
+                            const val = this.value.trim();
+                            if (val && val !== '-- Choose 3PL --') {
+                                const slug = slugify(val);
+                                const date = formatDate();
+                                previewText.textContent = 'HO-' + date + '-' + slug + '-01';
+                                previewBox.classList.remove('bg-gray-100', 'dark:bg-gray-800', 'text-gray-500', 'dark:text-gray-400', 'border-gray-300', 'dark:border-gray-600');
+                                previewBox.classList.add('bg-blue-50', 'dark:bg-blue-900/30', 'text-blue-800', 'dark:text-blue-200', 'border-blue-300', 'dark:border-blue-400');
+                            } else {
+                                previewText.textContent = 'Select 3PL to preview ID';
+                                previewBox.classList.add('bg-gray-100', 'dark:bg-gray-800', 'text-gray-500', 'dark:text-gray-400', 'border-gray-300', 'dark:border-gray-600');
+                                previewBox.classList.remove('bg-blue-50', 'dark:bg-blue-900/30', 'text-blue-800', 'dark:text-blue-200', 'border-blue-300', 'dark:border-blue-400');
+                            }
+                        });
+                    }
+                })();
+            </script>
         </div>
     </div>
 
