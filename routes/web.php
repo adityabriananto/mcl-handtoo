@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ClientApiController;
 use App\Http\Controllers\DataHandoverUploadController;
+use App\Http\Controllers\DataUploadClearController;
 use App\Http\Controllers\InboundOrderController;
 use App\Http\Controllers\MbOrderUploadController;
 use App\Http\Controllers\ProfileController;
@@ -161,6 +162,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/data-upload/clear', [DataUploadClearController::class, 'clear'])->name('admin.data-upload.clear');
         Route::get('/data-upload/summary', [DataUploadClearController::class, 'summary'])->name('admin.data-upload.summary');
     });
+
+    // Handover Data Uploads Management
+    Route::get('/handover/data-uploads', [DataUploadClearController::class, 'index'])->name('handover.data-uploads');
 
     // --- History Dashboard ---
     // Route::prefix('history')->name('history.')->group(function () {

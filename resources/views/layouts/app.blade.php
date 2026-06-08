@@ -62,6 +62,10 @@
                                    class="block px-4 py-2 text-sm {{ request()->routeIs('handover.upload.index') ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
                                     Document Upload Data
                                 </a>
+                                <a href="{{ route('handover.data-uploads') }}"
+                                   class="block px-4 py-2 text-sm {{ request()->routeIs('handover.data-uploads') ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                                    Handover Data Uploads Page
+                                </a>
                             </div>
                         </div>
 
@@ -226,6 +230,10 @@
                                 <a href="{{ route('handover.upload.index') }}"
                                    class="block px-4 py-2 text-sm {{ request()->routeIs('handover.upload.index') ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
                                     Document Upload Data
+                                </a>
+                                <a href="{{ route('handover.data-uploads') }}"
+                                   class="block px-4 py-2 text-sm {{ request()->routeIs('handover.data-uploads') ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                                    Handover Data Uploads Page
                                 </a>
                             </div>
                         </div>
@@ -398,6 +406,7 @@
         @endif
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {{ $slot ?? '' }}
             @yield('content')
         </div>
     </main>

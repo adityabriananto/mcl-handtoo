@@ -10,6 +10,25 @@ use Illuminate\Support\Facades\Log;
 class DataUploadClearController extends Controller
 {
     /**
+     * Display the Handover Data Uploads management page.
+     */
+    public function index()
+    {
+        $cutoffDate = now()->subMonth();
+
+        $oldRecordCount = DataUpload::where('created_at', '<', $cutoffDate)->count();
+        $totalRecordCount = DataUpload::count();
+        $oldFileCount = $this->countOldUploadFiles($cutoffDate);
+
+        return view('handover.data_uploads', [
+            'oldRecordCount' => $oldRecordCount,
+            'totalRecordCount' => $totalRecordCount,
+            'oldFileCount' => $oldFileCount,
+            'cutoffDate' => $cutoffDate,
+        ]);
+    }
+
+    /**
      * Clear data uploads older than 1 month.
      * Also cleans up old files in storage/app/uploads.
      */
