@@ -4,27 +4,27 @@ namespace App\Http\Controllers;
 
 use App\Models\DataUpload;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class DataUploadClearController extends Controller
 {
+    private const STATS_CACHE_TTL = 60; // seconds
+    private const TABLE_CACHE_TTL = 30; // seconds
+
     /**
      * Display the Handover Data Uploads management page.
+     * Stats are cached to avoid repeated COUNT(*) queries.
      */
     public function index()
     {
-        $cutoffDate = now()->subMonth();
-
-        $oldRecordCount = DataUpload::where('created_at', '<', $cutoffDate)->count();
-        $totalRecordCount = DataUpload::count();
-        $oldFileCount = $this->countOldUploadFiles($cutoffDate);
+        $stats = $this->getCachedStats();
 
         return view('handover.data_uploads', [
-            'oldRecordCount' => $oldRecordCount,
-            'totalRecordCount' => $totalRecordCount,
-            'oldFileCount' => $oldFileCount,
-            'cutoffDate' => $cutoffDate,
+            'oldRecordCount' => $stats['old_records'],
+            'totalRecordCount' => $stats['total_records'],
+            'oldFileCount' => $stats['old_files'],
+            'cutoffDate' => $stats['cutoff_date'],
         ]);
     }
 
@@ -55,6 +55,10 @@ class DataUploadClearController extends Controller
                 $message .= " {$deletedFiles} file lama juga dihapus dari storage.";
             }
 
+            // Flush stats cache so next load shows updated numbers
+            Cache::forget('data_upload_stats');
+            Cache::forget('data_upload_table_page_1');
+
             Log::info('DataUpload auto-clear executed', [
                 'records_deleted' => $recordCount,
                 'files_deleted' => $deletedFiles,
@@ -70,22 +74,61 @@ class DataUploadClearController extends Controller
     }
 
     /**
-     * Get summary of old data uploads (for dashboard display).
+     * Get summary of old data uploads (JSON API for live refresh).
+     * Results are cached to avoid hammering the DB.
      */
     public function summary()
     {
-        $cutoffDate = now()->subMonth();
+        $stats = $this->getCachedStats();
+        return response()->json($stats);
+    }
 
-        $oldRecordCount = DataUpload::where('created_at', '<', $cutoffDate)->count();
-        $totalRecordCount = DataUpload::count();
-        $oldFileCount = $this->countOldUploadFiles($cutoffDate);
+    /**
+     * Get recent data uploads as JSON (paginated, cached).
+     */
+    public function recent(Request $request)
+    {
+        $page = max(1, (int) $request->get('page', 1));
+        $cacheKey = "data_upload_table_page_{$page}";
 
-        return response()->json([
-            'old_records' => $oldRecordCount,
-            'total_records' => $totalRecordCount,
-            'old_files' => $oldFileCount,
-            'cutoff_date' => $cutoffDate->format('Y-m-d H:i:s'),
-        ]);
+        $data = Cache::remember($cacheKey, self::TABLE_CACHE_TTL, function () use ($page) {
+            $paginator = DataUpload::latest('created_at')
+                ->select(['id', 'airwaybill', 'order_number', 'owner_name', 'qty', 'platform_name', 'created_at'])
+                ->paginate(20, ['*'], 'page', $page);
+
+            return [
+                'data' => $paginator->items(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'total' => $paginator->total(),
+            ];
+        });
+
+        return response()->json($data);
+    }
+
+    /**
+     * Get cached stats (DB counts + file counts).
+     */
+    private function getCachedStats(): array
+    {
+        return Cache::remember('data_upload_stats', self::STATS_CACHE_TTL, function () {
+            $cutoffDate = now()->subMonth();
+
+            // Use query builder for raw performance (avoids Eloquent overhead)
+            $oldRecordCount = \DB::table('data_uploads')
+                ->where('created_at', '<', $cutoffDate)
+                ->count();
+
+            $totalRecordCount = \DB::table('data_uploads')->count();
+
+            return [
+                'old_records' => $oldRecordCount,
+                'total_records' => $totalRecordCount,
+                'old_files' => $this->countOldUploadFiles($cutoffDate),
+                'cutoff_date' => $cutoffDate->format('Y-m-d H:i:s'),
+            ];
+        });
     }
 
     /**

@@ -161,6 +161,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Data Upload Cleanup
         Route::post('/data-upload/clear', [DataUploadClearController::class, 'clear'])->name('admin.data-upload.clear');
         Route::get('/data-upload/summary', [DataUploadClearController::class, 'summary'])->name('admin.data-upload.summary');
+        Route::get('/data-upload/recent', [DataUploadClearController::class, 'recent'])->name('admin.data-upload.recent');
     });
 
     // Handover Data Uploads Management

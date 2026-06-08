@@ -69,17 +69,18 @@
                 </div>
             </div>
 
-            {{-- Recent Data Uploads Table (Optional - shows last 20 records) --}}
-            @php
-                $recentUploads = \App\Models\DataUpload::latest()->take(20)->get();
-            @endphp
-
-            @if($recentUploads->count() > 0)
+            {{-- Recent Data Uploads Table (AJAX Loaded) --}}
             <div class="mt-8 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                        Recent Data Uploads
-                    </h3>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            Recent Data Uploads
+                        </h3>
+                        <span id="table-loading" class="text-sm text-gray-500 dark:text-gray-400">
+                            Loading...
+                        </span>
+                    </div>
+
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead>
@@ -92,29 +93,26 @@
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Created</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                                @foreach($recentUploads as $upload)
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                                    <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{{ $upload->airwaybill }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ $upload->order_number ?? '-' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ $upload->owner_name ?? '-' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ $upload->qty ?? '-' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ $upload->platform_name ?? '-' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $upload->created_at?->format('d M Y H:i') ?? '-' }}</td>
-                                </tr>
-                                @endforeach
+                            <tbody id="uploads-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {{-- Loaded via AJAX --}}
                             </tbody>
                         </table>
                     </div>
+
+                    {{-- Pagination --}}
+                    <div id="table-pagination" class="mt-4 flex items-center justify-between">
+                        {{-- Loaded via AJAX --}}
+                    </div>
                 </div>
             </div>
-            @endif
         </div>
     </div>
 
     @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            let currentPage = 1;
+
             function refreshStats() {
                 fetch('{{ route('admin.data-upload.summary') }}')
                     .then(response => response.json())
@@ -139,8 +137,67 @@
                     });
             }
 
-            // Refresh every 30 seconds
+            function loadTable(page) {
+                const tbody = document.getElementById('uploads-table-body');
+                const pagination = document.getElementById('table-pagination');
+                const loading = document.getElementById('table-loading');
+
+                loading.textContent = 'Loading...';
+
+                fetch('{{ route('admin.data-upload.recent') }}?page=' + page)
+                    .then(response => response.json())
+                    .then(data => {
+                        loading.textContent = data.total + ' total records';
+
+                        tbody.innerHTML = data.data.map(upload => `
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">${escapeHtml(upload.airwaybill)}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">${upload.order_number ? escapeHtml(upload.order_number) : '-'}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">${upload.owner_name ? escapeHtml(upload.owner_name) : '-'}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">${upload.qty ?? '-'}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">${upload.platform_name ? escapeHtml(upload.platform_name) : '-'}</td>
+                                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${upload.created_at ? new Date(upload.created_at).toLocaleString('id-ID', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-'}</td>
+                            </tr>
+                        `).join('');
+
+                        if (data.data.length === 0) {
+                            tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">No data uploads found.</td></tr>`;
+                        }
+
+                        // Build pagination
+                        let pagHtml = '';
+                        if (data.last_page > 1) {
+                            pagHtml += `<div class="flex items-center gap-2">`;
+                            pagHtml += `<button ${data.current_page === 1 ? 'disabled' : ''} onclick="window.loadUploadsPage(${data.current_page - 1})" class="px-3 py-1 text-sm border rounded ${data.current_page === 1 ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-700 dark:border-gray-600 dark:text-gray-300'}">Prev</button>`;
+                            pagHtml += `<span class="text-sm text-gray-600 dark:text-gray-400">Page ${data.current_page} of ${data.last_page}</span>`;
+                            pagHtml += `<button ${data.current_page === data.last_page ? 'disabled' : ''} onclick="window.loadUploadsPage(${data.current_page + 1})" class="px-3 py-1 text-sm border rounded ${data.current_page === data.last_page ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-700 dark:border-gray-600 dark:text-gray-300'}">Next</button>`;
+                            pagHtml += `</div>`;
+                        }
+                        pagination.innerHTML = pagHtml;
+                    })
+                    .catch(err => {
+                        console.error('Failed to load table:', err);
+                        loading.textContent = 'Failed to load';
+                        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-red-500">Failed to load data.</td></tr>`;
+                    });
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            window.loadUploadsPage = function(page) {
+                currentPage = page;
+                loadTable(page);
+            };
+
+            // Initial load
             refreshStats();
+            loadTable(1);
+
+            // Auto-refresh stats every 30s
             setInterval(refreshStats, 30000);
         });
     </script>
