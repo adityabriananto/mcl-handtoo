@@ -156,6 +156,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Handover Data Upload
         // Route::resource('handover-upload', DataHandoverUploadController::class)->names('handover.upload');
+
+        // Data Upload Cleanup
+        Route::post('/data-upload/clear', [DataUploadClearController::class, 'clear'])->name('admin.data-upload.clear');
+        Route::get('/data-upload/summary', [DataUploadClearController::class, 'summary'])->name('admin.data-upload.summary');
     });
 
     // --- History Dashboard ---

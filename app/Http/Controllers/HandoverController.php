@@ -274,7 +274,11 @@ class HandoverController extends Controller
         if (!empty($missingAwbs)) {
             $countMissing = count($missingAwbs);
             $sampleAwb = implode(', ', array_slice($missingAwbs, 0, 3)); // Ambil contoh 3 AWB saja untuk pesan error
-            $errorMessage = "Gagal Finalize! Terdapat {$countMissing} AWB yang belum di-upload datanya. Silakan upload data ter-update terlebih dahulu.";
+            if($countMissing > 3) {
+                $errorMessage = "Gagal Finalize! Terdapat {$countMissing} AWB yang belum di-upload datanya. ({$sampleAwb},etc...)Silakan upload data ter-update terlebih dahulu.";
+            } else {
+                $errorMessage = "Gagal Finalize! Terdapat {$countMissing} AWB yang belum di-upload datanya. ({$sampleAwb})Silakan upload data ter-update terlebih dahulu.";
+            }
 
             return redirect()->back()->with('error', $errorMessage);
         }
