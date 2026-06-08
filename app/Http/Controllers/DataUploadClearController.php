@@ -24,7 +24,7 @@ class DataUploadClearController extends Controller
             'oldRecordCount' => $stats['old_records'],
             'totalRecordCount' => $stats['total_records'],
             'oldFileCount' => $stats['old_files'],
-            'cutoffDate' => $stats['cutoff_date'],
+            'cutoffDate' => now()->subMonth(),
         ]);
     }
 
