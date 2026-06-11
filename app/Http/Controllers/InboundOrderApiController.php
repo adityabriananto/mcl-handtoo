@@ -77,31 +77,19 @@ class InboundOrderApiController extends Controller
                     'reference_number' => $request->reference_number
                 ]);
 
-                // 2. Isi dengan data baru dari API
-                $inboundOrder->warehouse_code        = $request->warehouse_code;
-                $inboundOrder->delivery_type         = $request->delivery_type;
-                $inboundOrder->seller_warehouse_code = $request->seller_warehouse_code;
-                $inboundOrder->estimate_time         = Carbon::parse($request->estimate_time)->toDateTimeString();
-                $inboundOrder->comment               = $request->comment;
-
                 // Jika ini data baru, set status awal
                 if (!$inboundOrder->exists) {
                     $inboundOrder->status = 'Created';
-                }
-
-                // 3. LOGIKA PENGECEKAN (Pilih perubahan)
-                // Cek apakah ada kolom tertentu yang berubah sebelum di-save
-                if ($inboundOrder->isDirty('status')) {
-                    // Lakukan sesuatu jika status berubah...
-                }
-
-                if ($inboundOrder->isDirty()) {
-                    // Hanya simpan ke database jika memang ada perubahan (Dirty)
+                    $inboundOrder->warehouse_code        = $request->warehouse_code;
+                    $inboundOrder->delivery_type         = $request->delivery_type;
+                    $inboundOrder->seller_warehouse_code = $request->seller_warehouse_code;
+                    $inboundOrder->estimate_time         = Carbon::parse($request->estimate_time)->toDateTimeString();
+                    $inboundOrder->comment               = $request->comment;
                     $inboundOrder->save();
-                }
-
-                if($inboundOrder->status == 'Created') {
                     ProcessInboundSkusJob::dispatch($inboundOrder->id, $request->skus)->onQueue('create-inbound-order');
+                } else {
+                    $inboundOrder->estimate_time         = Carbon::parse($request->estimate_time)->toDateTimeString();
+                    $inboundOrder->save();
                 }
 
                 return $this->buildApiResponse(true, null, $inboundOrder->reference_number, 200, $request, 'CreateInboundOrder');
