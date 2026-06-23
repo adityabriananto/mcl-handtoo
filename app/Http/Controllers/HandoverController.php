@@ -144,7 +144,7 @@ class HandoverController extends Controller
             return redirect()->back()->with('error', 'Sesi Handover belum dimulai.');
         }
 
-        $awb = trim(strtoupper($request->awb_number));
+        $awb = trim($request->awb_number);
         $batchId = Session::get('current_batch_id');
         $carrier = Session::get('current_three_pl');
 
