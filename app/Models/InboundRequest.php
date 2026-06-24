@@ -115,15 +115,12 @@ class InboundRequest extends Model
             });
         }
 
-        // 4. Filter Date (BARU)
-        // Mencari data berdasarkan tanggal di Parent atau di Child
+        // 4. Filter Date
+        // Gunakan whereBetween agar index pada created_at bisa digunakan
         if (!empty($filters['date'])) {
-            $query->where(function($q) use ($filters) {
-                $q->whereDate('created_at', $filters['date']) // Sesuaikan nama kolom jika bukan created_at
-                ->orWhereHas('children', function($childQuery) use ($filters) {
-                    $childQuery->whereDate('created_at', $filters['date']);
-                });
-            });
+            $startOfDay = $filters['date'] . ' 00:00:00';
+            $endOfDay   = $filters['date'] . ' 23:59:59';
+            $query->whereBetween('created_at', [$startOfDay, $endOfDay]);
         }
 
         if (!empty($filters['inbound_order_no'])) {

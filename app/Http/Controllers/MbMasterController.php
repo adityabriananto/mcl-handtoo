@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\ImportMbMasterJob;
 use App\Models\MbMaster;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -13,15 +14,18 @@ class MbMasterController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Ambil data unik untuk dropdown filter
-        $filterOptions = [
-            'brands' => MbMaster::select('brand_code', 'brand_name')
-                ->groupBy('brand_code', 'brand_name')
-                ->orderBy('brand_name')
-                ->get()
-        ];
+        // 1. Ambil data unik untuk dropdown filter (cached 5 menit)
+        $filterOptions = Cache::remember('mb_master_filter_options', 300, function () {
+            return [
+                'brands' => MbMaster::select('brand_code', 'brand_name')
+                    ->groupBy('brand_code', 'brand_name')
+                    ->orderBy('brand_name')
+                    ->get()
+            ];
+        });
 
-        $query = MbMaster::query();
+        $query = MbMaster::query()
+            ->select(['id', 'brand_code', 'brand_name', 'manufacture_barcode', 'seller_sku', 'fulfillment_sku', 'is_disabled', 'created_at']);
 
         // 2. Terapkan Filter (Logic yang sama untuk View & Export)
         if ($request->filled('brand')) {
