@@ -62,16 +62,16 @@ class TplPrefixController extends Controller
         $validatedData = $request->validate([
             // Memastikan nama kurir unik saat pembuatan
             'tpl_name' => 'required|string|max:255|unique:tpl_prefixes,tpl_name',
-            'prefixes_input' => 'required|string',
             'handover_prefix' => 'required|string',
             'is_active' => 'nullable|boolean',
         ]);
 
-        $prefixesArray = $this->processPrefixes($validatedData['prefixes_input']);
+        $prefixesArray = $this->processPrefixes($validatedData['handover_prefix']);
+        $handoverPrefixString = $this->processPrefixString($validatedData['handover_prefix']);
 
         TplPrefix::create([
             'tpl_name' => $validatedData['tpl_name'],
-            'handover_prefix' => $validatedData['handover_prefix'],
+            'handover_prefix' => $handoverPrefixString,
             'prefixes' => $prefixesArray,
             'is_active' => $request->has('is_active'),
         ]);
@@ -90,7 +90,7 @@ class TplPrefixController extends Controller
         // yang dipisahkan koma untuk ditampilkan di textarea.
         // dd($tpl_config->prefixes);
         $config = $tpl_config;
-        $config->prefixes_input = implode(', ', $config->prefixes);
+        $config->handover_prefix = implode(', ', $config->prefixes);
 
         return view('tpl_prefix.edit', compact('config'));
     }
@@ -100,11 +100,12 @@ class TplPrefixController extends Controller
      */
     public function update(Request $request, TplPrefix $tpl_config)
     {
-        $prefixesArray = $this->processPrefixes($request['prefixes_input']);
+        $prefixesArray = $this->processPrefixes($request['handover_prefix']);
+        $handoverPrefixString = $this->processPrefixString($request['handover_prefix']);
 
         $tpl_config->update([
             'tpl_name' => $request['tpl_name'],
-            'handover_prefix' => $request['handover_prefix'],
+            'handover_prefix' => $handoverPrefixString,
             'prefixes' => $prefixesArray,
             'is_active' => $request->has('is_active'),
         ]);
@@ -115,9 +116,9 @@ class TplPrefixController extends Controller
     /**
      * Menghapus konfigurasi spesifik dari database.
      */
-    public function destroy(TplPrefix $config)
+    public function destroy(TplPrefix $tpl_config)
     {
-        $config->delete();
+        $tpl_config->delete();
         return redirect()->route('tpl.config.index')->with('success', 'Configuration deleted successfully!');
     }
 
@@ -133,5 +134,17 @@ class TplPrefixController extends Controller
                     ->filter()
                     ->unique()
                     ->toArray();
+    }
+
+    /**
+     * Memproses string prefixes menjadi string comma-separated yang bersih (uppercase, unik).
+     */
+    protected function processPrefixString(string $prefixInput): string
+    {
+        return collect(explode(',', $prefixInput))
+                    ->map(fn($p) => trim(strtoupper($p)))
+                    ->filter()
+                    ->unique()
+                    ->implode(', ');
     }
 }

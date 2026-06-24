@@ -68,7 +68,7 @@
                 <tr>
                     <td>{{ $loop->iteration }}</td>
                     <td>{{ $detail->airwaybill }}</td>
-                    <td>{{ $detail->scanned_at->format('Y-m-d H:i:s') }}</td>
+                    <td>{{ $detail->scanned_at ? $detail->scanned_at->format('Y-m-d H:i:s') : 'N/A' }}</td>
                 </tr>
                 @endforeach
             </tbody>
@@ -78,7 +78,7 @@
         <div class="signatures">
             <div class="signature-col" style="width: 50%; float: left;">
                 <p class="signature-line"></p>
-                <p>({{ auth()->user()->name ?? 'Outbound Team User' }})</p>
+                <p>({{ auth()->check() ? auth()->user()->name : 'Outbound Team User' }})</p>
                 <p class="signature-label">Outbound Team</p>
             </div>
             <div class="signature-col" style="width: 50%; float: right;">

@@ -269,6 +269,8 @@ class HistoryController extends Controller
         $uploadedCount = 0;
 
         try {
+            $firstProofFile = null;
+
             foreach ($files as $index => $file) {
                 $extension = $file->getClientOriginalExtension();
                 $originalName = $file->getClientOriginalName();
@@ -278,7 +280,7 @@ class HistoryController extends Controller
                 $path = $file->storeAs('manifests', $fileName, 'public');
 
                 // Simpan ke tabel handover_proof_files
-                HandoverProofFile::create([
+                $proofFile = HandoverProofFile::create([
                     'handover_id' => $handoverId,
                     'filename' => $fileName,
                     'original_name' => $originalName,
@@ -288,16 +290,16 @@ class HistoryController extends Controller
                     'path' => $path,
                 ]);
 
+                if ($index === 0) {
+                    $firstProofFile = $proofFile;
+                }
+
                 $uploadedCount++;
             }
 
-            // UPDATE STATUS DI DATABASE (gunakan file pertama untuk backward compatibility)
-            $firstFile = $files[0];
-            $firstExtension = $firstFile->getClientOriginalExtension();
-            $firstFileName = strtoupper($handoverId) . '_signed_manifest.' . $firstExtension;
-
+            // UPDATE STATUS DI DATABASE (gunakan file pertama yang benar-benar tersimpan)
             $batch->update([
-                'manifest_name_signed' => $firstFileName,
+                'manifest_name_signed' => $firstProofFile ? $firstProofFile->filename : null,
                 'status' => 'completed',
                 'signed_at' => Carbon::now()
             ]);
@@ -310,7 +312,8 @@ class HistoryController extends Controller
     }
 
     /**
-     * Menangani download manifest dalam format PDF.
+     * Menangani download manifest. Jika file manifest yang sudah di-upload tersedia,
+     * download file tersebut. Jika tidak, generate PDF dari detail AWB.
      */
     public function downloadManifest($handoverId)
     {
@@ -323,7 +326,31 @@ class HistoryController extends Controller
         if ($batch->status !== 'completed') {
             return redirect()->route('history.index')->with('error', 'Manifest Belum Selesai.');
         }
-        // PENTING: Memastikan library milon/barcode terinstal untuk DNS1D
+
+        // Prioritaskan download file manifest yang sudah di-upload (signed manifest)
+        if ($batch->manifest_name_signed) {
+            $signedProof = HandoverProofFile::where('handover_id', $handoverId)
+                                            ->where('filename', $batch->manifest_name_signed)
+                                            ->first();
+
+            if ($signedProof && Storage::disk($signedProof->disk ?? 'public')->exists($signedProof->path)) {
+                return Storage::disk($signedProof->disk ?? 'public')
+                              ->download($signedProof->path, $signedProof->original_name);
+            }
+
+            // Fallback: cari file PDF pertama di proof files untuk batch lama yang filename-nya tidak cocok
+            $firstPdfProof = HandoverProofFile::where('handover_id', $handoverId)
+                                              ->where('mime_type', 'like', 'application/pdf%')
+                                              ->orderBy('id')
+                                              ->first();
+
+            if ($firstPdfProof && Storage::disk($firstPdfProof->disk ?? 'public')->exists($firstPdfProof->path)) {
+                return Storage::disk($firstPdfProof->disk ?? 'public')
+                              ->download($firstPdfProof->path, $firstPdfProof->original_name);
+            }
+        }
+
+        // Fallback: generate PDF dari detail AWB jika tidak ada file yang di-upload
         $data = [
             'batch' => $batch,
             'details' => $batch->details,

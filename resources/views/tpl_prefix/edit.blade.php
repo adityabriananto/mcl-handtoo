@@ -62,21 +62,21 @@
                     @enderror
                 </div>
 
-                {{-- Prefixes Input --}}
+                {{-- Prefixes / Handover Prefix Input --}}
                 <div>
-                    <label for="prefixes_input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prefixes (use comma if prefix more than 1):</label>
+                    <label for="handover_prefix" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prefixes (use comma if prefix more than 1):</label>
                     <textarea
-                        id="prefixes_input"
-                        name="prefixes_input"
+                        id="handover_prefix"
+                        name="handover_prefix"
                         rows="4"
                         required
                         placeholder="e.g., CM, JT, TG, 881, JNEB"
-                        class="input-field @error('prefixes_input') border-red-500 @enderror border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
-                    >{{ old('prefixes_input', $config->prefixes_input) }}</textarea>
+                        class="input-field @error('handover_prefix') border-red-500 @enderror border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                    >{{ old('handover_prefix', $config->handover_prefix) }}</textarea>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Sample: CM, JT, TG, JNEB. (Prefixes will be converted to uppercase automatically for case-insensitive lookup)
                     </p>
-                    @error('prefixes_input')
+                    @error('handover_prefix')
                         <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
                     @enderror
                 </div>
