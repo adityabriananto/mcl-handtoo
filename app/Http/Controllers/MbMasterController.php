@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\ImportMbMasterJob;
 use App\Models\MbMaster;
+use App\Services\InboundMasterDataRecheckService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -106,6 +107,11 @@ class MbMasterController extends Controller
 
         $mbMaster = MbMaster::create($data);
 
+        // Re-check inbound details with missing master data for this seller_sku
+        if (!empty($mbMaster->seller_sku)) {
+            app(InboundMasterDataRecheckService::class)->recheckMissingMasterData([$mbMaster->seller_sku]);
+        }
+
         $relatedBrands = MbMaster::where('manufacture_barcode', $mbMaster->manufacture_barcode)->get();
         $totalRegistered = $relatedBrands->count();
 
@@ -136,6 +142,11 @@ class MbMasterController extends Controller
         // 3. Eksekusi Update
         $mbMaster->update($data);
         $newStatus = (int) $mbMaster->is_disabled;
+
+        // Re-check inbound details with missing master data for this seller_sku
+        if (!empty($mbMaster->seller_sku)) {
+            app(InboundMasterDataRecheckService::class)->recheckMissingMasterData([$mbMaster->seller_sku]);
+        }
 
         // 4. Ambil semua brand yang menggunakan barcode ini (Aktif maupun Non-Aktif)
         $relatedBrands = MbMaster::where('manufacture_barcode', $barcode)->get();

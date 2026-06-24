@@ -23,11 +23,18 @@ class ImportMbMasterJob implements ShouldQueue
 
     public function handle()
     {
+        $sellerSkus = [];
+
         // Bungkus dalam transaksi agar lebih cepat dan aman
-        DB::transaction(function () {
+        DB::transaction(function () use (&$sellerSkus) {
             foreach ($this->rows as $data) {
                 // Pastikan index 3 (fulfillment_sku) tidak kosong
                 if (empty($data[3])) continue;
+
+                $sellerSku = !empty($data[4]) ? trim($data[4]) : null;
+                if ($sellerSku) {
+                    $sellerSkus[] = $sellerSku;
+                }
 
                 /**
                  * Menggunakan updateOrCreate:
@@ -42,10 +49,16 @@ class ImportMbMasterJob implements ShouldQueue
                     [
                         'brand_name'          => $data[1],
                         'manufacture_barcode' => $data[2],
-                        'seller_sku'          => $data[4] ?? null,
+                        'seller_sku'          => $sellerSku,
                     ]
                 );
             }
         });
+
+        // Setelah chunk master data di-import, re-check inbound details
+        // yang memiliki flag missing master data dan seller_sku yang cocok.
+        if (!empty($sellerSkus)) {
+            RecheckInboundMasterDataJob::dispatch(array_unique($sellerSkus))->onQueue('mb-master-import');
+        }
     }
 }
