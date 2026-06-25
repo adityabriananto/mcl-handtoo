@@ -375,10 +375,12 @@ class HistoryController extends Controller
             return redirect()->route('history.index')->with('error', 'File tidak ditemukan.');
         }
 
-        if (!Storage::exists($proof->path)) {
+        $disk = $proof->disk ?? 'public';
+
+        if (!Storage::disk($disk)->exists($proof->path)) {
             return redirect()->route('history.index')->with('error', 'File tidak tersedia di storage.');
         }
 
-        return Storage::download($proof->path, $proof->original_name);
+        return Storage::disk($disk)->download($proof->path, $proof->original_name);
     }
 }
