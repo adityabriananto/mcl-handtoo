@@ -136,6 +136,17 @@
         </div>
     </form>
 
+    {{-- Export All Button --}}
+    <div class="flex justify-end mb-4">
+        <a href="{{ route('inbound.export-all') }}"
+           class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg shadow-md transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Export All Data
+        </a>
+    </div>
+
     {{-- 3. Data Table --}}
     <div class="bg-white dark:bg-gray-900 shadow-xl rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800">
         <div class="overflow-x-auto">
@@ -158,9 +169,16 @@
                             $hasChildren = $item->children->count() > 0;
                             $skuCount = $item->details->count();
                             $fullQty = $hasChildren ? $item->children->flatMap->details->sum('requested_quantity') : $item->details->sum('requested_quantity');
-                            $formattedDate = $item->created_at->format('Y-m-d');
+                            $formattedDate = $item->created_at ? $item->created_at->format('Y-m-d') : 'N/A';
                             $childRefs = $item->children->pluck('reference_number')->join(' ');
                             $isLocked = in_array($item->status, ['Completed']);
+
+                            // Check for missing master data SKUs
+                            $detailSkus = $hasChildren
+                                ? $item->children->flatMap->details->pluck('fulfillment_sku')->filter()->map(fn($s) => trim($s))->unique()->values()->toArray()
+                                : $item->details->pluck('fulfillment_sku')->filter()->map(fn($s) => trim($s))->unique()->values()->toArray();
+                            $missingSkus = array_diff($detailSkus, $masterSkus);
+                            $hasMissingSku = !empty($missingSkus);
                         @endphp
 
                         <tr x-show="shouldShow('{{ $item->reference_number . ' ' . $childRefs }}', '{{ $item->status }}', '{{ $formattedDate }}', '{{ $item->warehouse_code }}', '{{ $item->client_name }}', '{{ $item->inbound_order_no }}')"
@@ -188,9 +206,12 @@
                             </td>
 
                             <td class="px-4 py-3 text-[10px] leading-tight text-gray-500">
-                                <div>Created: {{ $item->created_at->format('d/m H:i') }}</div>
+                                <div>Created: {{ $item->created_at ? $item->created_at->format('d/m H:i') : 'N/A' }}</div>
+                                <div class="text-yellow-400 font-bold mt-1 italic">Updated: {{ $item->updated_at ? $item->updated_at->format('d/m H:i') : 'N/A' }}</div>
                                 @if($item->estimate_time)
                                 <div class="text-amber-600 font-bold mt-1 italic uppercase">Est: {{ \Carbon\Carbon::parse($item->estimate_time)->format('d/m H:i') }}</div>
+                                @else
+                                <div class="text-amber-600/40 font-bold mt-1 italic uppercase">Est: —</div>
                                 @endif
                             </td>
 
@@ -199,9 +220,17 @@
                             <td class="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">{{ $item->comment }}</td>
 
                             <td class="px-4 py-3 text-center">
-                                <span class="status-badge px-3 py-1 rounded-full text-[9px] font-black uppercase border {{ $statusColors[$item->status] ?? 'bg-gray-100' }}">
-                                    {{ $item->status }}
-                                </span>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="status-badge px-3 py-1 rounded-full text-[9px] font-black uppercase border {{ $statusColors[$item->status] ?? 'bg-gray-100' }}">
+                                        {{ $item->status }}
+                                    </span>
+                                    @if($hasMissingSku)
+                                        <span class="text-[8px] font-black text-white bg-red-600 px-2 py-0.5 rounded animate-pulse tracking-tighter"
+                                              title="Missing SKU: {{ implode(', ', array_slice($missingSkus, 0, 5)) }}">
+                                            ⚠️ Missing Master Data
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
 
                             <td class="px-4 py-3 text-right">
@@ -276,7 +305,7 @@
                                     </td>
 
                                     <td class="px-4 py-3 text-[10px] leading-tight text-gray-500 font-bold">
-                                        {{ $child->created_at->format('d/m H:i') }}
+                                        {{ $child->created_at ? $child->created_at->format('d/m H:i') : 'N/A' }}
                                     </td>
 
                                     <td class="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase">

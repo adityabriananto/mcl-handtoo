@@ -118,7 +118,7 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <span class="text-[10px] font-black text-slate-500 italic uppercase">
-                                {{ $order->created_at->format('H:i:s') }}
+                                {{ $order->created_at ? $order->created_at->format('H:i:s') : 'N/A' }}
                             </span>
                         </td>
                     </tr>

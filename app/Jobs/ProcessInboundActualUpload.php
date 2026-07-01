@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\ImportStatus;
 use App\Models\InboundRequest;
 use App\Models\InboundRequestDetail;
 use Illuminate\Bus\Queueable;
@@ -17,19 +18,25 @@ class ProcessInboundActualUpload implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected $filePath;
+    protected $importStatusId;
 
-    public function __construct($filePath)
+    public function __construct($filePath, $importStatusId = null)
     {
         $this->filePath = $filePath;
+        $this->importStatusId = $importStatusId;
     }
 
     public function handle()
     {
-        // Menggunakan import (tanpa ->get()) agar FastExcel bekerja secara generator/streaming
-        // Ini memastikan RAM tidak penuh meskipun file sangat besar
-        (new FastExcel)->import($this->filePath, function ($row) {
-            return $row;
-        })->chunk(100)->each(function ($chunk) {
+        $processedRows = 0;
+
+        try {
+            // Menggunakan import (tanpa ->get()) agar FastExcel bekerja secara generator/streaming
+            // Ini memastikan RAM tidak penuh meskipun file sangat besar
+            (new FastExcel)->import($this->filePath, function ($row) use (&$processedRows) {
+                $processedRows++;
+                return $row;
+            })->chunk(100)->each(function ($chunk) use (&$processedRows) {
 
             DB::transaction(function () use ($chunk) {
                 // Ambil semua OutOrderCode unik dari chunk ini saja
@@ -69,6 +76,23 @@ class ProcessInboundActualUpload implements ShouldQueue
                 }
             });
         });
+
+            // Update log ke completed
+            if ($this->importStatusId) {
+                ImportStatus::where('id', $this->importStatusId)->update([
+                    'status' => 'completed',
+                    'processed_rows' => $processedRows,
+                ]);
+            }
+        } catch (\Exception $e) {
+            if ($this->importStatusId) {
+                ImportStatus::where('id', $this->importStatusId)->update([
+                    'status' => 'error',
+                    'processed_rows' => $processedRows,
+                ]);
+            }
+            throw $e;
+        }
 
         // Hapus file setelah selesai proses
         if (file_exists($this->filePath)) {

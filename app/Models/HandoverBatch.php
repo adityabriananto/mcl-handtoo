@@ -40,4 +40,12 @@ class HandoverBatch extends Model
     {
         return $this->hasMany(HandoverDetail::class, 'handover_id');
     }
+
+    /**
+     * Mendapatkan semua proof files yang terkait dengan batch ini.
+     */
+    public function proofFiles(): HasMany
+    {
+        return $this->hasMany(HandoverProofFile::class, 'handover_id', 'handover_id');
+    }
 }

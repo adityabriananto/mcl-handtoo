@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\ProcessInboundUpload;
 use App\Models\ApiLog;
+use App\Models\ImportStatus;
 use App\Models\InboundRequest;
 use App\Models\MbMaster;
 use App\Models\InboundRequestDetail;
@@ -38,47 +39,54 @@ class InboundOrderController extends Controller
 
         $filters = session('inbound_filters', []);
 
-        // Jalankan Query dengan Filter
-        $requests = InboundRequest::with(['details', 'children.details'])
-                    ->filter($filters)
-                    ->whereNull('parent_id')
-                    ->orderByRaw("CASE WHEN status = 'Created' THEN 0 ELSE 1 END")
-                    ->orderBy('created_at', 'desc')
-                    ->paginate(50);
+        // Cache key untuk stats (invalid saat ada data baru)
+        $statsCacheKey = 'admin_inbound_stats_' . md5(serialize($filters));
 
-        /**
-         * 1. Optimasi Statistik Operasional
-         * Kita gunakan with('details') agar virtual attribute (total_items dll) tidak memicu N+1 query.
-         * Kita juga membatasi kolom (select) untuk menghemat RAM.
-         */
-        $allData = InboundRequest::select('id', 'parent_id', 'status')
-            ->with('children:id,parent_id,status')
-            ->filter($filters)
-            ->get();
+        // 1. Hitung Statistik — gunakan cache 30 detik
+        $stats = cache()->remember($statsCacheKey, 30, function () use ($filters) {
+            $statsQuery = InboundRequest::filter($filters);
 
-        // Hitung Statistik berdasarkan logika Split (Child + Parent tanpa child)
-        $operationalUnits = $allData->filter(function($item) {
-            return $item->parent_id !== null || ($item->parent_id === null && $item->children->count() === 0);
+            $parentStatusCounts = (clone $statsQuery)
+                ->whereNull('parent_id')
+                ->selectRaw('status, count(*) as total')
+                ->groupBy('status')
+                ->pluck('total', 'status')
+                ->toArray();
+
+            $childStatusCounts = (clone $statsQuery)
+                ->whereNotNull('parent_id')
+                ->selectRaw('status, count(*) as total')
+                ->groupBy('status')
+                ->pluck('total', 'status')
+                ->toArray();
+
+            $parentsWithChildren = InboundRequest::filter($filters)
+                ->whereNotNull('parent_id')
+                ->distinct()
+                ->count();
+
+            $totalParents = (clone $statsQuery)->whereNull('parent_id')->count();
+            $parentOnlyCount = $totalParents - $parentsWithChildren;
+            $totalChildren = array_sum($childStatusCounts);
+
+            return (object)[
+                'total'        => $parentOnlyCount + $totalChildren,
+                'pending'      => ($parentStatusCounts['Created'] ?? 0) + ($childStatusCounts['Created'] ?? 0),
+                'processing'   => ($parentStatusCounts['Inbound in Process'] ?? 0) + ($childStatusCounts['Inbound in Process'] ?? 0),
+                'cancelled'    => ($parentStatusCounts['Cancelled by Seller'] ?? 0) + ($childStatusCounts['Cancelled by Seller'] ?? 0),
+                'completed'    => ($parentStatusCounts['Completely'] ?? 0) + ($childStatusCounts['Completely'] ?? 0),
+                'partially'    => ($parentStatusCounts['Partially'] ?? 0) + ($childStatusCounts['Partially'] ?? 0),
+            ];
         });
 
-        $stats = (object)[
-            'total'        => $operationalUnits->count(),
-            'pending'      => $operationalUnits->where('status', 'Created')->count(),
-            'processing'   => $operationalUnits->where('status', 'Inbound in Process')->count(),
-            'cancelled'    => $operationalUnits->where('status', 'Cancelled by Seller')->count(),
-            'completed'    => $operationalUnits->where('status', 'Completely')->count(),
-            'partially'    => $operationalUnits->where('status', 'Partially')->count(),
-        ];
-
-        /**
-         * 2. Ambil data untuk Tabel Utama
-         * Menggunakan Eager Loading bertingkat:
-         * - details: Untuk data item milik parent
-         * - children.details: Untuk data item milik pecahannya (split)
-         */
-        $requests = InboundRequest::with([
-                'details',
-                'children.details'
+        // 2. Ambil data untuk Tabel Utama
+        $requests = InboundRequest::select([
+                'id', 'reference_number', 'fulfillment_order_no', 'client_name',
+                'warehouse_code', 'status', 'created_at', 'updated_at', 'estimate_time', 'parent_id', 'comment'
+            ])
+            ->with([
+                'details:id,inbound_order_id,fulfillment_sku,seller_sku,product_name,requested_quantity,received_good',
+                'children:id,parent_id,status,reference_number,inbound_order_no,warehouse_code,client_name,comment'
             ])
             ->filter($filters)
             ->whereNull('parent_id')
@@ -86,15 +94,25 @@ class InboundOrderController extends Controller
             ->orderBy('created_at', 'asc')
             ->paginate(20);
 
-        $clients = InboundRequest::distinct()->whereNotNull('client_name')->pluck('client_name');
-        $warehouses = InboundRequest::distinct()->whereNotNull('warehouse_code')->pluck('warehouse_code');
+        // Cache filter lists (5 menit)
+        $clients = cache()->remember('admin_inbound_clients', 300, function () {
+            return InboundRequest::distinct()->whereNotNull('client_name')->pluck('client_name');
+        });
 
-        return view('inbound.index', compact('requests', 'warehouses', 'clients', 'filters', 'stats'));
+        $warehouses = cache()->remember('admin_inbound_warehouses', 300, function () {
+            return InboundRequest::distinct()->whereNotNull('warehouse_code')->pluck('warehouse_code');
+        });
+
+        // Cache Master Data check (5 menit)
+        $masterSkus = cache()->remember('admin_master_skus', 300, function () {
+            return MbMaster::pluck('fulfillment_sku')->filter()->map(fn($s) => trim($s))->toArray();
+        });
+
+        return view('inbound.index', compact('requests', 'warehouses', 'clients', 'filters', 'stats', 'masterSkus'));
     }
 
     public function scopeFilter($query, array $filters)
     {
-        dd($query);
         // 1. Search Global (Pencarian Luas)
         $query->when($filters['search'] ?? null, function ($query, $search) {
             $query->where(function ($q) use ($search) {
@@ -104,7 +122,7 @@ class InboundOrderController extends Controller
             });
         });
 
-        // 2. Filter Spesifik IO Number (Inilah yang membuat filter IO jalan)
+        // 2. Filter Spesifik IO Number
         $query->when($filters['inbound_order_no'] ?? null, function ($query, $io) {
             $query->where('inbound_order_no', 'LIKE', "%{$io}%");
         });
@@ -124,10 +142,11 @@ class InboundOrderController extends Controller
             $query->where('status', $status);
         });
 
-        // 6. Filter Date (Tambahkan ini)
+        // 6. Filter Date - gunakan whereBetween untuk performa index yang lebih baik
         $query->when($filters['date'] ?? null, function ($query, $date) {
-            \Log::info("Filtering by date: " . $date); // Cek storage/logs/laravel.log
-            return $query->whereDate('created_at', $date);
+            $start = \Carbon\Carbon::parse($date)->startOfDay();
+            $end = \Carbon\Carbon::parse($date)->endOfDay();
+            return $query->whereBetween('created_at', [$start, $end]);
         });
 
         return $query;
@@ -381,6 +400,77 @@ class InboundOrderController extends Controller
         return (new FastExcel($rows))->download("Export_Children_{$inbound->reference_number}.xlsx");
     }
 
+    /**
+     * Export semua data Inbound yang sesuai dengan filter aktif.
+     * Men-flatten parent + children + details ke dalam satu Excel file.
+     */
+    public function exportAll(Request $request)
+    {
+        // Ambil filter dari session (sama seperti index())
+        $filters = session('inbound_filters', []);
+
+        // Query semua data dengan filter yang sama
+        $requests = InboundRequest::with([
+                'details:id,inbound_order_id,fulfillment_sku,seller_sku,product_name,requested_quantity,received_good',
+                'children:id,parent_id,status,reference_number,inbound_order_no,warehouse_code,client_name,comment,created_at,updated_at,estimate_time'
+            ])
+            ->filter($filters)
+            ->whereNull('parent_id')
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        $rows = collect();
+
+        foreach ($requests as $parent) {
+            // Jika punya children, export dari children
+            if ($parent->children->count() > 0) {
+                foreach ($parent->children as $child) {
+                    foreach ($child->details as $detail) {
+                        $rows->push([
+                            'Reference Number' => $parent->reference_number,
+                            'Inbound Order No' => $child->inbound_order_no,
+                            'Status' => $child->status,
+                            'Warehouse' => $child->warehouse_code,
+                            'Client' => $child->client_name,
+                            'Estimate Time' => $child->estimate_time ? \Carbon\Carbon::parse($child->estimate_time)->format('Y-m-d H:i') : '-',
+                            'Created At' => $child->created_at?->format('Y-m-d H:i') ?? '-',
+                            'Updated At' => $child->updated_at?->format('Y-m-d H:i') ?? '-',
+                            'Fulfillment SKU' => $detail->fulfillment_sku,
+                            'Seller SKU' => $detail->seller_sku,
+                            'Product Name' => $detail->product_name,
+                            'Requested Qty' => $detail->requested_quantity,
+                            'Received Good' => $detail->received_good ?? 0,
+                        ]);
+                    }
+                }
+            } else {
+                // Single IO (tanpa children)
+                foreach ($parent->details as $detail) {
+                    $rows->push([
+                        'Reference Number' => $parent->reference_number,
+                        'Inbound Order No' => $parent->inbound_order_no,
+                        'Status' => $parent->status,
+                        'Warehouse' => $parent->warehouse_code,
+                        'Client' => $parent->client_name,
+                        'Estimate Time' => $parent->estimate_time ? \Carbon\Carbon::parse($parent->estimate_time)->format('Y-m-d H:i') : '-',
+                        'Created At' => $parent->created_at?->format('Y-m-d H:i') ?? '-',
+                        'Updated At' => $parent->updated_at?->format('Y-m-d H:i') ?? '-',
+                        'Fulfillment SKU' => $detail->fulfillment_sku,
+                        'Seller SKU' => $detail->seller_sku,
+                        'Product Name' => $detail->product_name,
+                        'Requested Qty' => $detail->requested_quantity,
+                        'Received Good' => $detail->received_good ?? 0,
+                    ]);
+                }
+            }
+        }
+
+        $timestamp = now()->format('Y-m-d_H-i');
+        $fileName = "Inbound_Export_{$timestamp}.xlsx";
+
+        return (new FastExcel($rows))->download($fileName);
+    }
+
     public function updateStatus(Request $request, $id)
     {
         try {
@@ -479,40 +569,77 @@ class InboundOrderController extends Controller
          * Ops publik tidak boleh melihat data yang sudah 'Completed'
          * kecuali mereka sengaja memfilternya (atau kita kunci sama sekali).
          */
-        $query = InboundRequest::with(['details', 'children.details'])
+        $query = InboundRequest::select([
+                'id', 'reference_number', 'fulfillment_order_no', 'client_name',
+                'warehouse_code', 'status', 'created_at', 'updated_at', 'estimate_time', 'parent_id'
+            ])
+            ->with(['details:id,inbound_order_id,fulfillment_sku,seller_sku,product_name,requested_quantity,received_good', 'children:id,parent_id,status'])
             ->filter($filters)
-            ->whereNull('parent_id')
-            ;
+            ->whereNull('parent_id');
 
-        // 4. Hitung Statistik (Tanpa 'Completed')
-        $allData = InboundRequest::select('id', 'parent_id', 'status')
-            ->with('children:id,parent_id,status')
-            ->filter($filters)
-            ->get();
+        // 4. Hitung Statistik — gunakan cache 30 detik
+        $statsCacheKey = 'ops_inbound_stats_' . md5(serialize($filters));
 
-        $operationalUnits = $allData->filter(function($item) {
-            return $item->parent_id !== null || ($item->parent_id === null && $item->children->count() === 0);
+        $stats = cache()->remember($statsCacheKey, 30, function () use ($filters) {
+            $statsQuery = InboundRequest::filter($filters);
+
+            // Single query: hitung parent dan child status sekaligus
+            $allCounts = (clone $statsQuery)
+                ->selectRaw('
+                    parent_id,
+                    status,
+                    count(*) as total
+                ')
+                ->groupBy('parent_id', 'status')
+                ->get();
+
+            $parentStatusCounts = [];
+            $childStatusCounts = [];
+            $parentsWithChildren = 0;
+
+            foreach ($allCounts as $row) {
+                if ($row->parent_id === null) {
+                    $parentStatusCounts[$row->status] = ($parentStatusCounts[$row->status] ?? 0) + $row->total;
+                } else {
+                    $childStatusCounts[$row->status] = ($childStatusCounts[$row->status] ?? 0) + $row->total;
+                    $parentsWithChildren++;
+                }
+            }
+
+            $totalParents = (clone $statsQuery)->whereNull('parent_id')->count();
+            $parentOnlyCount = $totalParents - $parentsWithChildren;
+            $totalChildren = array_sum($childStatusCounts);
+
+            return (object)[
+                'total'        => $parentOnlyCount + $totalChildren,
+                'pending'      => ($parentStatusCounts['Created'] ?? 0) + ($childStatusCounts['Created'] ?? 0),
+                'processing'   => ($parentStatusCounts['Inbound in Process'] ?? 0) + ($childStatusCounts['Inbound in Process'] ?? 0),
+                'cancelled'    => ($parentStatusCounts['Cancelled by Seller'] ?? 0) + ($childStatusCounts['Cancelled by Seller'] ?? 0),
+                'completed'    => ($parentStatusCounts['Completely'] ?? 0) + ($childStatusCounts['Completely'] ?? 0),
+                'partially'    => ($parentStatusCounts['Partially'] ?? 0) + ($childStatusCounts['Partially'] ?? 0),
+            ];
         });
-
-        $stats = (object)[
-            'total'        => $operationalUnits->count(),
-            'pending'      => $operationalUnits->where('status', 'Created')->count(),
-            'processing'   => $operationalUnits->where('status', 'Inbound in Process')->count(),
-            'cancelled'    => $operationalUnits->where('status', 'Cancelled by Seller')->count(),
-            'completed'    => $operationalUnits->where('status', 'Completely')->count(),
-            'partially'    => $operationalUnits->where('status', 'Partially')->count(),
-        ];
 
         // 5. Final Query untuk Table
         $requests = $query->orderByRaw("CASE WHEN status = 'Created' THEN 0 ELSE 1 END")
             ->orderBy('created_at', 'asc')
             ->paginate(20);
 
-        $clients = InboundRequest::distinct()->whereNotNull('client_name')->pluck('client_name');
-        $warehouses = InboundRequest::distinct()->whereNotNull('warehouse_code')->pluck('warehouse_code');
+        // Cache clients & warehouses untuk performa
+        $clients = cache()->remember('ops_clients_list', 300, function () {
+            return InboundRequest::distinct()->whereNotNull('client_name')->pluck('client_name');
+        });
+        $warehouses = cache()->remember('ops_warehouses_list', 300, function () {
+            return InboundRequest::distinct()->whereNotNull('warehouse_code')->pluck('warehouse_code');
+        });
+
+        // Data Freshness Indicator: Last Updated time
+        $lastUpdated = cache()->remember('ops_last_updated', 60, function () {
+            return InboundRequest::max('updated_at');
+        });
 
         // Gunakan view yang sama, logika blade @auth/@guest akan menangani perbedaan tombol
-        return view('inbound.ops_index', compact('requests', 'warehouses', 'clients', 'filters', 'stats'));
+        return view('inbound.ops_index', compact('requests', 'warehouses', 'clients', 'filters', 'stats', 'lastUpdated'));
     }
 
     public function uploadActualQuantity(Request $request)
@@ -529,14 +656,95 @@ class InboundOrderController extends Controller
             $path = $file->storeAs('uploads', $fileName, 'local');
             $fullPath = Storage::disk('local')->path($path);
 
-            // Dispatch Job ke queue 'io-number-upload' atau default
-            \App\Jobs\ProcessInboundActualUpload::dispatch($fullPath)->onQueue('io-result-upload');
+            // Count rows for feedback message
+            $rowCount = 0;
+            try {
+                (new FastExcel)->import($fullPath, function ($row) use (&$rowCount) {
+                    $rowCount++;
+                    return $row;
+                });
+            } catch (\Exception $e) {
+                $rowCount = 0;
+            }
 
-            return back()->with('success', "File sedang diproses di background. Status akan terupdate otomatis beberapa saat lagi.");
+            // Simpan log ke import_statuses
+            $importLog = ImportStatus::create([
+                'filename' => $file->getClientOriginalName(),
+                'total_rows' => $rowCount,
+                'processed_rows' => 0,
+                'status' => 'processing',
+            ]);
+
+            // Dispatch Job ke queue 'io-result-upload'
+            \App\Jobs\ProcessInboundActualUpload::dispatch($fullPath, $importLog->id)->onQueue('io-result-upload');
+
+            return back()->with('upload_success', [
+                'message' => "WMS Actual Upload Successful! {$rowCount} rows are being processed in the background.",
+                'filename' => $file->getClientOriginalName(),
+                'rows' => $rowCount,
+            ]);
 
         } catch (\Exception $e) {
-            return back()->with('error', 'Gagal mengupload file: ' . $e->getMessage());
+            return back()->with('upload_error', [
+                'message' => 'Upload Failed: ' . $e->getMessage(),
+            ]);
         }
+    }
+
+    /**
+     * Export Master Correlation: PO -> Items flattened list.
+     * Respects current session filters.
+     */
+    public function masterExport(Request $request)
+    {
+        $filters = session('ops_inbound_filters', []);
+
+        // Query dengan filter yang sama seperti opsIndex
+        $query = InboundRequest::with(['details', 'children.details'])
+            ->filter($filters)
+            ->whereNull('parent_id');
+
+        $inbounds = $query->get();
+
+        $rows = collect();
+
+        foreach ($inbounds as $inbound) {
+            // Jika punya children (split orders), flatten dari children
+            if ($inbound->children->count() > 0) {
+                foreach ($inbound->children as $child) {
+                    foreach ($child->details as $detail) {
+                        $rows->push([
+                            'Reference Number (PO)' => $inbound->reference_number,
+                            'Inbound Order (IO)' => $child->fulfillment_order_no,
+                            'Status' => $child->status,
+                            'Fulfillment SKU' => $detail->fulfillment_sku,
+                            'Seller SKU' => $detail->seller_sku,
+                            'Item Name' => $detail->product_name,
+                            'Requested Qty' => $detail->requested_quantity,
+                            'Received Qty' => $detail->received_good ?? 0,
+                        ]);
+                    }
+                }
+            } else {
+                // Single order, flatten dari details langsung
+                foreach ($inbound->details as $detail) {
+                    $rows->push([
+                        'Reference Number (PO)' => $inbound->reference_number,
+                        'Inbound Order (IO)' => $inbound->fulfillment_order_no,
+                        'Status' => $inbound->status,
+                        'Fulfillment SKU' => $detail->fulfillment_sku,
+                        'Seller SKU' => $detail->seller_sku,
+                        'Item Name' => $detail->item_name,
+                        'Requested Qty' => $detail->requested_quantity,
+                        'Received Qty' => $detail->received_good ?? 0,
+                    ]);
+                }
+            }
+        }
+
+        $fileName = 'master_correlation_' . now('Asia/Jakarta')->format('Ymd_His') . '.xlsx';
+
+        return (new FastExcel($rows))->download($fileName);
     }
 
     public function resetStatus($id)
@@ -732,5 +940,35 @@ class InboundOrderController extends Controller
             DB::rollBack();
             return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Display import log (WMS Actual Upload) with filters.
+     */
+    public function importLog(Request $request)
+    {
+        $query = ImportStatus::query();
+
+        // Filter by filename
+        if ($request->filled('filename')) {
+            $query->where('filename', 'like', '%' . $request->input('filename') . '%');
+        }
+
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        // Filter by created_at date range
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->input('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->input('date_to'));
+        }
+
+        $logs = $query->orderByDesc('created_at')->paginate(20)->withQueryString();
+
+        return view('inbound.import-log', compact('logs'));
     }
 }
