@@ -81,7 +81,7 @@ class InboundOrderController extends Controller
 
         // 2. Ambil data untuk Tabel Utama
         $requests = InboundRequest::select([
-                'id', 'reference_number', 'fulfillment_order_no', 'client_name',
+                'id', 'reference_number', 'fulfillment_order_no', 'client_name', 'inbound_order_no',
                 'warehouse_code', 'status', 'created_at', 'updated_at', 'estimate_time', 'parent_id', 'comment'
             ])
             ->with([

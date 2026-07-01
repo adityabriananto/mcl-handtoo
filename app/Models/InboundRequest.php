@@ -88,15 +88,19 @@ class InboundRequest extends Model
      */
     public function scopeFilter($query, array $filters)
     {
-        // dd($filters);
         // 1. Filter Pencarian (Search)
         if (!empty($filters['search'])) {
-            $query->where(function($q) use ($filters) {
-                $q->where('reference_number', 'like', '%' . $filters['search'] . '%')
-                ->orWhere('inbound_order_no', 'like', '%' . $filters['search'] . '%') // Tambahkan IO No
-                ->orWhereHas('children', function($childQuery) use ($filters) {
-                    $childQuery->where('reference_number', 'like', '%' . $filters['search'] . '%');
-                });
+            $search = $filters['search'];
+            $like = '%' . $search . '%';
+            $query->where(function($q) use ($search, $like) {
+                $q->where('reference_number', 'like', $like)
+                  ->orWhere('inbound_order_no', 'like', $like)
+                  ->orWhereIn('id', function($sub) use ($like) {
+                      $sub->select('parent_id')
+                          ->from('inbound_orders')
+                          ->whereNotNull('parent_id')
+                          ->where('reference_number', 'like', $like);
+                  });
             });
         }
 
@@ -107,11 +111,15 @@ class InboundRequest extends Model
 
         // 3. Filter Status
         if (!empty($filters['status'])) {
-            $query->where(function($q) use ($filters) {
-                $q->where('status', $filters['status'])
-                ->orWhereHas('children', function($childQuery) use ($filters) {
-                    $childQuery->where('status', $filters['status']);
-                });
+            $status = $filters['status'];
+            $query->where(function($q) use ($status) {
+                $q->where('status', $status)
+                  ->orWhereIn('id', function($sub) use ($status) {
+                      $sub->select('parent_id')
+                          ->from('inbound_orders')
+                          ->whereNotNull('parent_id')
+                          ->where('status', $status);
+                  });
             });
         }
 
@@ -124,11 +132,16 @@ class InboundRequest extends Model
         }
 
         if (!empty($filters['inbound_order_no'])) {
-            $query->where(function($q) use ($filters) {
-                $q->where('inbound_order_no', 'like', '%' . $filters['inbound_order_no'] . '%')
-                ->orWhereHas('children', function($childQuery) use ($filters) {
-                    $childQuery->where('inbound_order_no', 'like', '%' . $filters['inbound_order_no'] . '%');
-                });
+            $io = $filters['inbound_order_no'];
+            $like = '%' . $io . '%';
+            $query->where(function($q) use ($io, $like) {
+                $q->where('inbound_order_no', 'like', $like)
+                  ->orWhereIn('id', function($sub) use ($like) {
+                      $sub->select('parent_id')
+                          ->from('inbound_orders')
+                          ->whereNotNull('parent_id')
+                          ->where('inbound_order_no', 'like', $like);
+                  });
             });
         }
 
