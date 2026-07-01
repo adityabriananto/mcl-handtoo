@@ -81,7 +81,7 @@ class InboundOrderController extends Controller
 
         // 2. Ambil data untuk Tabel Utama
         $requests = InboundRequest::select([
-                'id', 'reference_number', 'fulfillment_order_no', 'client_name', 'inbound_order_no',
+                'id', 'reference_number', 'fulfillment_order_no', 'client_name', 'inbound_order_no', 'is_arrived',
                 'warehouse_code', 'status', 'created_at', 'updated_at', 'estimate_time', 'parent_id', 'comment'
             ])
             ->with([
@@ -570,7 +570,7 @@ class InboundOrderController extends Controller
          * kecuali mereka sengaja memfilternya (atau kita kunci sama sekali).
          */
         $query = InboundRequest::select([
-                'id', 'reference_number', 'fulfillment_order_no', 'client_name', 'inbound_order_no',
+                'id', 'reference_number', 'fulfillment_order_no', 'client_name', 'inbound_order_no', 'is_arrived',
                 'warehouse_code', 'status', 'created_at', 'updated_at', 'estimate_time', 'parent_id'
             ])
             ->with(['details:id,inbound_order_id,fulfillment_sku,seller_sku,product_name,requested_quantity,received_good', 'children:id,parent_id,status'])
